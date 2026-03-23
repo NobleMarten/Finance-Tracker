@@ -131,6 +131,23 @@ func (s *ItemService) Clear() (string, error) {
 	return "clear all expenses", s.repo.Save([]model.Expense{})
 }
 
-func (s *ItemService) Summary() (string, error) {
-	return "", nil
+func (s *ItemService) Summary(m int) (int, error) {
+	expenses, err := s.repo.Load()
+	if err != nil {
+		return 0, err
+	}
+
+	summary := 0
+
+	for i := range expenses {
+		if m == 0 {
+			summary += expenses[i].Amount
+		} else {
+			if int(expenses[i].CreatedAt.Month()) == m {
+				summary += expenses[i].Amount
+			}
+		}
+	}
+
+	return summary, nil
 }

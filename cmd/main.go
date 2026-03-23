@@ -120,7 +120,37 @@ func main() {
 			fmt.Println("error: ", err)
 		}
 		fmt.Println(str)
+
 	case "summary":
+		if len(os.Args) < 2 {
+			fmt.Println("usage: summary \"--month\"")
+			return
+		}
+		if len(os.Args) == 2 {
+			sum, err := svc.Summary(0)
+			if err != nil {
+				fmt.Println("error: ", err)
+			}
+			fmt.Printf("Total expenses: %d\n", sum)
+		}
+		if len(os.Args) > 2 {
+			var month int
+			flagset := flag.NewFlagSet("month", flag.ExitOnError)
+			flagset.IntVar(&month, "month", 0, "help message for --month")
+
+			flagset.Parse(os.Args[2:])
+			if month < 1 || month > 12 {
+				fmt.Println("error: month must be between 1 and 12")
+				return
+			}
+
+			sum, err := svc.Summary(month)
+			if err != nil {
+				fmt.Println("error: ", err)
+			}
+
+			fmt.Printf("Total expenses for month %d: %d\n", month, sum)
+		}
 
 	}
 
