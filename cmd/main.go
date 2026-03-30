@@ -1,14 +1,17 @@
 package main
 
 import (
+	"FinanceTracker/internal/config"
+	"FinanceTracker/internal/db"
+	"FinanceTracker/internal/model"
 	"FinanceTracker/internal/service"
-	"FinanceTracker/internal/storage"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func printhelp() {
@@ -19,7 +22,20 @@ func printhelp() {
 }
 
 func main() {
-	repo := storage.NewFileStorage("data/expenses.json")
+	// repo := storage.NewFileStorage("data/expenses.json")
+
+	godotenv.Load()
+
+	conf, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	repo, err := db.NewPostgresRepo(conf.DB_URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	svc, err := service.NewItemService(*repo)
 	if err != nil {
 		log.Fatal(err)
@@ -38,21 +54,20 @@ func main() {
 		printhelp()
 
 	case "add":
-		if len(os.Args) < 4 {
+		if len(os.Args) < 3 {
 			fmt.Println("usage: add \"expense title, amount\"")
 			return
 		}
 
 		flagset := flag.NewFlagSet("add", flag.ExitOnError)
-
-		var title string
-		flagset.StringVar(&title, "title", "", "help message for --title")
 		var amount int
 		flagset.IntVar(&amount, "amount", 0, "help message for --amount")
+		var title string
+		flagset.StringVar(&title, "title", "", "help message for --title")
 
 		flagset.Parse(os.Args[2:])
 
-		expense, err := svc.Add(title, amount)
+		expense, err := svc.Add(amount, title)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -97,17 +112,29 @@ func main() {
 
 		flagset := flag.NewFlagSet("update", flag.ExitOnError)
 
+		var UpdateAmount *int
+		var UpdateTitle *string
+
 		var id int
 		flagset.IntVar(&id, "id", 0, "help message for --id")
 		var title string
 		flagset.StringVar(&title, "title", "", "help message for --title")
+		var amount int
+		flagset.IntVar(&amount, "amount", -1, "help message for --amount")
 
-		title = strings.Join(os.Args[5:], " ")
-		fmt.Println(title)
+		// fmt.Println(title)
 
 		flagset.Parse(os.Args[2:])
 
-		expense, err := svc.Update(id, title)
+		if amount != -1 {
+			UpdateAmount = &amount
+		}
+
+		if title != "" {
+			UpdateTitle = &title
+		}
+
+		expense, err := svc.Update(id, UpdateAmount, UpdateTitle) // передаем указатели на новые значения
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -115,11 +142,11 @@ func main() {
 		fmt.Println("update expense:", expense)
 
 	case "clear":
-		str, err := svc.Clear()
+		err := svc.Clear()
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
-		fmt.Println(str)
+		fmt.Println("all expenses cleared")
 
 	case "summary":
 		if len(os.Args) < 2 {
@@ -140,7 +167,7 @@ func main() {
 
 			flagset.Parse(os.Args[2:])
 			if month < 1 || month > 12 {
-				fmt.Println("error: month must be between 1 and 12")
+				fmt.Println("error: ", model.ErrInvalidMonth)
 				return
 			}
 

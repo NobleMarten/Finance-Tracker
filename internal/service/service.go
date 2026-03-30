@@ -3,151 +3,95 @@ package service
 import (
 	"FinanceTracker/internal/model"
 	"FinanceTracker/internal/storage"
-	"fmt"
 	"strings"
-	"time"
 )
 
 type ItemService struct {
-	repo storage.FileStorage
+	repo storage.PostgresRepo
 }
 
-func NewItemService(repo storage.FileStorage) (*ItemService, error) {
+func NewItemService(repo storage.PostgresRepo) (*ItemService, error) {
 	return &ItemService{repo: repo}, nil
 }
 
-func (s *ItemService) Add(title string, amount int) (model.Expense, error) {
-	expenses, err := s.repo.Load()
-	if err != nil {
-		return model.Expense{}, err
+func ValidateTitle(title string) (string, error) {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return "Untitled", nil
 	}
 
+	if len([]rune(title)) > 100 {
+		return "", model.ErrTooLongTitle
+	}
+	return title, nil
+}
+
+func ValidateID(id int) (int, error) {
+	if id <= 0 {
+		return 0, model.ErrInvalidID
+	}
+	return id, nil
+}
+
+func ValidateAmount(amount int) (int, error) {
+	if amount < 0 {
+		return 0, model.ErrNegativeAmount
+	}
+	return amount, nil
+}
+
+func (s *ItemService) Add(amount int, title string) (model.Expense, error) {
 	if amount < 0 {
 		return model.Expense{}, model.ErrNegativeAmount
 	}
 
-	title = strings.TrimSpace(title)
-	if title == "" {
-		return model.Expense{}, model.ErrEmptyTitle
-	}
-
-	nextID := 1
-	for _, it := range expenses {
-		if it.ID >= nextID {
-			nextID = it.ID + 1
-		}
-	}
-
-	tm := time.Now()
-
-	newItem := model.Expense{
-		ID:        nextID,
-		Title:     title,
-		Amount:    amount,
-		CreatedAt: tm,
-	}
-
-	expenses = append(expenses, newItem)
-	if err := s.repo.Save(expenses); err != nil {
+	title, err := ValidateTitle(title)
+	if err != nil {
 		return model.Expense{}, err
 	}
-	return newItem, nil
+
+	return s.repo.Add(amount, title)
 }
 
 func (s *ItemService) List() ([]model.Expense, error) {
-	return s.repo.Load()
+	return s.repo.List()
 }
 
-func (s *ItemService) Delete(id int) (string, error) {
-	expenses, err := s.repo.Load()
-	if err != nil {
-		return "", err
-	}
-
-	if id <= 0 {
-		return "", model.ErrInvalidID
-	}
-
-	found := false
-
-	for i, v := range expenses {
-		if v.ID == id {
-			found = true
-			expenses = append(expenses[:i], expenses[i+1:]...)
-			if err := s.repo.Save(expenses); err != nil {
-				return "", err
-			}
-		}
-	}
-
-	if found == false {
-		return "", model.ErrNotFoundExpense
-	}
-
-	return fmt.Sprintf("delete expense with id: %d", id), nil
-}
-
-func (s *ItemService) Update(id int, newtitle string) (model.Expense, error) {
-	if newtitle == "" {
-		return model.Expense{}, model.ErrEmptyTitle
-	}
-
+func (s *ItemService) Delete(id int) (model.Expense, error) {
 	if id <= 0 {
 		return model.Expense{}, model.ErrInvalidID
 	}
 
-	expenses, err := s.repo.Load()
+	return s.repo.Delete(id)
+}
+
+func (s *ItemService) Update(id int, newamount *int, newtitle *string) (model.Expense, error) {
+
+	id, err := ValidateID(id)
 	if err != nil {
 		return model.Expense{}, err
 	}
 
-	found := false
-	var updexp model.Expense
-
-	for i, v := range expenses {
-		if v.ID == id {
-			found = true
-			expenses[i].Title = newtitle
-			updexp = model.Expense{
-				ID:     v.ID,
-				Title:  newtitle,
-				Amount: v.Amount,
-			}
+	if newtitle != nil {
+		*newtitle, err = ValidateTitle(*newtitle)
+		if err != nil {
+			return model.Expense{}, err
 		}
 	}
 
-	if found == false {
-		return model.Expense{}, model.ErrNotFoundExpense
+	if newamount != nil {
+		if *newamount < 0 {
+			return model.Expense{}, model.ErrNegativeAmount
+		}
 	}
 
-	if err := s.repo.Save(expenses); err != nil {
-		return model.Expense{}, err
-	}
-
-	return updexp, nil
+	return s.repo.Update(id, newamount, newtitle)
 }
 
-func (s *ItemService) Clear() (string, error) {
-	return "clear all expenses", s.repo.Save([]model.Expense{})
+func (s *ItemService) Clear() error {
+	return s.repo.Clear()
 }
 
 func (s *ItemService) Summary(m int) (int, error) {
-	expenses, err := s.repo.Load()
-	if err != nil {
-		return 0, err
-	}
-
-	summary := 0
-
-	for i := range expenses {
-		if m == 0 {
-			summary += expenses[i].Amount
-		} else {
-			if int(expenses[i].CreatedAt.Month()) == m {
-				summary += expenses[i].Amount
-			}
-		}
-	}
-
-	return summary, nil
+	return s.repo.Summary()
 }
