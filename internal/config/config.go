@@ -6,8 +6,8 @@ import (
 )
 
 type Config struct {
-	DB_URL string
-	Host   string
+	DBURL string
+	Host  string
 }
 
 func NewConfig() (*Config, error) {
@@ -22,7 +22,7 @@ func NewConfig() (*Config, error) {
 	}
 
 	return &Config{
-		DB_URL: db,
-		Host:   host,
+		DBURL: db,
+		Host:  host,
 	}, nil
 }

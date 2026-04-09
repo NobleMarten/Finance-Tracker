@@ -2,15 +2,23 @@ package service
 
 import (
 	"FinanceTracker/internal/model"
-	"FinanceTracker/internal/storage"
 	"strings"
 )
 
-type ItemService struct {
-	repo storage.PostgresRepo
+type ExpenseRepo interface {
+	Add(amount int, title string) (model.Expense, error)
+	List() ([]model.Expense, error)
+	Delete(id int) (model.Expense, error)
+	Clear() error
+	Summary() (int, error)
+	Update(id int, newamount *int, newtile *string) (model.Expense, error)
 }
 
-func NewItemService(repo storage.PostgresRepo) (*ItemService, error) {
+type ItemService struct {
+	repo ExpenseRepo
+}
+
+func NewItemService(repo ExpenseRepo) (*ItemService, error) {
 	return &ItemService{repo: repo}, nil
 }
 

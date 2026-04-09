@@ -7,15 +7,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type RepoStorage interface {
-	Add(amount int, title string) (model.Expense, error)
-	List() ([]model.Expense, error)
-	Delete(id int) error
-	Clear() error
-	Summary() (int, error)
-	Update(id int, newamount *int, newtile *string) (model.Expense, error)
-}
-
 type PostgresRepo struct {
 	DB *sql.DB // указатель нужен для возможности изменять состояние базы данных внутри методов
 }

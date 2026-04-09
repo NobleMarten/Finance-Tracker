@@ -31,12 +31,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	repo, err := db.NewPostgresRepo(conf.DB_URL)
+	repo, err := db.NewPostgresRepo(conf.DBURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	svc, err := service.NewItemService(*repo)
+	svc, err := service.NewItemService(repo)
 	if err != nil {
 		log.Fatal(err)
 	}
