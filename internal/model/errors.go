@@ -11,4 +11,7 @@ var (
 	ErrInvalidMonth    = errors.New("Invalid month")
 	ErrEmptyDBURL      = errors.New("DB_URL is empty")
 	ErrNotFound        = errors.New("Not found")
+	ErrInvalidCurrency = errors.New("Invalid currency")
+	ErrInvalidAPIURL   = errors.New("Invalid API URL")
+	ErrEmptyAPIKey     = errors.New("API Key is empty")
 )

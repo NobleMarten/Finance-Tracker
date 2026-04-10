@@ -5,6 +5,7 @@ import (
 	"FinanceTracker/internal/db"
 	"FinanceTracker/internal/model"
 	"FinanceTracker/internal/service"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -75,7 +76,8 @@ func main() {
 		fmt.Println("added: ", expense)
 
 	case "list":
-		list, err := svc.List()
+		ctx := context.Background()
+		list, err := svc.List(ctx)
 		if err != nil {
 			fmt.Println("error: ", err)
 			return

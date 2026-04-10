@@ -2,15 +2,16 @@ package service
 
 import (
 	"FinanceTracker/internal/model"
+	"context"
 	"strings"
 )
 
 type ExpenseRepo interface {
 	Add(amount int, title string) (model.Expense, error)
-	List() ([]model.Expense, error)
+	List(ctx context.Context) ([]model.Expense, error)
 	Delete(id int) (model.Expense, error)
 	Clear() error
-	Summary() (int, error)
+	Summary(m int) (int, error)
 	Update(id int, newamount *int, newtile *string) (model.Expense, error)
 }
 
@@ -61,8 +62,8 @@ func (s *ItemService) Add(amount int, title string) (model.Expense, error) {
 	return s.repo.Add(amount, title)
 }
 
-func (s *ItemService) List() ([]model.Expense, error) {
-	return s.repo.List()
+func (s *ItemService) List(ctx context.Context) ([]model.Expense, error) {
+	return s.repo.List(ctx)
 }
 
 func (s *ItemService) Delete(id int) (model.Expense, error) {
@@ -101,5 +102,10 @@ func (s *ItemService) Clear() error {
 }
 
 func (s *ItemService) Summary(m int) (int, error) {
-	return s.repo.Summary()
+
+	if 0 > m || m > 12 {
+		return 0, model.ErrInvalidMonth
+	}
+
+	return s.repo.Summary(m)
 }

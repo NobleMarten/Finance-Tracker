@@ -2,6 +2,8 @@ package transport
 
 import (
 	"FinanceTracker/internal/model"
+	"FinanceTracker/internal/service"
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,14 +12,22 @@ import (
 )
 
 type ItemService interface {
-	List() ([]model.Expense, error)
+	List(ctx context.Context) ([]model.Expense, error)
 	Add(amount int, title string) (model.Expense, error)
 	Delete(id int) (model.Expense, error)
 	Update(id int, amount *int, title *string) (model.Expense, error)
+	Clear() error
+	Summary(m int) (int, error)
 }
 
 type Handler struct {
-	svc ItemService // добавляем поле для хранения ссылки на сервис, который будет использоваться для обработки запросов
+	svc             ItemService
+	exchangeService *service.ExchangeService // ссылка на сервис обмена валют
+}
+
+type ListExpense struct {
+	Items []model.Expense `json:"items"`
+	Total int             `json:"total"`
 }
 
 type NewExpenseRequest struct {
@@ -35,27 +45,40 @@ type PatchResponse struct {
 	Title  *string `json:"title"`
 }
 
-func NewHandler(svc ItemService) *Handler {
-	return &Handler{svc: svc}
+type SummaryRequest struct {
+	Month int `json:"month"`
+}
+
+func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
+	return &Handler{svc: svc, exchangeService: exsvc}
 }
 
 func (h *Handler) RegisterRouteres(r *chi.Mux) {
 	r.Get("/expenses", h.Expenses)
 	r.Post("/expenses", h.PostExpense)
+	r.Get("/expenses/summary", h.Summary)
+	r.Post("/expenses/clear", h.Clear)
 	r.Delete("/expenses/{id}", h.DeleteExpenses)
 	r.Patch("/expenses/{id}", h.PatchExpenses)
 }
 
 func (h *Handler) Expenses(w http.ResponseWriter, r *http.Request) {
-	expenses, err := h.svc.List()
+	ctx := r.Context() // берем контекст для передачи в сервис
+
+	expenses, err := h.svc.List(ctx)
 	if err != nil {
 		WriteError(w, err)
 		return
 	}
 
+	list := ListExpense{
+		Items: expenses,
+		Total: len(expenses),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(expenses); err != nil {
+	if err := json.NewEncoder(w).Encode(list); err != nil {
 		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError) // error 500
 		return
 	}
@@ -132,5 +155,41 @@ func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError)
 		return
 	}
+}
 
+func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
+	err := h.svc.Clear()
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(nil); err != nil {
+		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
+	var SumReq SummaryRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&SumReq); err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	sum, err := h.svc.Summary(SumReq.Month)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(sum); err != nil {
+		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError)
+		return
+	}
 }

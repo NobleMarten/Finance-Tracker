@@ -7,6 +7,7 @@ import (
 	"FinanceTracker/internal/transport"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -15,6 +16,7 @@ import (
 func main() {
 
 	godotenv.Load()
+	base := os.Getenv("RateURL")
 
 	conf, err := config.NewConfig()
 	if err != nil {
@@ -31,14 +33,14 @@ func main() {
 		panic(err)
 	}
 
-	h := transport.NewHandler(svc)
-
-	// http.HandleFunc("/expenses", h.Expenses) // добавляем обработчик для маршрута /expenses
+	exsvc := service.NewExchangeService(base)
+	h := transport.NewHandler(svc, exsvc)
 
 	r := chi.NewRouter()
 
 	h.RegisterRouteres(r)
 
-	log.Fatal(http.ListenAndServe(conf.Host, nil))
+	println("Server is running on ", conf.Host)
+	log.Fatal(http.ListenAndServe(conf.Host, r))
 
 }

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"FinanceTracker/internal/model"
+	"context"
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -20,8 +21,8 @@ func (p *PostgresRepo) Add(amount int, title string) (model.Expense, error) {
 	return expense, nil
 }
 
-func (p *PostgresRepo) List() ([]model.Expense, error) {
-	rows, err := p.DB.Query("SELECT * From EXPENSES Order by id")
+func (p *PostgresRepo) List(ctx context.Context) ([]model.Expense, error) {
+	rows, err := p.DB.QueryContext(ctx, "SELECT * From EXPENSES Order by id")
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +78,19 @@ func (p *PostgresRepo) Clear() error {
 	return nil
 }
 
-func (p *PostgresRepo) Summary() (int, error) {
+func (p *PostgresRepo) Summary(m int) (int, error) {
 	var summary int
-	row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses")
-	if err := row.Scan(&summary); err != nil {
-		return 0, err
-	}
 
+	if m == 0 {
+		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses")
+		if err := row.Scan(&summary); err != nil {
+			return 0, err
+		}
+	} else {
+		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE EXTRACT(MONTH FROM created_at) = $1", m)
+		if err := row.Scan(&summary); err != nil {
+			return 0, err
+		}
+	}
 	return summary, nil
 }
