@@ -5,6 +5,7 @@ import (
 	"FinanceTracker/internal/service"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -176,6 +177,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 	var SumReq SummaryRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&SumReq); err != nil {
+		log.Println(err)
 		WriteError(w, err)
 		return
 	}
@@ -186,9 +188,25 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rate, err := h.exchangeService.GetRate("RUB", "USD")
+	if err != nil {
+		log.Println(err)
+		WriteError(w, err)
+		return
+	}
+
+	res := struct {
+		Sum    int     `json:"sum"`
+		SumUSD float64 `json:"sum_usd"`
+	}{
+		Sum:    sum,
+		SumUSD: rate * float64(sum),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(sum); err != nil {
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		log.Println(err)
 		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError)
 		return
 	}
