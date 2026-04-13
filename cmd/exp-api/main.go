@@ -38,6 +38,8 @@ func main() {
 
 	r := chi.NewRouter()
 
+	r.Use(transport.MyCors)
+
 	h.RegisterRouteres(r)
 
 	println("Server is running on ", conf.Host)

@@ -21,9 +21,13 @@ type ItemService interface {
 	Summary(m int) (int, error)
 }
 
+type ExchangeService interface {
+	GetRate(from, to string) (float64, error)
+}
+
 type Handler struct {
 	svc             ItemService
-	exchangeService *service.ExchangeService // ссылка на сервис обмена валют
+	exchangeService ExchangeService
 }
 
 type ListExpense struct {
@@ -61,6 +65,20 @@ func (h *Handler) RegisterRouteres(r *chi.Mux) {
 	r.Post("/expenses/clear", h.Clear)
 	r.Delete("/expenses/{id}", h.DeleteExpenses)
 	r.Patch("/expenses/{id}", h.PatchExpenses)
+	r.Get("/rate", h.Rate)
+}
+
+func MyCors(next http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (h *Handler) Expenses(w http.ResponseWriter, r *http.Request) {
@@ -209,5 +227,38 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		http.Error(w, "Failed to encode expenses", http.StatusInternalServerError)
 		return
+	}
+}
+
+func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
+	from := r.URL.Query().Get("from")
+	if from == "" {
+		from = "RUB"
+	}
+	to := r.URL.Query().Get("to")
+	if to == "" {
+		to = "USD"
+	}
+
+	rate, err := h.exchangeService.GetRate(from, to)
+	if err != nil {
+		log.Println("exchange rate error:", err)
+		WriteError(w, err)
+		return
+	}
+
+	res := struct {
+		From string  `json:"from"`
+		To   string  `json:"to"`
+		Rate float64 `json:"rate"`
+	}{
+		From: from,
+		To:   to,
+		Rate: rate,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		http.Error(w, "Failed to encode rate", http.StatusInternalServerError)
 	}
 }

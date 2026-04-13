@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #0b0b0b;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  overscroll-behavior: none;
+}
+
+input, button {
+  font-family: inherit;
+}
