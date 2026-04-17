@@ -15,8 +15,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center">
-      <div className="w-full max-w-sm h-screen flex flex-col bg-[#0b0b0b] overflow-hidden">
+    <div className="min-h-screen bg-[#141414] flex items-center justify-center">
+      <div className="w-full max-w-sm h-screen flex flex-col bg-[#141414] overflow-hidden">
         {loading && screen === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <span className="text-[11px] text-[#1e1e1e] uppercase tracking-widest">loading</span>

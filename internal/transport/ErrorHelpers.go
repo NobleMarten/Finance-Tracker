@@ -48,12 +48,6 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "NOT_FOUND",
 			Message: err.Error(),
 		}
-	case errors.Is(err, model.ErrNotFound):
-		status = http.StatusNotFound
-		res = ErrorResponse{
-			Code:    "NOT_FOUND",
-			Message: err.Error(),
-		}
 	case errors.Is(err, model.ErrNotFoundExpense):
 		status = http.StatusNotFound
 		res = ErrorResponse{

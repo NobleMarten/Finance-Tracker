@@ -2,6 +2,7 @@ package service
 
 import (
 	"FinanceTracker/internal/model"
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -25,7 +26,7 @@ func NewExchangeService(baseURL string) *ExchangeService {
 	}
 }
 
-func (c *ExchangeService) GetRate(from, to string) (float64, error) {
+func (c *ExchangeService) GetRate(ctx context.Context, from, to string) (float64, error) {
 	if c.apikey == "" {
 		return 0, model.ErrEmptyAPIKey
 	}

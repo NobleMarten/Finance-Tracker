@@ -12,7 +12,7 @@ export default function BottomNav({ screen, onNavigate }) {
 
       <button
         onClick={() => onNavigate(2)}
-        className="absolute right-5 bottom-2 w-10 h-10 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform"
+        className="absolute right-5 bottom-2 w-10 h-10 rounded-full bg-[#4F7EFF] flex items-center justify-center active:scale-95 transition-transform"
       >
         <PlusIcon />
       </button>
@@ -58,7 +58,7 @@ function HistoryIcon({ active }) {
 function PlusIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-      stroke="#0b0b0b" strokeWidth="2.2" strokeLinecap="round">
+      stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19"/>
       <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>

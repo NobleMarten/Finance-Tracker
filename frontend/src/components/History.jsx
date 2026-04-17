@@ -83,8 +83,8 @@ export default function History({ transactions }) {
       <div className="px-6 pb-4 flex-shrink-0">
         <div className="text-[8px] text-[#222] uppercase tracking-[0.16em] mb-1.5">total</div>
         <div
-          className="text-white leading-none overflow-hidden whitespace-nowrap"
-          style={{ fontSize: scaledFontSize(total, 36, 20, 7) + 'px' }}
+          className="text-white leading-none overflow-hidden whitespace-nowrap font-bold"
+          style={{ fontSize: scaledFontSize(total, 36, 20, 7) + 'px', letterSpacing: '-0.03em' }}
         >
           {fmtFull(total)}
         </div>

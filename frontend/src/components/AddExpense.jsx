@@ -100,7 +100,7 @@ export default function AddExpense({ onAdd }) {
         onClick={submit}
         disabled={!ready || busy}
         className={`w-full py-3 rounded-xl text-[10px] uppercase tracking-widest mb-3 flex-shrink-0 transition-all duration-200 border ${ready
-          ? 'bg-white text-[#0b0b0b] border-white cursor-pointer'
+          ? 'bg-white text-[#141414] border-white cursor-pointer'
           : 'bg-[#141414] text-[#2e2e2e] border-[#1e1e1e] cursor-not-allowed'
           }`}
       >

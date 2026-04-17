@@ -42,7 +42,7 @@ export default function Dashboard({ transactions }) {
       <div className="px-6 pt-5 pb-5 flex-shrink-0">
         <div className="text-[8px] text-[#222] uppercase tracking-[0.16em] mb-2">this month</div>
         <div
-          className="text-white leading-none overflow-hidden whitespace-nowrap font-light"
+          className="text-white leading-none overflow-hidden whitespace-nowrap font-bold"
           style={{ fontSize: scaledFontSize(monthVal, 40, 24, 7) + 'px', letterSpacing: '-0.03em' }}
         >
           {fmtFull(monthVal)}

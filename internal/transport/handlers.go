@@ -14,15 +14,15 @@ import (
 
 type ItemService interface {
 	List(ctx context.Context) ([]model.Expense, error)
-	Add(amount int, title string) (model.Expense, error)
-	Delete(id int) (model.Expense, error)
-	Update(id int, amount *int, title *string) (model.Expense, error)
-	Clear() error
-	Summary(m int) (int, error)
+	Add(ctx context.Context, amount int, title string) (model.Expense, error)
+	Delete(ctx context.Context, id int) (model.Expense, error)
+	Update(ctx context.Context, id int, amount *int, title *string) (model.Expense, error)
+	Clear(ctx context.Context) error
+	Summary(ctx context.Context, m int) (int, error)
 }
 
 type ExchangeService interface {
-	GetRate(from, to string) (float64, error)
+	GetRate(ctx context.Context, from, to string) (float64, error)
 }
 
 type Handler struct {
@@ -58,7 +58,7 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 	return &Handler{svc: svc, exchangeService: exsvc}
 }
 
-func (h *Handler) RegisterRouteres(r *chi.Mux) {
+func (h *Handler) RegisterRouteres(r *chi.Mux) { //*chi.Mux
 	r.Get("/expenses", h.Expenses)
 	r.Post("/expenses", h.PostExpense)
 	r.Get("/expenses/summary", h.Summary)
@@ -105,13 +105,14 @@ func (h *Handler) Expenses(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) PostExpense(w http.ResponseWriter, r *http.Request) {
 	var NewExp NewExpenseRequest
+	ctx := r.Context()
 
 	if err := json.NewDecoder(r.Body).Decode(&NewExp); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	expense, err := h.svc.Add(NewExp.Amount, NewExp.Title)
+	expense, err := h.svc.Add(ctx, NewExp.Amount, NewExp.Title)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -128,13 +129,14 @@ func (h *Handler) PostExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		WriteError(w, err)
 		return
 	}
 
-	expense, err := h.svc.Delete(id)
+	expense, err := h.svc.Delete(ctx, id)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -149,6 +151,7 @@ func (h *Handler) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		WriteError(w, err)
@@ -162,7 +165,7 @@ func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expense, err := h.svc.Update(id, PatchReq.Amount, PatchReq.Title) // здесь без ссылки потому что
+	expense, err := h.svc.Update(ctx, id, PatchReq.Amount, PatchReq.Title) // здесь без ссылки потому что
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -177,7 +180,8 @@ func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
-	err := h.svc.Clear()
+	ctx := r.Context()
+	err := h.svc.Clear(ctx)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -192,6 +196,7 @@ func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var SumReq SummaryRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&SumReq); err != nil {
@@ -200,13 +205,13 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sum, err := h.svc.Summary(SumReq.Month)
+	sum, err := h.svc.Summary(ctx, SumReq.Month)
 	if err != nil {
 		WriteError(w, err)
 		return
 	}
 
-	rate, err := h.exchangeService.GetRate("RUB", "USD")
+	rate, err := h.exchangeService.GetRate(ctx, "RUB", "USD")
 	if err != nil {
 		log.Println(err)
 		WriteError(w, err)
@@ -231,6 +236,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	from := r.URL.Query().Get("from")
 	if from == "" {
 		from = "RUB"
@@ -240,7 +246,7 @@ func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
 		to = "USD"
 	}
 
-	rate, err := h.exchangeService.GetRate(from, to)
+	rate, err := h.exchangeService.GetRate(ctx, from, to)
 	if err != nil {
 		log.Println("exchange rate error:", err)
 		WriteError(w, err)

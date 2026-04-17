@@ -12,8 +12,8 @@ type PostgresRepo struct {
 	DB *sql.DB // указатель нужен для возможности изменять состояние базы данных внутри методов
 }
 
-func (p *PostgresRepo) Add(amount int, title string) (model.Expense, error) {
-	row := p.DB.QueryRow("INSERT INTO EXPENSES (title, amount) VALUES ($1, $2) RETURNING id, amount, title, created_at", title, amount)
+func (p *PostgresRepo) Add(ctx context.Context, amount int, title string) (model.Expense, error) {
+	row := p.DB.QueryRowContext(ctx, "INSERT INTO EXPENSES (title, amount) VALUES ($1, $2) RETURNING id, amount, title, created_at", title, amount)
 	var expense model.Expense
 	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt); err != nil {
 		return model.Expense{}, err
@@ -42,8 +42,8 @@ func (p *PostgresRepo) List(ctx context.Context) ([]model.Expense, error) {
 	return expenses, nil
 }
 
-func (p *PostgresRepo) Delete(id int) (model.Expense, error) {
-	row := p.DB.QueryRow("DELETE From expenses where id = $1 RETURNING id, amount, title, created_at", id)
+func (p *PostgresRepo) Delete(ctx context.Context, id int) (model.Expense, error) {
+	row := p.DB.QueryRowContext(ctx, "DELETE From expenses where id = $1 RETURNING id, amount, title, created_at", id)
 	var expense model.Expense
 	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt); err != nil {
 		return model.Expense{}, err
@@ -51,14 +51,14 @@ func (p *PostgresRepo) Delete(id int) (model.Expense, error) {
 	return expense, nil
 }
 
-func (p *PostgresRepo) Update(id int, newamount *int, newtitle *string) (model.Expense, error) {
+func (p *PostgresRepo) Update(ctx context.Context, id int, newamount *int, newtitle *string) (model.Expense, error) {
 	query := `UPDATE expenses SET
 		 amount = COALESCE($1, amount), 
 		 title = COALESCE($2, title)
 		 WHERE id = $3
 		 RETURNING id, amount, title, created_at`
 
-	row := p.DB.QueryRow(query, newamount, newtitle, id)
+	row := p.DB.QueryRowContext(ctx, query, newamount, newtitle, id)
 	var expense model.Expense
 	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
@@ -70,15 +70,15 @@ func (p *PostgresRepo) Update(id int, newamount *int, newtitle *string) (model.E
 	return expense, nil
 }
 
-func (p *PostgresRepo) Clear() error {
-	_, err := p.DB.Exec("Truncate expenses RESTART IDENTITY")
+func (p *PostgresRepo) Clear(ctx context.Context) error {
+	_, err := p.DB.ExecContext(ctx, "Truncate expenses RESTART IDENTITY")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PostgresRepo) Summary(m int) (int, error) {
+func (p *PostgresRepo) Summary(ctx context.Context, m int) (int, error) {
 	var summary int
 
 	if m == 0 {
