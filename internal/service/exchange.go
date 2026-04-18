@@ -9,7 +9,7 @@ import (
 )
 
 type ExchangeService struct {
-	client  http.Client
+	client  http.Client //
 	baseURL string
 	apikey  string
 }

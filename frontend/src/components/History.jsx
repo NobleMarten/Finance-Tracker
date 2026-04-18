@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fmtFull, fmtShort, fmtTime, scaledFontSize } from '../utils/format'
+import { fmtFull, fmtShort, fmtTime, fmtDateShort, scaledFontSize } from '../utils/format'
 
 
 function getRange(seg, offset) {
@@ -41,20 +41,31 @@ export default function History({ transactions }) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* header */}
-      <div className="px-6 pt-5 flex-shrink-0">
-        <div className="text-[22px] text-white mb-4" style={{ fontStyle: 'italic' }}>
-          history
+      {/* Header */}
+      <div className="px-6 pt-6 flex-shrink-0 animate-fade-in">
+        <div className="text-[22px] font-semibold tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>
+          History
         </div>
 
-        {/* segment */}
-        <div className="flex bg-[#111] rounded-lg p-0.5 gap-0.5">
+        {/* Segment control */}
+        <div
+          className="flex p-1 gap-1"
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
           {['Day', 'Month', 'Year'].map((lbl, i) => (
             <button
               key={lbl}
               onClick={() => handleSeg(i)}
-              className={`flex-1 py-1.5 text-[10px] rounded-md transition-colors tracking-wider ${seg === i ? 'bg-[#1e1e1e] text-white' : 'text-[#2e2e2e]'
-                }`}
+              className="flex-1 py-2 text-[11px] font-medium tracking-wider transition-all duration-250"
+              style={{
+                borderRadius: '8px',
+                background: seg === i ? 'var(--accent-soft)' : 'transparent',
+                color: seg === i ? 'var(--accent)' : 'var(--text-tertiary)',
+              }}
             >
               {lbl}
             </button>
@@ -62,46 +73,100 @@ export default function History({ transactions }) {
         </div>
       </div>
 
-      {/* nav */}
-      <div className="flex items-center justify-between px-6 pt-3 pb-1 flex-shrink-0">
+      {/* Period navigation */}
+      <div className="flex items-center justify-between px-6 pt-4 pb-2 flex-shrink-0 animate-fade-in delay-1">
         <button
           onClick={() => setOffset(o => o + 1)}
-          className="text-[#2e2e2e] text-xl px-2 py-0.5 leading-none"
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          ‹
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
-        <span className="text-[13px] text-white">{label}</span>
+        <span className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
+          {label}
+        </span>
         <button
           onClick={() => setOffset(o => Math.max(0, o - 1))}
-          className={`text-xl px-2 py-0.5 leading-none ${offset === 0 ? 'text-[#1e1e1e]' : 'text-[#2e2e2e]'}`}
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+          style={{ color: offset === 0 ? 'var(--text-ghost)' : 'var(--text-secondary)' }}
+          onMouseEnter={e => { if (offset > 0) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          ›
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
       </div>
 
-      {/* total */}
-      <div className="px-6 pb-4 flex-shrink-0">
-        <div className="text-[8px] text-[#222] uppercase tracking-[0.16em] mb-1.5">total</div>
+      {/* Total */}
+      <div className="px-6 pb-5 flex-shrink-0 animate-fade-in delay-2">
         <div
-          className="text-white leading-none overflow-hidden whitespace-nowrap font-bold"
-          style={{ fontSize: scaledFontSize(total, 36, 20, 7) + 'px', letterSpacing: '-0.03em' }}
+          className="text-[11px] uppercase tracking-[0.16em] font-medium mb-2"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          total
+        </div>
+        <div
+          className="leading-none overflow-hidden whitespace-nowrap font-semibold"
+          style={{
+            fontSize: scaledFontSize(total, 38, 22, 7) + 'px',
+            letterSpacing: '-0.03em',
+            color: 'var(--text-primary)',
+          }}
         >
           {fmtFull(total)}
         </div>
       </div>
 
-      <div className="h-px bg-[#161616] mx-6 flex-shrink-0" />
+      <div className="mx-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-      {/* list */}
-      <div className="flex-1 min-h-0 overflow-hidden px-6">
+      {/* Transaction list */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-6">
         {filtered.length === 0 ? (
-          <p className="text-[10px] text-[#1e1e1e] text-center py-8">nothing here</p>
+          <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-ghost)' }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
+            </div>
+            <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+              nothing here
+            </p>
+          </div>
         ) : (
-          filtered.map(t => (
-            <div key={t.id} className="flex items-center py-2.5 border-t border-[#111]">
-              <span className="text-[10px] text-[#252525] w-9 flex-shrink-0">{fmtTime(t.ts)}</span>
-              <span className="text-[11px] text-[#3a3a3a] flex-1 px-2.5 font-light">{t.description || '—'}</span>
-              <span className="text-[14px] text-[#888] whitespace-nowrap">
+          filtered.map((t, i) => (
+            <div
+              key={t.id}
+              className="flex items-center py-3 animate-fade-in"
+              style={{
+                borderTop: '1px solid var(--border-muted)',
+                animationDelay: `${i * 0.03}s`,
+              }}
+            >
+              <span
+                className={`text-[11px] ${seg === 0 ? 'w-10' : 'w-11'} flex-shrink-0 font-medium`}
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                {seg === 0 ? fmtTime(t.ts) : fmtDateShort(t.ts)}
+              </span>
+              <span
+                className="text-[13px] flex-1 px-3 font-light truncate"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {t.description || '—'}
+              </span>
+              <span
+                className="text-[15px] font-medium whitespace-nowrap"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 {fmtShort(t.amount)}
               </span>
             </div>

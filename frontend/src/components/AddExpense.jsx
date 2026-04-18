@@ -55,9 +55,7 @@ export default function AddExpense({ onAdd }) {
   }
 
   return (
-    <div
-      className="flex flex-col flex-1 min-h-0 px-6 pt-5"
-    >
+    <div className="flex flex-col flex-1 min-h-0 px-6 pt-6">
       {/* hidden input to capture physical keyboard */}
       <input
         ref={hiddenRef}
@@ -67,60 +65,85 @@ export default function AddExpense({ onAdd }) {
         aria-hidden="true"
       />
 
-      {/* title */}
-      <div className="text-[20px] text-white mb-5 flex-shrink-0 font-light tracking-tight">
-        add expense
+      {/* Title */}
+      <div
+        className="text-[22px] font-semibold tracking-tight mb-5 flex-shrink-0 animate-fade-in"
+        style={{ color: 'var(--text-primary)' }}
+      >
+        Add expense
       </div>
 
-      {/* amount display */}
-      <div className="flex-shrink-0">
-        <div className="text-[8px] text-[#222] uppercase tracking-[0.16em] mb-2">
+      {/* Amount display */}
+      <div className="flex-shrink-0 animate-fade-in delay-1">
+        <div
+          className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
           amount · RUB
         </div>
         <div
-          className="overflow-hidden whitespace-nowrap leading-none text-white font-light"
-          style={{ fontSize: numSize + 'px', letterSpacing: '-0.03em' }}
+          className="overflow-hidden whitespace-nowrap leading-none font-semibold transition-all duration-150"
+          style={{
+            fontSize: numSize + 'px',
+            letterSpacing: '-0.03em',
+            color: amt === '0' ? 'var(--text-ghost)' : 'var(--text-primary)',
+          }}
         >
           {amt}
         </div>
       </div>
 
-      <div className="h-px bg-[#1a1a1a] my-3 flex-shrink-0" />
+      <div className="my-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-      {/* description */}
+      {/* Description input */}
       <input
         value={desc}
         onChange={e => setDesc(e.target.value)}
         placeholder="what for? (optional)"
-        className="w-full bg-transparent border-none text-[13px] text-[#555] font-light outline-none pb-3 flex-shrink-0 placeholder-[#222]"
+        className="w-full bg-transparent text-[14px] font-light outline-none pb-4 flex-shrink-0 animate-fade-in delay-2"
+        style={{
+          color: 'var(--text-secondary)',
+          borderBottom: '1px solid var(--border-subtle)',
+          caretColor: 'var(--accent)',
+        }}
       />
 
-      {/* submit */}
+      {/* Submit button */}
       <button
         onClick={submit}
         disabled={!ready || busy}
-        className={`w-full py-3 rounded-xl text-[10px] uppercase tracking-widest mb-3 flex-shrink-0 transition-all duration-200 border ${ready
-          ? 'bg-white text-[#141414] border-white cursor-pointer'
-          : 'bg-[#141414] text-[#2e2e2e] border-[#1e1e1e] cursor-not-allowed'
-          }`}
+        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-250 animate-fade-in delay-3"
+        style={{
+          borderRadius: 'var(--radius-md)',
+          background: ready ? 'var(--accent)' : 'var(--bg-surface)',
+          color: ready ? '#fff' : 'var(--text-ghost)',
+          border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
+          cursor: ready ? 'pointer' : 'not-allowed',
+          boxShadow: ready ? '0 0 20px rgba(108, 140, 255, 0.2)' : 'none',
+        }}
       >
         {busy ? '...' : 'add expense'}
       </button>
 
-      {/* numpad */}
-      <div className="grid grid-cols-3 gap-1.5 flex-1 content-start">
+      {/* Numpad */}
+      <div className="grid grid-cols-3 gap-2 flex-1 content-start animate-fade-in-up delay-4">
         {KEYS.map((k, i) => {
           const isSym = k === '.' || k === '←'
           return (
             <button
               key={i}
               onClick={() => press(k)}
-              className="h-11 bg-[#111] rounded-xl flex items-center justify-center active:opacity-35 transition-opacity"
+              className="h-14 flex items-center justify-center transition-all duration-150 active:scale-95"
               style={{
-                color: isSym ? '#333' : '#fff',
-                fontSize: isSym ? '14px' : '20px',
-                fontWeight: 300,
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-muted)',
+                borderRadius: 'var(--radius-md)',
+                color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                fontSize: isSym ? '16px' : '20px',
+                fontWeight: isSym ? 400 : 500,
               }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
             >
               {k}
             </button>

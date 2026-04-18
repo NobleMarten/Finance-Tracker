@@ -1,7 +1,21 @@
 export default function BottomNav({ screen, onNavigate }) {
   return (
-    <div className="relative h-14 flex items-center justify-center border-t border-[#141414] flex-shrink-0 px-7">
-      <div className="flex items-center bg-[#111] rounded-[20px] p-1 gap-0.5">
+    <div
+      className="relative h-16 flex items-center justify-center flex-shrink-0 px-6"
+      style={{
+        background: 'linear-gradient(to top, var(--bg-base) 60%, transparent)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
+      <div
+        className="flex items-center p-1 gap-1"
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-subtle)',
+        }}
+      >
         <NavBtn active={screen === 0} onClick={() => onNavigate(0)}>
           <HomeIcon active={screen === 0} />
         </NavBtn>
@@ -12,7 +26,12 @@ export default function BottomNav({ screen, onNavigate }) {
 
       <button
         onClick={() => onNavigate(2)}
-        className="absolute right-5 bottom-2 w-10 h-10 rounded-full bg-[#4F7EFF] flex items-center justify-center active:scale-95 transition-transform"
+        className="absolute right-5 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all duration-200"
+        style={{
+          background: 'var(--accent)',
+          boxShadow: '0 0 20px rgba(108, 140, 255, 0.3)',
+          animation: screen !== 2 ? 'subtlePulse 3s ease-in-out infinite' : 'none',
+        }}
       >
         <PlusIcon />
       </button>
@@ -24,9 +43,11 @@ function NavBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`w-11 h-9 flex items-center justify-center rounded-2xl transition-colors ${
-        active ? 'bg-[#1e1e1e]' : ''
-      }`}
+      className="w-12 h-10 flex items-center justify-center transition-all duration-250"
+      style={{
+        borderRadius: 'var(--radius-md)',
+        background: active ? 'var(--accent-soft)' : 'transparent',
+      }}
     >
       {children}
     </button>
@@ -35,9 +56,11 @@ function NavBtn({ active, onClick, children }) {
 
 function HomeIcon({ active }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke={active ? '#fff' : '#2e2e2e'}
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--accent)' : 'var(--text-tertiary)'}
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      className="transition-colors duration-250"
+    >
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
       <polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
@@ -46,9 +69,11 @@ function HomeIcon({ active }) {
 
 function HistoryIcon({ active }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke={active ? '#fff' : '#2e2e2e'}
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--accent)' : 'var(--text-tertiary)'}
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      className="transition-colors duration-250"
+    >
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
     </svg>
@@ -57,8 +82,8 @@ function HistoryIcon({ active }) {
 
 function PlusIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-      stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19"/>
       <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>

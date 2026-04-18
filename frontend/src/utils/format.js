@@ -16,6 +16,13 @@ export function fmtTime(date) {
   })
 }
 
+export function fmtDateShort(date) {
+  return new Date(date).toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+  })
+}
+
 export function scaledFontSize(value, max, min, breakLen) {
   const len = String(Math.round(value)).length
   if (len <= breakLen) return max
