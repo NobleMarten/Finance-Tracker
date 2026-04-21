@@ -1,7 +1,45 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { fmtFull, fmtShort, fmtTime, fmtDateShort, scaledFontSize } from '../utils/format'
 
+function groupByWeek(transactions) {
+  if (transactions.length === 0) return []
 
+  const sorted = [...transactions].sort((a, b) => a.ts - b.ts)
+  const weeks = []
+  let currentWeek = null
+
+  for (const t of sorted) {
+    const d = new Date(t.ts)
+    // Monday of this transaction's week
+    const day = d.getDay()
+    const diff = (day === 0 ? 6 : day - 1) // days since Monday
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+
+    const weekKey = monday.toISOString().slice(0, 10)
+
+    if (!currentWeek || currentWeek.key !== weekKey) {
+      const fmtDay = (dt) => dt.getDate()
+      const fmtMonth = (dt) => dt.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '')
+
+      const label = monday.getMonth() === sunday.getMonth()
+        ? `${fmtDay(monday)}–${fmtDay(sunday)} ${fmtMonth(monday)}`
+        : `${fmtDay(monday)} ${fmtMonth(monday)} – ${fmtDay(sunday)} ${fmtMonth(sunday)}`
+
+      currentWeek = { key: weekKey, label, items: [], total: 0 }
+      weeks.push(currentWeek)
+    }
+
+    currentWeek.items.push(t)
+    currentWeek.total += t.amount
+  }
+
+  // Reverse so newest week is first
+  weeks.reverse()
+  weeks.forEach(w => w.items.reverse())
+  return weeks
+}
 function getRange(seg, offset) {
   const d = new Date()
   if (seg === 0) {
@@ -29,7 +67,7 @@ function getRange(seg, offset) {
   }
 }
 
-export default function History({ transactions }) {
+export default function History({ transactions, onDelete }) {
   const [seg, setSeg] = useState(0)
   const [offset, setOffset] = useState(0)
 
@@ -141,37 +179,151 @@ export default function History({ transactions }) {
               nothing here
             </p>
           </div>
+        ) : seg === 1 ? (
+          // Month view — grouped by weeks
+          groupByWeek(filtered).map((week, wi) => (
+            <div key={wi} className="animate-fade-in" style={{ animationDelay: `${wi * 0.05}s` }}>
+              <div
+                className="flex items-center justify-between pt-4 pb-2"
+                style={{ borderTop: wi > 0 ? '1px solid var(--border-subtle)' : 'none' }}
+              >
+                <span className="text-[10px] uppercase tracking-[0.14em] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                  {week.label}
+                </span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {fmtShort(week.total)}
+                </span>
+              </div>
+              {week.items.map((t, i) => (
+                <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} index={i}>
+                  <span className="text-[11px] w-11 flex-shrink-0 font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                    {fmtDateShort(t.ts)}
+                  </span>
+                  <span className="text-[13px] flex-1 px-3 font-light truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {t.description || '—'}
+                  </span>
+                  <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                    {fmtShort(t.amount)}
+                  </span>
+                </SwipeRow>
+              ))}
+            </div>
+          ))
         ) : (
+          // Day / Year view — flat list
           filtered.map((t, i) => (
-            <div
-              key={t.id}
-              className="flex items-center py-3 animate-fade-in"
-              style={{
-                borderTop: '1px solid var(--border-muted)',
-                animationDelay: `${i * 0.03}s`,
-              }}
-            >
+            <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} index={i}>
               <span
                 className={`text-[11px] ${seg === 0 ? 'w-10' : 'w-11'} flex-shrink-0 font-medium`}
                 style={{ color: 'var(--text-tertiary)' }}
               >
                 {seg === 0 ? fmtTime(t.ts) : fmtDateShort(t.ts)}
               </span>
-              <span
-                className="text-[13px] flex-1 px-3 font-light truncate"
-                style={{ color: 'var(--text-secondary)' }}
-              >
+              <span className="text-[13px] flex-1 px-3 font-light truncate" style={{ color: 'var(--text-secondary)' }}>
                 {t.description || '—'}
               </span>
-              <span
-                className="text-[15px] font-medium whitespace-nowrap"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
                 {fmtShort(t.amount)}
               </span>
-            </div>
+            </SwipeRow>
           ))
         )}
+      </div>
+    </div>
+  )
+}
+
+function SwipeRow({ children, onDelete, index }) {
+  const startX = useRef(0)
+  const currentX = useRef(0)
+  const rowRef = useRef(null)
+  const [swiped, setSwiped] = useState(false)
+
+  const onTouchStart = (e) => {
+    startX.current = e.touches[0].clientX
+    currentX.current = 0
+  }
+
+  const onTouchMove = (e) => {
+    const dx = e.touches[0].clientX - startX.current
+    if (dx > 0) return // only swipe left
+    currentX.current = dx
+    const clamped = Math.max(dx, -80)
+    if (rowRef.current) {
+      rowRef.current.style.transform = `translateX(${clamped}px)`
+      rowRef.current.style.transition = 'none'
+    }
+  }
+
+  const onTouchEnd = () => {
+    if (rowRef.current) {
+      rowRef.current.style.transition = 'transform 0.25s ease-out'
+      if (currentX.current < -50) {
+        rowRef.current.style.transform = 'translateX(-72px)'
+        setSwiped(true)
+      } else {
+        rowRef.current.style.transform = 'translateX(0)'
+        setSwiped(false)
+      }
+    }
+  }
+
+  const resetSwipe = () => {
+    if (rowRef.current) {
+      rowRef.current.style.transition = 'transform 0.25s ease-out'
+      rowRef.current.style.transform = 'translateX(0)'
+    }
+    setSwiped(false)
+  }
+
+  const handleDelete = () => {
+    if (rowRef.current) {
+      rowRef.current.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in'
+      rowRef.current.style.transform = 'translateX(-100%)'
+      rowRef.current.style.opacity = '0'
+    }
+    setTimeout(() => onDelete?.(), 300)
+  }
+
+  return (
+    <div
+      className="relative overflow-hidden animate-fade-in"
+      style={{
+        borderTop: '1px solid var(--border-muted)',
+        animationDelay: `${index * 0.03}s`,
+      }}
+    >
+      {/* Delete button behind */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-[72px] flex items-center justify-center transition-opacity duration-200"
+        style={{
+          background: '#FF453A',
+          borderRadius: '0 4px 4px 0',
+          opacity: swiped ? 1 : 0.5,
+        }}
+      >
+        <button
+          onClick={handleDelete}
+          className="w-full h-full flex items-center justify-center"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Row content */}
+      <div
+        ref={rowRef}
+        className="flex items-center py-3 relative"
+        style={{ background: 'var(--bg-base)', zIndex: 1 }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={() => swiped && resetSwipe()}
+      >
+        {children}
       </div>
     </div>
   )

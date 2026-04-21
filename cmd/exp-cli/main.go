@@ -60,6 +60,8 @@ func main() {
 			return
 		}
 
+		ctx := context.Background()
+
 		flagset := flag.NewFlagSet("add", flag.ExitOnError)
 		var amount int
 		flagset.IntVar(&amount, "amount", 0, "help message for --amount")
@@ -68,7 +70,7 @@ func main() {
 
 		flagset.Parse(os.Args[2:])
 
-		expense, err := svc.Add(amount, title)
+		expense, err := svc.Add(ctx, amount, title)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -93,6 +95,8 @@ func main() {
 			fmt.Println("usage: delete \"expense id\"")
 		}
 
+		ctx := context.Background()
+
 		flagset := flag.NewFlagSet("delete", flag.ExitOnError)
 
 		var id int
@@ -100,7 +104,7 @@ func main() {
 
 		flagset.Parse(os.Args[2:])
 
-		res, err := svc.Delete(id)
+		res, err := svc.Delete(ctx, id)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -135,8 +139,9 @@ func main() {
 		if title != "" {
 			UpdateTitle = &title
 		}
+		ctx := context.Background()
 
-		expense, err := svc.Update(id, UpdateAmount, UpdateTitle) // передаем указатели на новые значения
+		expense, err := svc.Update(ctx, id, UpdateAmount, UpdateTitle) // передаем указатели на новые значения
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -144,7 +149,8 @@ func main() {
 		fmt.Println("update expense:", expense)
 
 	case "clear":
-		err := svc.Clear()
+		ctx := context.Background()
+		err := svc.Clear(ctx)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
@@ -155,8 +161,9 @@ func main() {
 			fmt.Println("usage: summary \"--month\"")
 			return
 		}
+		ctx := context.Background()
 		if len(os.Args) == 2 {
-			sum, err := svc.Summary(0)
+			sum, err := svc.Summary(ctx, 0)
 			if err != nil {
 				fmt.Println("error: ", err)
 			}
@@ -173,7 +180,7 @@ func main() {
 				return
 			}
 
-			sum, err := svc.Summary(month)
+			sum, err := svc.Summary(ctx, month)
 			if err != nil {
 				fmt.Println("error: ", err)
 			}

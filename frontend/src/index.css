@@ -113,6 +113,19 @@ input, button, select, textarea {
   }
 }
 
+@keyframes textPulseGlow {
+  0%, 100% {
+    color: rgba(255, 255, 255, 0.92);
+  }
+  50% {
+    color: rgba(140, 170, 255, 0.95);
+  }
+}
+
+.animate-text-glow {
+  animation: textPulseGlow 5s ease-in-out infinite;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out both;
 }
@@ -132,6 +145,22 @@ input, button, select, textarea {
 .delay-4 { animation-delay: 0.2s; }
 .delay-5 { animation-delay: 0.25s; }
 .delay-6 { animation-delay: 0.3s; }
+
+/* ─── Toast ─── */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.3s ease-out both;
+}
 
 /* ─── Surface utility ─── */
 .surface {

@@ -14,6 +14,7 @@ export default function AddExpense({ onAdd }) {
   }, [])
 
   const press = (ch) => {
+    navigator.vibrate?.(10)
     if (ch === '←' || ch === 'Backspace') {
       setAmt(a => a.slice(0, -1) || '0')
       return
@@ -45,6 +46,7 @@ export default function AddExpense({ onAdd }) {
     setBusy(true)
     try {
       await onAdd({ amount: Math.round(parseFloat(amt)), description: desc })
+      navigator.vibrate?.(30)
       setAmt('0')
       setDesc('')
     } catch (e) {

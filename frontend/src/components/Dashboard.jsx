@@ -4,6 +4,7 @@ import { api } from '../api/api'
 
 export default function Dashboard({ transactions }) {
   const [rate, setRate] = useState(null)
+  const [weekExpanded, setWeekExpanded] = useState(false)
 
   useEffect(() => {
     api.getRate('RUB', 'USD')
@@ -29,6 +30,18 @@ export default function Dashboard({ transactions }) {
 
   const recent = [...transactions].sort((a, b) => b.ts - a.ts).slice(0, 6)
 
+  // Week transactions for mini-history (last 5)
+  const weekTx = [...transactions]
+    .filter(t => t.ts >= w0)
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 5)
+
+  const fmtWeekDay = (date) => {
+    const d = new Date(date)
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return days[d.getDay()]
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Month label */}
@@ -43,7 +56,7 @@ export default function Dashboard({ transactions }) {
 
       {/* Greeting */}
       <div
-        className="px-6 pt-3 text-[16px] font-light animate-fade-in delay-2"
+        className="px-6 pt-3 text-[16px] font-light animate-fade-in delay-2 animate-text-glow"
         style={{ color: 'var(--text-secondary)' }}
       >
         {greeting()}
@@ -58,7 +71,7 @@ export default function Dashboard({ transactions }) {
           this month
         </div>
         <div
-          className="leading-none overflow-hidden whitespace-nowrap font-semibold"
+          className="leading-none overflow-hidden whitespace-nowrap font-semibold animate-text-glow"
           style={{
             fontSize: scaledFontSize(monthVal, 42, 26, 7) + 'px',
             letterSpacing: '-0.03em',
@@ -75,7 +88,7 @@ export default function Dashboard({ transactions }) {
             >
               USD
             </span>
-            <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[12px] animate-text-glow" style={{ color: 'var(--text-secondary)' }}>
               ≈ {toUSD(monthVal)}
             </span>
           </div>
@@ -85,7 +98,89 @@ export default function Dashboard({ transactions }) {
       {/* Week / Today cards */}
       <div className="px-6 animate-fade-in delay-4">
         <div className="flex gap-3">
-          <StatCard label="week" value={weekVal} usd={toUSD(weekVal)} />
+          {/* Week card — clickable, expands sparkline */}
+          <div
+            className="flex-1 surface p-4 cursor-pointer transition-all duration-300"
+            onClick={() => setWeekExpanded(e => !e)}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div
+                className="text-[11px] uppercase tracking-[0.14em] font-medium"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                week
+              </div>
+              <svg
+                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className="transition-transform duration-500"
+                style={{
+                  color: 'var(--text-tertiary)',
+                  transform: weekExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+            <div
+              className="overflow-hidden whitespace-nowrap font-medium"
+              style={{
+                fontSize: scaledFontSize(weekVal, 22, 15, 6) + 'px',
+                letterSpacing: '-0.02em',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {fmtShort(weekVal)}
+            </div>
+            {toUSD(weekVal) && (
+              <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                {toUSD(weekVal)}
+              </div>
+            )}
+
+            {/* Mini week history — expands on click */}
+            <div
+              className="transition-all duration-500"
+              style={{
+                maxHeight: weekExpanded ? '200px' : '0px',
+                opacity: weekExpanded ? 1 : 0,
+                marginTop: weekExpanded ? '10px' : '0px',
+                overflow: 'hidden',
+                transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {weekTx.length === 0 ? (
+                <p className="text-[11px] py-2" style={{ color: 'var(--text-ghost)' }}>
+                  no expenses this week
+                </p>
+              ) : (
+                weekTx.map((t, i) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between py-1.5"
+                    style={{
+                      borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
+                    }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-ghost)' }}>
+                        {fmtWeekDay(t.ts)}
+                      </span>
+                      <span className="text-[11px] font-light truncate" style={{ color: 'var(--text-secondary)' }}>
+                        {t.description || '—'}
+                      </span>
+                    </div>
+                    <span className="text-[12px] font-medium pl-2 whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                      {fmtShort(t.amount)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Today card — static */}
           <StatCard label="today" value={dayVal} usd={toUSD(dayVal)} />
         </div>
       </div>
