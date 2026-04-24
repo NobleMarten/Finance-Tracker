@@ -4,6 +4,7 @@ services:
     environment:
       - DBURL=${DBURL}
       - PORT=8080
+      - HOST=${HOST}
     restart: always
     ports:
       - "8081:8080"
