@@ -5,6 +5,8 @@ services:
       - DBURL=${DBURL}
       - PORT=8080
     restart: always
+    ports:
+      - "8080:8080"
     networks:
       - app-network
   frontend:
