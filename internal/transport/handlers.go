@@ -59,13 +59,13 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 }
 
 func (h *Handler) RegisterRouteres(r *chi.Mux) { //*chi.Mux
-	r.Get("/expenses", h.Expenses)
-	r.Post("/expenses", h.PostExpense)
-	r.Get("/expenses/summary", h.Summary)
-	r.Post("/expenses/clear", h.Clear)
-	r.Delete("/expenses/{id}", h.DeleteExpenses)
-	r.Patch("/expenses/{id}", h.PatchExpenses)
-	r.Get("/rate", h.Rate)
+	r.Get("/api/expenses", h.Expenses)
+	r.Post("/api/expenses", h.PostExpense)
+	r.Get("/api/expenses/summary", h.Summary)
+	r.Post("/api/expenses/clear", h.Clear)
+	r.Delete("/api/expenses/{id}", h.DeleteExpenses)
+	r.Patch("/api/expenses/{id}", h.PatchExpenses)
+	r.Get("/api/rate", h.Rate)
 }
 
 func MyCors(next http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду

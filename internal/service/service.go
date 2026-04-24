@@ -53,6 +53,9 @@ func (s *ItemService) Add(ctx context.Context, amount int, title string) (model.
 	if amount < 0 {
 		return model.Expense{}, model.ErrNegativeAmount
 	}
+	if amount == 0 {
+		return model.Expense{}, model.ErrZeroAmount
+	}
 
 	title, err := ValidateTitle(title)
 	if err != nil {
