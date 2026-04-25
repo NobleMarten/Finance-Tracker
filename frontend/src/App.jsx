@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTransactions } from './hooks/useTransactions'
-import Dashboard  from './components/Dashboard'
-import History    from './components/History'
+import Dashboard from './components/Dashboard'
+import History from './components/History'
 import AddExpense from './components/AddExpense'
-import BottomNav  from './components/BottomNav'
-import Toast      from './components/Toast'
+import BottomNav from './components/BottomNav'
+import Toast from './components/Toast'
 import { fmtShort } from './utils/format'
 
 export default function App() {
@@ -29,8 +29,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
-      <div className="w-full max-w-sm h-screen flex flex-col overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="fixed inset-0 bg-[#0b0b0b] flex justify-center overflow-hidden">
+      <div className="w-full h-full max-w-sm flex flex-col bg-[#0b0b0b] relative">
         {loading && screen === 0 ? (
           <SkeletonLoader />
         ) : (
@@ -69,7 +69,7 @@ function SkeletonLoader() {
       </div>
       <div style={{ borderTop: '1px solid var(--border-muted)' }} className="mt-5 pt-5">
         <div className="skeleton h-3 w-16 mb-4" />
-        {[1,2,3,4].map(i => (
+        {[1, 2, 3, 4].map(i => (
           <div key={i} className="flex justify-between items-center py-3">
             <div className="skeleton h-3 w-24" />
             <div className="skeleton h-4 w-16" />
