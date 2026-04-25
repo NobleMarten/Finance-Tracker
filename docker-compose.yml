@@ -5,6 +5,8 @@ services:
       - DBURL=${DBURL}
       - PORT=8080
       - HOST=${HOST}
+      - RateURL=${RateURL}
+      - RateKey=${RateKey}
     restart: always
     ports:
       - "8081:8080"
