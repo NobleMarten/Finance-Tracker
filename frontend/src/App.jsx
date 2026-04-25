@@ -30,7 +30,13 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 bg-[#0b0b0b] flex justify-center overflow-hidden">
-      <div className="w-full h-full max-w-sm flex flex-col bg-[#0b0b0b] relative">
+      <div 
+        className="w-full h-full max-w-sm flex flex-col bg-[#0b0b0b] relative overflow-hidden"
+        style={{
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)'
+        }}
+      >
         {loading && screen === 0 ? (
           <SkeletonLoader />
         ) : (
