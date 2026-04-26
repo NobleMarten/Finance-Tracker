@@ -3,14 +3,16 @@ import { useTransactions } from './hooks/useTransactions'
 import Dashboard from './components/Dashboard'
 import History from './components/History'
 import AddExpense from './components/AddExpense'
+import EditExpense from './components/EditExpense'
 import BottomNav from './components/BottomNav'
 import Toast from './components/Toast'
 import { fmtShort } from './utils/format'
 
 export default function App() {
   const [screen, setScreen] = useState(0)
-  const { transactions, loading, add, remove } = useTransactions()
+  const { transactions, loading, add, update, remove } = useTransactions()
   const [toast, setToast] = useState(null)
+  const [editingExpense, setEditingExpense] = useState(null)
 
   const showToast = (msg) => {
     setToast(null)
@@ -21,6 +23,12 @@ export default function App() {
     await add(data)
     showToast(`+ ${fmtShort(data.amount)} ₽ added`)
     setScreen(0)
+  }
+
+  const handleUpdate = async (id, data) => {
+    await update(id, data)
+    showToast('expense updated')
+    setEditingExpense(null)
   }
 
   const handleDelete = async (id) => {
@@ -41,12 +49,20 @@ export default function App() {
           <SkeletonLoader />
         ) : (
           <div key={screen} className="flex-1 flex flex-col min-h-0 animate-fade-in">
-            {screen === 0 && <Dashboard transactions={transactions} />}
-            {screen === 1 && <History transactions={transactions} onDelete={handleDelete} />}
+            {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} />}
+            {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} />}
             {screen === 2 && <AddExpense onAdd={handleAdd} />}
           </div>
         )}
         <BottomNav screen={screen} onNavigate={setScreen} />
+        
+        {editingExpense && (
+          <EditExpense 
+            expense={editingExpense} 
+            onUpdate={handleUpdate} 
+            onCancel={() => setEditingExpense(null)} 
+          />
+        )}
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}

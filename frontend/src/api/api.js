@@ -17,5 +17,6 @@ export const api = {
   getTransactions: () => req('/expenses'),
   addTransaction: (data) => req('/expenses', { method: 'POST', body: JSON.stringify(data) }),
   deleteTransaction: (id) => req(`/expenses/${id}`, { method: 'DELETE' }),
+  updateTransaction: (id, data) => req(`/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getRate: (from = 'RUB', to = 'USD') => req(`/rate?from=${from}&to=${to}`),
 }

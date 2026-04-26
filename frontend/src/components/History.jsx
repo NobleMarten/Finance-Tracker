@@ -67,7 +67,7 @@ function getRange(seg, offset) {
   }
 }
 
-export default function History({ transactions, onDelete }) {
+export default function History({ transactions, onDelete, onEdit }) {
   const [seg, setSeg] = useState(0)
   const [offset, setOffset] = useState(0)
 
@@ -195,7 +195,7 @@ export default function History({ transactions, onDelete }) {
                 </span>
               </div>
               {week.items.map((t, i) => (
-                <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} index={i}>
+                <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} onEdit={() => onEdit?.(t)} index={i}>
                   <span className="text-[11px] w-11 flex-shrink-0 font-medium" style={{ color: 'var(--text-tertiary)' }}>
                     {fmtDateShort(t.ts)}
                   </span>
@@ -212,7 +212,7 @@ export default function History({ transactions, onDelete }) {
         ) : (
           // Day / Year view — flat list
           filtered.map((t, i) => (
-            <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} index={i}>
+            <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} onEdit={() => onEdit?.(t)} index={i}>
               <span
                 className={`text-[11px] ${seg === 0 ? 'w-10' : 'w-11'} flex-shrink-0 font-medium`}
                 style={{ color: 'var(--text-tertiary)' }}
@@ -233,7 +233,7 @@ export default function History({ transactions, onDelete }) {
   )
 }
 
-function SwipeRow({ children, onDelete, index }) {
+function SwipeRow({ children, onDelete, onEdit, index }) {
   const startX = useRef(0)
   const currentX = useRef(0)
   const rowRef = useRef(null)
@@ -321,7 +321,10 @@ function SwipeRow({ children, onDelete, index }) {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onClick={() => swiped && resetSwipe()}
+        onClick={() => {
+          if (swiped) resetSwipe()
+          else onEdit?.()
+        }}
       >
         {children}
       </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { fmtFull, fmtShort, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
 
-export default function Dashboard({ transactions }) {
+export default function Dashboard({ transactions, onEdit }) {
   const [rate, setRate] = useState(null)
   const [weekExpanded, setWeekExpanded] = useState(false)
 
@@ -158,9 +158,11 @@ export default function Dashboard({ transactions }) {
                 weekTx.map((t, i) => (
                   <div
                     key={t.id}
+                    onClick={() => onEdit?.(t)}
                     className="flex items-center justify-between py-1.5"
                     style={{
                       borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
+                      cursor: 'pointer',
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -204,10 +206,12 @@ export default function Dashboard({ transactions }) {
         {recent.map((t, i) => (
           <div
             key={t.id}
+            onClick={() => onEdit?.(t)}
             className={`flex justify-between items-center py-3 animate-fade-in`}
             style={{
               borderTop: '1px solid var(--border-muted)',
               animationDelay: `${0.3 + i * 0.05}s`,
+              cursor: 'pointer',
             }}
           >
             <div className="flex items-center gap-3 min-w-0">

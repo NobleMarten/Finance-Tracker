@@ -35,10 +35,23 @@ export function useTransactions() {
     setTransactions(prev => [normalize(created), ...prev])
   }
 
+  const update = async (id, payload) => {
+    const body = {}
+    if (payload.description !== undefined) body.title = payload.description
+    if (payload.amount !== undefined) body.amount = payload.amount
+    
+    // We only send patching to backend, but backend returns the updated full expense
+    const updated = await api.updateTransaction(id, body)
+    
+    setTransactions(prev => prev.map(t => 
+      t.id === id ? normalize(updated) : t
+    ))
+  }
+
   const remove = async (id) => {
     await api.deleteTransaction(id)
     setTransactions(prev => prev.filter(t => t.id !== id))
   }
 
-  return { transactions, loading, error, add, remove, refresh: load }
+  return { transactions, loading, error, add, update, remove, refresh: load }
 }
