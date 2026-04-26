@@ -1,7 +1,7 @@
 export default function BottomNav({ screen, onNavigate }) {
   return (
     <div
-      className="relative h-16 flex items-center justify-center flex-shrink-0 px-6"
+      className="absolute bottom-0 left-0 right-0 h-20 flex items-center justify-center px-6 z-40"
       style={{
         background: 'linear-gradient(to top, var(--bg-base) 60%, transparent)',
         backdropFilter: 'blur(12px)',
@@ -26,7 +26,7 @@ export default function BottomNav({ screen, onNavigate }) {
 
       <button
         onClick={() => onNavigate(2)}
-        className="absolute right-5 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all duration-200"
+        className="absolute right-5 bottom-4 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all duration-200"
         style={{
           background: 'var(--accent)',
           boxShadow: '0 0 20px rgba(108, 140, 255, 0.3)',

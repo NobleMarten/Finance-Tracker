@@ -191,7 +191,7 @@ export default function Dashboard({ transactions, onEdit }) {
       <div className="mx-6 mt-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Recent transactions */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 animate-fade-in delay-5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-28 animate-fade-in delay-5">
         <div
           className="text-[11px] uppercase tracking-[0.14em] font-medium py-4"
           style={{ color: 'var(--text-tertiary)' }}

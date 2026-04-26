@@ -163,7 +163,7 @@ export default function History({ transactions, onDelete, onEdit }) {
       <div className="mx-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Transaction list */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-28">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
             <div
