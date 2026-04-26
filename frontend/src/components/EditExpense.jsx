@@ -56,7 +56,13 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 px-6 pt-6 bg-[#0b0b0b] absolute inset-0 z-50 animate-fade-in-up">
+    <div 
+      className="flex flex-col flex-1 min-h-0 px-6 bg-[#0b0b0b] absolute inset-0 z-50 animate-fade-in-up"
+      style={{
+        paddingTop: 'calc(env(safe-area-inset-top) + 24px)',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
+    >
       {/* header */}
       <div className="flex justify-between items-center mb-5 flex-shrink-0 animate-fade-in">
         <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
