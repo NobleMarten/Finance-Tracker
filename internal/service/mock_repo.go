@@ -39,15 +39,34 @@ func (m *MockRepo) List(ctx context.Context) ([]model.Expense, error) {
 }
 
 func (m *MockRepo) Delete(ctx context.Context, id int) (model.Expense, error) {
-	return model.Expense{}, nil
+	for i, exp := range m.expenses {
+		if exp.ID == id {
+			m.expenses = append(m.expenses[:i], m.expenses[i+1:]...)
+			return exp, nil
+		}
+	}
+	return model.Expense{}, model.ErrNotFound
 }
 
 func (m *MockRepo) Clear(ctx context.Context) error {
+	m.expenses = []model.Expense{}
 	return nil
 }
 
 func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *string) (model.Expense, error) {
-	return model.Expense{}, nil
+	for i, exp := range m.expenses {
+		if exp.ID == id {
+			if amount != nil {
+				exp.Amount = *amount
+			}
+			if title != nil {
+				exp.Title = *title
+			}
+			m.expenses[i] = exp
+			return exp, nil
+		}
+	}
+	return model.Expense{}, model.ErrNotFound
 }
 
 func (m *MockRepo) Summary(ctx context.Context, mo int) (int, error) {
