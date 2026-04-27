@@ -57,6 +57,12 @@ func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *strin
 	for i, exp := range m.expenses {
 		if exp.ID == id {
 			if amount != nil {
+				if *amount == 0 {
+					return model.Expense{}, model.ErrZeroAmount
+				}
+				if *amount < 0 {
+					return model.Expense{}, model.ErrNegativeAmount
+				}
 				exp.Amount = *amount
 			}
 			if title != nil {
@@ -70,5 +76,19 @@ func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *strin
 }
 
 func (m *MockRepo) Summary(ctx context.Context, mo int) (int, error) {
-	return 0, nil
+	if mo == 0 {
+		var sum int
+		for _, exp := range m.expenses {
+			sum += exp.Amount
+		}
+		return sum, nil
+	} else {
+		var sum int
+		for _, exp := range m.expenses {
+			if exp.CreatedAt.Month() == time.Month(mo) {
+				sum += exp.Amount
+			}
+		}
+		return sum, nil
+	}
 }
