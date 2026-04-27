@@ -5,16 +5,19 @@ import (
 	"FinanceTracker/internal/db"
 	"FinanceTracker/internal/service"
 	"FinanceTracker/internal/transport"
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-
 	godotenv.Load()
 	base := os.Getenv("RateURL")
 
@@ -42,7 +45,28 @@ func main() {
 
 	h.RegisterRouteres(r)
 
-	println("Server is running on ", conf.Host)
-	log.Fatal(http.ListenAndServe(conf.Host, r))
+	srv := &http.Server{
+		Addr:    conf.Host,
+		Handler: r,
+	}
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM) // SIGINT - Ctrl+C, SIGTERM - kill
+
+	go func() {
+		println("Server is running on ", conf.Host)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			println("Server error: ", err)
+		}
+	}()
+
+	<-ch
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server shutdown error: ", err)
+	}
+	println("Server stopped")
 
 }
