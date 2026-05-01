@@ -72,7 +72,7 @@ export default function History({ transactions, onDelete, onEdit }) {
   const [offset, setOffset] = useState(0)
 
   const { start, end, label } = getRange(seg, offset)
-  const filtered = transactions.filter(t => t.ts >= start && t.ts <= end)
+  const filtered = transactions.filter(t => t.ts >= start && t.ts <= end).sort((a, b) => b.ts - a.ts)
   const total = filtered.reduce((s, t) => s + t.amount, 0)
 
   const handleSeg = (i) => { setSeg(i); setOffset(0) }

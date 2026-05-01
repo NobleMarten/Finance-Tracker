@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fmtFull, fmtShort, scaledFontSize, greeting, currentMonth } from '../utils/format'
+import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
 
 export default function Dashboard({ transactions, onEdit }) {
@@ -224,12 +224,20 @@ export default function Dashboard({ transactions, onEdit }) {
               >
                 {(t.description || '—')[0].toUpperCase()}
               </div>
-              <span
-                className="text-[13px] font-light truncate"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {t.description || '—'}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span
+                  className="text-[13px] font-light truncate"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {t.description || '—'}
+                </span>
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  {fmtTime(t.ts)}
+                </span>
+              </div>
             </div>
             <span
               className="text-[15px] font-medium whitespace-nowrap pl-3"
