@@ -184,13 +184,19 @@ export default function History({ transactions, onDelete, onEdit }) {
           groupByWeek(filtered).map((week, wi) => (
             <div key={wi} className="animate-fade-in" style={{ animationDelay: `${wi * 0.05}s` }}>
               <div
-                className="flex items-center justify-between pt-4 pb-2"
-                style={{ borderTop: wi > 0 ? '1px solid var(--border-subtle)' : 'none' }}
+                className="flex items-center justify-between px-3 py-2.5 mt-3 mb-1"
+                style={{
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-sm, 10px)',
+                  border: '1px solid var(--border-subtle)',
+                  borderLeft: '3px solid var(--accent)',
+                  marginTop: wi === 0 ? '8px' : '16px',
+                }}
               >
-                <span className="text-[10px] uppercase tracking-[0.14em] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] uppercase tracking-[0.12em] font-semibold" style={{ color: 'var(--text-secondary)' }}>
                   {week.label}
                 </span>
-                <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-[12px] font-semibold" style={{ color: 'var(--accent)' }}>
                   {fmtShort(week.total)}
                 </span>
               </div>
