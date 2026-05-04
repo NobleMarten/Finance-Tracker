@@ -15,12 +15,25 @@ type ExpenseRepo interface {
 	Update(ctx context.Context, id int, newamount *int, newtile *string) (model.Expense, error)
 }
 
+type UserRepo interface {
+	CreateUser(ctx context.Context, login, email, passwordHash string) (model.User, error)
+	GetUserByEmail(ctx context.Context, email string) (model.User, error)
+}
+
 type ItemService struct {
 	repo ExpenseRepo
 }
 
-func NewItemService(repo ExpenseRepo) (*ItemService, error) {
-	return &ItemService{repo: repo}, nil
+type UserService struct {
+	repoUser UserRepo
+}
+
+func NewItemService(repo ExpenseRepo) *ItemService {
+	return &ItemService{repo: repo}
+}
+
+func NewUserService(repoUser UserRepo) *UserService {
+	return &UserService{repoUser: repoUser}
 }
 
 func ValidateTitle(title string) (string, error) {

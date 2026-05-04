@@ -15,4 +15,5 @@ var (
 	ErrInvalidAPIURL   = errors.New("Invalid API URL")
 	ErrEmptyAPIKey     = errors.New("API Key is empty")
 	ErrZeroAmount      = errors.New("Zero amount")
+	ErrUserExists      = errors.New("User already exists")
 )
