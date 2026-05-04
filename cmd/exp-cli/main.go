@@ -37,10 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	svc, err := service.NewItemService(repo)
-	if err != nil {
-		log.Fatal(err)
-	}
+	svc := service.NewItemService(repo)
 
 	if len(os.Args) < 2 {
 		printhelp()

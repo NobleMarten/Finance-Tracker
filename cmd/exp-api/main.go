@@ -31,10 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	svc, err := service.NewItemService(repo)
-	if err != nil {
-		panic(err)
-	}
+	svc := service.NewItemService(repo)
 
 	exsvc := service.NewExchangeService(base)
 	h := transport.NewHandler(svc, exsvc)
