@@ -22,7 +22,7 @@ func (p *PostgresRepo) Add(ctx context.Context, amount int, title string) (model
 }
 
 func (p *PostgresRepo) List(ctx context.Context) ([]model.Expense, error) {
-	rows, err := p.DB.QueryContext(ctx, "SELECT * From EXPENSES Order by id")
+	rows, err := p.DB.QueryContext(ctx, "SELECT id, amount, title, created_at, user_id From expenses Order by id")
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (p *PostgresRepo) List(ctx context.Context) ([]model.Expense, error) {
 	var expenses []model.Expense
 	for rows.Next() { // rows.Next() возвращает true, если есть следующая строка, и false, если строк больше нет или произошла ошибка
 		var expense model.Expense
-		if err := rows.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt); err != nil {
+		if err := rows.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt, &expense.UserID); err != nil {
 			return nil, err
 		}
 		expenses = append(expenses, expense)
