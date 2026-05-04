@@ -7,5 +7,5 @@ type Expense struct {
 	Title     string    `json:"title"`
 	Amount    int       `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
-	UserID    int       `json:"user_id"`
+	UserID    *int      `json:"user_id"`
 }
