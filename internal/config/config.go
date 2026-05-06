@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	DBURL string
-	Host  string
+	DBURL     string
+	Host      string
+	JWTSecret []byte
 }
 
 func NewConfig() (*Config, error) {
@@ -21,8 +22,14 @@ func NewConfig() (*Config, error) {
 		host = "localhost:8080"
 	}
 
+	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
+	if len(jwtSecret) == 0 {
+		return nil, model.ErrEmptyJWTSecret
+	}
+
 	return &Config{
-		DBURL: db,
-		Host:  host,
+		DBURL:     db,
+		Host:      host,
+		JWTSecret: jwtSecret,
 	}, nil
 }
