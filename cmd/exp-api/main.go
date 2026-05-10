@@ -6,7 +6,7 @@ import (
 	"FinanceTracker/internal/service"
 	"FinanceTracker/internal/transport"
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,9 +51,9 @@ func main() {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM) // SIGINT - Ctrl+C, SIGTERM - kill
 
 	go func() {
-		println("Server is running on ", conf.Host)
+		slog.Info("Server is running on ", "host", conf.Host)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			println("Server error: ", err)
+			slog.Error("Server error: ", "error", err)
 		}
 	}()
 
@@ -62,8 +62,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server shutdown error: ", err)
+		slog.Error("Server shutdown error: ", "error", err)
 	}
-	println("Server stopped")
-
+	slog.Info("Server stopped")
 }

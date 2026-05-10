@@ -59,12 +59,16 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 }
 
 func (h *Handler) RegisterRouteres(r *chi.Mux) { //*chi.Mux
-	r.Get("/api/expenses", h.Expenses)
-	r.Post("/api/expenses", h.PostExpense)
-	r.Get("/api/expenses/summary", h.Summary)
-	r.Post("/api/expenses/clear", h.Clear)
-	r.Delete("/api/expenses/{id}", h.DeleteExpenses)
-	r.Patch("/api/expenses/{id}", h.PatchExpenses)
+	r.Group(func(r chi.Router) {
+		r.Use(AuthMiddleware)
+		r.Get("/api/expenses", h.Expenses)
+		r.Post("/api/expenses", h.PostExpense)
+		r.Get("/api/expenses/summary", h.Summary)
+		r.Post("/api/expenses/clear", h.Clear)
+		r.Delete("/api/expenses/{id}", h.DeleteExpenses)
+		r.Patch("/api/expenses/{id}", h.PatchExpenses)
+	})
+
 	r.Get("/api/rate", h.Rate)
 }
 
