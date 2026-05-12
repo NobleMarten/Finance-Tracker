@@ -7,12 +7,12 @@ import (
 )
 
 type ExpenseRepo interface {
-	Add(ctx context.Context, amount int, title string) (model.Expense, error)
-	List(ctx context.Context) ([]model.Expense, error)
-	Delete(ctx context.Context, id int) (model.Expense, error)
-	Clear(ctx context.Context) error
-	Summary(ctx context.Context, m int) (int, error)
-	Update(ctx context.Context, id int, newamount *int, newtile *string) (model.Expense, error)
+	Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error)
+	List(ctx context.Context, userID int) ([]model.Expense, error)
+	Delete(ctx context.Context, id int, userID int) (model.Expense, error)
+	Clear(ctx context.Context, userID int) error
+	Summary(ctx context.Context, m int, userID int) (int, error)
+	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int) (model.Expense, error)
 }
 
 type ItemService struct {
@@ -49,7 +49,7 @@ func ValidateAmount(amount int) (int, error) {
 	return amount, nil
 }
 
-func (s *ItemService) Add(ctx context.Context, amount int, title string) (model.Expense, error) {
+func (s *ItemService) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
 	if amount < 0 {
 		return model.Expense{}, model.ErrNegativeAmount
 	}
@@ -62,22 +62,23 @@ func (s *ItemService) Add(ctx context.Context, amount int, title string) (model.
 		return model.Expense{}, err
 	}
 
-	return s.repo.Add(ctx, amount, title)
+	return s.repo.Add(ctx, amount, title, userID)
 }
 
-func (s *ItemService) List(ctx context.Context) ([]model.Expense, error) {
-	return s.repo.List(ctx)
+func (s *ItemService) List(ctx context.Context, userID int) ([]model.Expense, error) {
+	return s.repo.List(ctx, userID)
 }
 
-func (s *ItemService) Delete(ctx context.Context, id int) (model.Expense, error) {
-	if id <= 0 {
-		return model.Expense{}, model.ErrInvalidID
+func (s *ItemService) Delete(ctx context.Context, id, userID int) (model.Expense, error) {
+	id, err := ValidateID(id)
+	if err != nil {
+		return model.Expense{}, err
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.repo.Delete(ctx, id, userID)
 }
 
-func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtitle *string) (model.Expense, error) {
+func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtitle *string, userID int) (model.Expense, error) {
 
 	id, err := ValidateID(id)
 	if err != nil {
@@ -97,18 +98,18 @@ func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtit
 		}
 	}
 
-	return s.repo.Update(ctx, id, newamount, newtitle)
+	return s.repo.Update(ctx, id, newamount, newtitle, userID)
 }
 
-func (s *ItemService) Clear(ctx context.Context) error {
-	return s.repo.Clear(ctx)
+func (s *ItemService) Clear(ctx context.Context, userID int) error {
+	return s.repo.Clear(ctx, userID)
 }
 
-func (s *ItemService) Summary(ctx context.Context, m int) (int, error) {
+func (s *ItemService) Summary(ctx context.Context, m int, userID int) (int, error) {
 
 	if 0 > m || m > 12 {
 		return 0, model.ErrInvalidMonth
 	}
 
-	return s.repo.Summary(ctx, m)
+	return s.repo.Summary(ctx, m, userID)
 }

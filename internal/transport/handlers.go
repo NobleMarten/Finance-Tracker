@@ -13,12 +13,12 @@ import (
 )
 
 type ItemService interface {
-	List(ctx context.Context) ([]model.Expense, error)
-	Add(ctx context.Context, amount int, title string) (model.Expense, error)
-	Delete(ctx context.Context, id int) (model.Expense, error)
-	Update(ctx context.Context, id int, amount *int, title *string) (model.Expense, error)
-	Clear(ctx context.Context) error
-	Summary(ctx context.Context, m int) (int, error)
+	List(ctx context.Context, userID int) ([]model.Expense, error)
+	Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error)
+	Delete(ctx context.Context, id, userID int) (model.Expense, error)
+	Update(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error)
+	Clear(ctx context.Context, userID int) error
+	Summary(ctx context.Context, m int, userID int) (int, error)
 }
 
 type ExchangeService interface {
@@ -72,23 +72,11 @@ func (h *Handler) RegisterRouteres(r *chi.Mux) { //*chi.Mux
 	r.Get("/api/rate", h.Rate)
 }
 
-func MyCors(next http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (h *Handler) Expenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context() // берем контекст для передачи в сервис
+	userID := ctx.Value(UsrContext).(int)
 
-	expenses, err := h.svc.List(ctx)
+	expenses, err := h.svc.List(ctx, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -116,7 +104,8 @@ func (h *Handler) PostExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expense, err := h.svc.Add(ctx, NewExp.Amount, NewExp.Title)
+	userID := ctx.Value(UsrContext).(int)
+	expense, err := h.svc.Add(ctx, NewExp.Amount, NewExp.Title, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -140,7 +129,8 @@ func (h *Handler) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expense, err := h.svc.Delete(ctx, id)
+	userID := ctx.Value(UsrContext).(int)
+	expense, err := h.svc.Delete(ctx, id, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -169,7 +159,9 @@ func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expense, err := h.svc.Update(ctx, id, PatchReq.Amount, PatchReq.Title) // здесь без ссылки потому что
+	userID := ctx.Value(UsrContext).(int)
+
+	expense, err := h.svc.Update(ctx, id, PatchReq.Amount, PatchReq.Title, userID) // здесь без ссылки потому что
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -185,7 +177,8 @@ func (h *Handler) PatchExpenses(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	err := h.svc.Clear(ctx)
+	userID := ctx.Value(UsrContext).(int)
+	err := h.svc.Clear(ctx, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -209,7 +202,9 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sum, err := h.svc.Summary(ctx, SumReq.Month)
+	userID := ctx.Value(UsrContext).(int)
+
+	sum, err := h.svc.Summary(ctx, SumReq.Month, userID)
 	if err != nil {
 		WriteError(w, err)
 		return

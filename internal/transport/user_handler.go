@@ -3,13 +3,10 @@ package transport
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserService interface {
@@ -70,38 +67,6 @@ const authPrefix = "Bearer "
 type contextKey struct{}
 
 var UsrContext = contextKey{}
-
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, authPrefix) {
-			http.Error(w, "Missing or invalid Authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		secretKey := os.Getenv("JWT_SECRET")
-
-		tokenStr := strings.TrimPrefix(authHeader, authPrefix)
-
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
-			if token.Method != jwt.SigningMethodHS256 {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return secretKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			http.Error(w, "Invalid token", http.StatusUnauthorized)
-			return
-		}
-
-		cl := token.Claims.(jwt.MapClaims)["user_id"]
-
-		ctx := context.WithValue(r.Context(), UsrContext, cl)
-		next.ServeHTTP(w, r.WithContext(ctx))
-
-	})
-}
 
 func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest

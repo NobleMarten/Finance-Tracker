@@ -54,6 +54,30 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "NOT_FOUND_EXPENSE",
 			Message: err.Error(),
 		}
+	case errors.Is(err, model.ErrUserExists):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "USER_EXISTS",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrIncorrectPassword):
+		status = http.StatusUnauthorized
+		res = ErrorResponse{
+			Code:    "INCORRECT_PASSWORD",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrInvalidToken):
+		status = http.StatusUnauthorized
+		res = ErrorResponse{
+			Code:    "INVALID_TOKEN",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrEmptyJWTSecret):
+		status = http.StatusInternalServerError
+		res = ErrorResponse{
+			Code:    "EMPTY_JWT_SECRET",
+			Message: err.Error(),
+		}
 	default:
 		status = http.StatusInternalServerError
 		res = ErrorResponse{

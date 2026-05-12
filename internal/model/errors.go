@@ -19,4 +19,5 @@ var (
 	ErrIncorrectPassword = errors.New("Incorrect password")
 	ErrEmptyJWTSecret    = errors.New("JWT Secret is empty")
 	ErrInternal          = errors.New("Internal error")
+	ErrInvalidToken      = errors.New("Invalid token")
 )

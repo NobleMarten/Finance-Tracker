@@ -24,6 +24,7 @@ func TestAdd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+			userID := 1
 			repo := ItemService{
 				repo: &MockRepo{
 					expenses: []model.Expense{
@@ -32,11 +33,12 @@ func TestAdd(t *testing.T) {
 							Amount:    100,
 							Title:     "Test1",
 							CreatedAt: time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
+							UserID:    nil,
 						},
 					},
 				},
 			}
-			expense, err := repo.Add(ctx, tt.amount, tt.title)
+			expense, err := repo.Add(ctx, tt.amount, tt.title, userID)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, tt.amount, expense.Amount)
@@ -81,13 +83,14 @@ func TestDelete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+			userID := 1
 			repo := ItemService{
 				repo: &MockRepo{
 					expenses: tt.mockdata,
 				},
 			}
 
-			expense, err := repo.Delete(ctx, tt.id)
+			expense, err := repo.Delete(ctx, tt.id, userID)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, tt.title, expense.Title)
@@ -130,12 +133,14 @@ func TestUpdate(t *testing.T) {
 							Amount:    100,
 							Title:     "Test1",
 							CreatedAt: time.Now(),
+							UserID:    nil,
 						},
 					},
 				},
 			}
+			userID := 1
 
-			expense, err := repo.Update(ctx, tt.id, tt.amount, tt.title)
+			expense, err := repo.Update(ctx, tt.id, tt.amount, tt.title, userID)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, *tt.title, expense.Title)
@@ -192,8 +197,9 @@ func TestSummary(t *testing.T) {
 					expenses: tt.mockdata,
 				},
 			}
+			userID := 1
 
-			sum, err := repo.Summary(ctx, tt.month)
+			sum, err := repo.Summary(ctx, tt.month, userID)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, tt.wantSum, sum)

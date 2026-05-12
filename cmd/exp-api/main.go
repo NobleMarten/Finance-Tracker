@@ -4,6 +4,7 @@ import (
 	"FinanceTracker/internal/config"
 	"FinanceTracker/internal/db"
 	"FinanceTracker/internal/service"
+	"FinanceTracker/internal/storage"
 	"FinanceTracker/internal/transport"
 	"context"
 	"log/slog"
@@ -30,10 +31,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	repoUser, err := storage.NewPostgresUserRepo(conf.DBURL)
+	if err != nil {
+		panic(err)
+	}
 
 	svc := service.NewItemService(repo)
+	usvc := service.NewUserService(repoUser, []byte(conf.JWTSecret))
 
 	exsvc := service.NewExchangeService(base)
+	uh := transport.NewUserHandler(usvc)
+
 	h := transport.NewHandler(svc, exsvc)
 
 	r := chi.NewRouter()
@@ -41,6 +49,7 @@ func main() {
 	r.Use(transport.MyCors)
 
 	h.RegisterRouteres(r)
+	uh.RegisterHandler(r)
 
 	srv := &http.Server{
 		Addr:    conf.Host,

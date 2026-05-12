@@ -10,6 +10,14 @@ type PostgresUserRepo struct {
 	DB *sql.DB
 }
 
+func NewPostgresUserRepo(connstr string) (*PostgresUserRepo, error) {
+	DB, err := sql.Open("pgx", connstr)
+	if err != nil {
+		return nil, err
+	}
+	return &PostgresUserRepo{DB: DB}, nil
+}
+
 func (p *PostgresUserRepo) CreateUser(ctx context.Context, login, email, password_hash string) (model.User, error) {
 	row := p.DB.QueryRowContext(ctx, "INSERT INTO users(login, email, passwordHash) VALUES ($1, $2, $3) RETURNING id, login, email, passwordHash, created_at", login, email, password_hash)
 	var user model.User
