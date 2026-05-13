@@ -47,14 +47,14 @@ async function req(path, options = {}) {
 
 export const authApi = {
   login: (email, password) =>
-    fetch(`${BASE}/login`, {
+    fetch(`${BASE}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     }).then(parseAuthToken),
 
   register: (login, email, password) =>
-    fetch(`${BASE}/register`, {
+    fetch(`${BASE}/api/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login, email, password }),
@@ -62,7 +62,7 @@ export const authApi = {
 
   /** Заготовка: позже здесь будет отправка ссылки сброса, а не пароля. */
   requestPasswordReset: async (email) => {
-    const res = await fetch(`${BASE}/auth/forgot-password`, {
+    const res = await fetch(`${BASE}/api/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim() }),
