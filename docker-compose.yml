@@ -7,6 +7,7 @@ services:
       - HOST=${HOST}
       - RateURL=${RateURL}
       - RateKey=${RateKey}
+      - JWT_SECRET=${JWT_SECRET}
     restart: always
     ports:
       - "8081:8080"
