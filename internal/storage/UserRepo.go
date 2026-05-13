@@ -19,7 +19,7 @@ func NewPostgresUserRepo(connstr string) (*PostgresUserRepo, error) {
 }
 
 func (p *PostgresUserRepo) CreateUser(ctx context.Context, login, email, password_hash string) (model.User, error) {
-	row := p.DB.QueryRowContext(ctx, "INSERT INTO users(login, email, passwordHash) VALUES ($1, $2, $3) RETURNING id, login, email, passwordHash, created_at", login, email, password_hash)
+	row := p.DB.QueryRowContext(ctx, "INSERT INTO users(login, email, c) VALUES ($1, $2, $3) RETURNING id, login, email, password_hash, created_at", login, email, password_hash)
 	var user model.User
 	if err := row.Scan(&user.ID, &user.Login, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
@@ -32,7 +32,7 @@ func (p *PostgresUserRepo) CreateUser(ctx context.Context, login, email, passwor
 }
 
 func (p *PostgresUserRepo) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
-	row := p.DB.QueryRowContext(ctx, "SELECT id, login, email, passwordHash, created_at FROM users WHERE email = $1", email)
+	row := p.DB.QueryRowContext(ctx, "SELECT id, login, email, password_hash, created_at FROM users WHERE email = $1", email)
 	var user model.User
 	if err := row.Scan(&user.ID, &user.Login, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
