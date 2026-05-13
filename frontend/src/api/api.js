@@ -1,7 +1,21 @@
 import { AUTH_TOKEN_KEY } from '../constants/authStorage'
 import { formatApiError, formatAuthApiError } from '../utils/apiError'
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+/**
+ * VITE_API_URL should be origin only, e.g. http://host:8081
+ * (routes already use /api/...). If env mistakenly ends with /api, strip it
+ * so we never call /api/api/register.
+ */
+function normalizeApiBase(raw) {
+  let u = String(raw ?? 'http://localhost:8080').trim()
+  u = u.replace(/\/+$/, '')
+  if (u.endsWith('/api')) {
+    u = u.slice(0, -4).replace(/\/+$/, '')
+  }
+  return u || 'http://localhost:8080'
+}
+
+const BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
 
 function authHeaders() {
   const t = localStorage.getItem(AUTH_TOKEN_KEY)
