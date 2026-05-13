@@ -1,22 +1,92 @@
+import { AUTH_TOKEN_KEY } from '../constants/authStorage'
+import { formatApiError, formatAuthApiError } from '../utils/apiError'
+
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+
+function authHeaders() {
+  const t = localStorage.getItem(AUTH_TOKEN_KEY)
+  if (!t) return {}
+  return { Authorization: `Bearer ${t}` }
+}
+
+async function parseAuthToken(res) {
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(formatAuthApiError(text))
+  }
+  if (!text) throw new Error('Empty response')
+  let body
+  try {
+    body = JSON.parse(text)
+  } catch {
+    throw new Error('Invalid server response')
+  }
+  const token = typeof body === 'string' ? body : body?.token
+  if (typeof token !== 'string' || !token) {
+    throw new Error('No token in response')
+  }
+  return token
+}
 
 async function req(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...options.headers,
+    },
   })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || `HTTP ${res.status}`)
+    throw new Error(formatApiError(text))
   }
   if (res.status === 204) return null
   return res.json()
 }
 
+export const authApi = {
+  login: (email, password) =>
+    fetch(`${BASE}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }).then(parseAuthToken),
+
+  register: (login, email, password) =>
+    fetch(`${BASE}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login, email, password }),
+    }).then(parseAuthToken),
+
+  /** Заготовка: позже здесь будет отправка ссылки сброса, а не пароля. */
+  requestPasswordReset: async (email) => {
+    const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim() }),
+    })
+    const text = await res.text()
+    if (!res.ok) {
+      throw new Error(formatApiError(text))
+    }
+    try {
+      return text ? JSON.parse(text) : {}
+    } catch {
+      return {}
+    }
+  },
+}
+
 export const api = {
-  getTransactions: () => req('/expenses'),
-  addTransaction: (data) => req('/expenses', { method: 'POST', body: JSON.stringify(data) }),
-  deleteTransaction: (id) => req(`/expenses/${id}`, { method: 'DELETE' }),
-  updateTransaction: (id, data) => req(`/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-  getRate: (from = 'RUB', to = 'USD') => req(`/rate?from=${from}&to=${to}`),
+  getTransactions: () => req('/api/expenses'),
+  addTransaction: (data) =>
+    req('/api/expenses', { method: 'POST', body: JSON.stringify(data) }),
+  deleteTransaction: (id) =>
+    req(`/api/expenses/${id}`, { method: 'DELETE' }),
+  updateTransaction: (id, data) =>
+    req(`/api/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  getRate: (from = 'RUB', to = 'USD') =>
+    req(`/api/rate?from=${from}&to=${to}`),
 }

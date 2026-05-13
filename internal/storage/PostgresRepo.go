@@ -13,7 +13,7 @@ type PostgresRepo struct {
 }
 
 func (p *PostgresRepo) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
-	row := p.DB.QueryRowContext(ctx, "INSERT INTO expenses (title, amount, user_id) VALUES ($1, $2, $3) RETURNING id, amount, title, created_at", title, amount, userID)
+	row := p.DB.QueryRowContext(ctx, "INSERT INTO expenses (title, amount, user_id) VALUES ($1, $2, $3) RETURNING id, amount, title, created_at, user_id", title, amount, userID)
 	var expense model.Expense
 	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt, &expense.UserID); err != nil {
 		return model.Expense{}, err

@@ -19,7 +19,10 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	if err := godotenv.Load(".env.local"); err != nil {
+		_ = godotenv.Load(".env")
+	}
+
 	base := os.Getenv("RateURL")
 
 	conf, err := config.NewConfig()
@@ -73,5 +76,5 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("Server shutdown error: ", "error", err)
 	}
-	slog.Info("Server stopped")
+	slog.Info("Server stopped)")
 }
