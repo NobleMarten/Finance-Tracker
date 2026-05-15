@@ -8,9 +8,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type PostgresRepo struct {
-	DB *sql.DB // указатель нужен для возможности изменять состояние базы данных внутри методов
-}
+// type PostgresRepo struct {
+// 	DB *sql.DB // указатель нужен для возможности изменять состояние базы данных внутри методов
+// }
 
 func (p *PostgresRepo) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
 	row := p.DB.QueryRowContext(ctx, "INSERT INTO expenses (title, amount, user_id) VALUES ($1, $2, $3) RETURNING id, amount, title, created_at, user_id", title, amount, userID)
@@ -75,7 +75,7 @@ func (p *PostgresRepo) Update(ctx context.Context, id int, newamount *int, newti
 }
 
 func (p *PostgresRepo) Clear(ctx context.Context, userID int) error {
-	_, err := p.DB.ExecContext(ctx, "Truncate expenses where user_id = $1 RESTART IDENTITY", userID)
+	_, err := p.DB.ExecContext(ctx, "DELETE FROM expenses where user_id = $1", userID)
 	if err != nil {
 		return err
 	}

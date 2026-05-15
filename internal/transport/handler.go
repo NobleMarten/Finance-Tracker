@@ -58,9 +58,9 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 	return &Handler{svc: svc, exchangeService: exsvc}
 }
 
-func (h *Handler) RegisterRouteres(r *chi.Mux) { //*chi.Mux
+func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 	r.Group(func(r chi.Router) {
-		r.Use(AuthMiddleware)
+		r.Use(AuthMiddleware(secret))
 		r.Get("/api/expenses", h.Expenses)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)

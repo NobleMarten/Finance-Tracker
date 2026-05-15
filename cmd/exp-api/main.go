@@ -2,11 +2,11 @@ package main
 
 import (
 	"FinanceTracker/internal/config"
-	"FinanceTracker/internal/db"
 	"FinanceTracker/internal/service"
 	"FinanceTracker/internal/storage"
 	"FinanceTracker/internal/transport"
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"os"
@@ -30,11 +30,19 @@ func main() {
 		panic(err)
 	}
 
-	repo, err := db.NewPostgresRepo(conf.DBURL)
+	DB, err := sql.Open("pgx", conf.DBURL)
 	if err != nil {
 		panic(err)
 	}
-	repoUser, err := storage.NewPostgresUserRepo(conf.DBURL)
+	if err := DB.Ping(); err != nil {
+		panic(err)
+	}
+
+	repo, err := storage.NewPostgresRepo(DB)
+	if err != nil {
+		panic(err)
+	}
+	repoUser, err := storage.NewPostgresUserRepo(DB)
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +59,7 @@ func main() {
 
 	r.Use(transport.MyCors)
 
-	h.RegisterRouteres(r)
+	h.RegisterRouteres(r, conf.JWTSecret)
 	uh.RegisterHandler(r)
 
 	srv := &http.Server{
