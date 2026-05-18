@@ -84,11 +84,12 @@ export default function AddExpense({ onAdd }) {
           amount · RUB
         </div>
         <div
-          className="overflow-hidden whitespace-nowrap leading-none font-semibold transition-all duration-150"
+          className="overflow-hidden whitespace-nowrap leading-none font-medium transition-all duration-150"
           style={{
             fontSize: numSize + 'px',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.01em',
             color: amt === '0' ? 'var(--text-ghost)' : 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           {amt}
@@ -121,28 +122,30 @@ export default function AddExpense({ onAdd }) {
           color: ready ? '#fff' : 'var(--text-ghost)',
           border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
           cursor: ready ? 'pointer' : 'not-allowed',
-          boxShadow: ready ? '0 0 20px rgba(108, 140, 255, 0.2)' : 'none',
+          boxShadow: ready ? '0 0 20px var(--accent-glow)' : 'none',
         }}
       >
         {busy ? '...' : 'add expense'}
       </button>
 
       {/* Numpad */}
-      <div className="grid grid-cols-3 gap-2 flex-1 content-start animate-fade-in-up delay-4">
+      <div className="grid grid-cols-3 gap-3 flex-1 content-start justify-items-center animate-fade-in-up delay-4">
         {KEYS.map((k, i) => {
           const isSym = k === '.' || k === '←'
           return (
             <button
               key={i}
               onClick={() => press(k)}
-              className="h-14 flex items-center justify-center transition-all duration-150 active:scale-95"
+              className="w-16 h-16 flex items-center justify-center transition-all duration-150 active:scale-90"
               style={{
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-muted)',
-                borderRadius: 'var(--radius-md)',
+                borderRadius: 'var(--radius-full)',
                 color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
                 fontSize: isSym ? '16px' : '20px',
                 fontWeight: isSym ? 400 : 500,
+                fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
+                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}

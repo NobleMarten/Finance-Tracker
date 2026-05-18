@@ -2,6 +2,21 @@ import { useState, useEffect } from 'react'
 import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
 
+function avatarColor(s) {
+  if (!s || s === '—') return { bg: 'var(--bg-elevated)', fg: 'var(--text-tertiary)' }
+  let hash = 0
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) | 0
+  }
+  // Skip yellow band (40°–80°) — push hues in that range past it
+  let hue = Math.abs(hash) % 320
+  if (hue >= 40) hue += 40
+  return {
+    bg: `hsla(${hue}, 55%, 55%, 0.14)`,
+    fg: `hsl(${hue}, 65%, 72%)`,
+  }
+}
+
 export default function Dashboard({ transactions, onEdit }) {
   const [rate, setRate] = useState(null)
   const [weekExpanded, setWeekExpanded] = useState(false)
@@ -71,11 +86,12 @@ export default function Dashboard({ transactions, onEdit }) {
           this month
         </div>
         <div
-          className="leading-none overflow-hidden whitespace-nowrap font-semibold animate-text-glow"
+          className="leading-none overflow-hidden whitespace-nowrap font-medium animate-text-glow"
           style={{
             fontSize: scaledFontSize(monthVal, 42, 26, 7) + 'px',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           {fmtFull(monthVal)}
@@ -93,6 +109,8 @@ export default function Dashboard({ transactions, onEdit }) {
             </span>
           </div>
         )}
+
+        <MonthSparkline transactions={transactions} monthStart={m0} />
       </div>
 
       {/* Week / Today cards */}
@@ -127,8 +145,9 @@ export default function Dashboard({ transactions, onEdit }) {
               className="overflow-hidden whitespace-nowrap font-medium"
               style={{
                 fontSize: scaledFontSize(weekVal, 22, 15, 6) + 'px',
-                letterSpacing: '-0.02em',
+                letterSpacing: '-0.01em',
                 color: 'var(--text-primary)',
+                fontFamily: 'var(--font-mono)',
               }}
             >
               {fmtShort(weekVal)}
@@ -203,7 +222,9 @@ export default function Dashboard({ transactions, onEdit }) {
             no expenses yet
           </p>
         )}
-        {recent.map((t, i) => (
+        {recent.map((t, i) => {
+          const c = avatarColor(t.description)
+          return (
           <div
             key={t.id}
             onClick={() => onEdit?.(t)}
@@ -218,8 +239,8 @@ export default function Dashboard({ transactions, onEdit }) {
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0"
                 style={{
-                  background: 'var(--accent-soft)',
-                  color: 'var(--accent)',
+                  background: c.bg,
+                  color: c.fg,
                 }}
               >
                 {(t.description || '—')[0].toUpperCase()}
@@ -241,14 +262,79 @@ export default function Dashboard({ transactions, onEdit }) {
             </div>
             <span
               className="text-[15px] font-medium whitespace-nowrap pl-3"
-              style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
+              style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', fontFamily: 'var(--font-mono)' }}
             >
               {fmtShort(t.amount)}
             </span>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
+  )
+}
+
+function MonthSparkline({ transactions, monthStart }) {
+  const now = new Date()
+  const todayDay = now.getDate()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+
+  const daily = new Array(todayDay).fill(0)
+  for (const t of transactions) {
+    if (t.ts >= monthStart && t.ts <= now) {
+      const d = new Date(t.ts).getDate()
+      if (d >= 1 && d <= todayDay) daily[d - 1] += t.amount
+    }
+  }
+
+  let acc = 0
+  const cumulative = daily.map(v => (acc += v))
+  const max = Math.max(...cumulative, 1)
+
+  if (cumulative.length < 2 || max === 0) return null
+
+  const W = 320
+  const H = 36
+  const PAD = 2
+  const denom = Math.max(1, daysInMonth - 1)
+
+  const points = cumulative.map((v, i) => {
+    const x = PAD + (i / denom) * (W - 2 * PAD)
+    const y = H - PAD - (v / max) * (H - 2 * PAD)
+    return [x, y]
+  })
+
+  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
+  const lastX = points[points.length - 1][0]
+  const firstX = points[0][0]
+  const areaPath = `${linePath} L${lastX.toFixed(2)},${H} L${firstX.toFixed(2)},${H} Z`
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="mt-4 animate-fade-in"
+      style={{ width: '100%', height: H, display: 'block', overflow: 'visible' }}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill="url(#spark-grad)" />
+      <path
+        d={linePath}
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+        style={{ vectorEffect: 'non-scaling-stroke' }}
+      />
+    </svg>
   )
 }
 
@@ -265,8 +351,9 @@ function StatCard({ label, value, usd }) {
         className="overflow-hidden whitespace-nowrap font-medium"
         style={{
           fontSize: scaledFontSize(value, 22, 15, 6) + 'px',
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.01em',
           color: 'var(--text-primary)',
+          fontFamily: 'var(--font-mono)',
         }}
       >
         {fmtShort(value)}

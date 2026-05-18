@@ -3,6 +3,7 @@ package service
 import (
 	"FinanceTracker/internal/model"
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -53,6 +54,7 @@ func (u *UserService) GetUserByEmail(ctx context.Context, email string) (model.U
 func (u *UserService) Login(ctx context.Context, email, password string) (string, error) {
 	user, err := u.repoUser.GetUserByEmail(ctx, email)
 	if err != nil {
+		slog.Error("GetUserEmail failed", "error", err)
 		return "", model.ErrNotFound
 	}
 

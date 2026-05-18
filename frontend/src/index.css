@@ -25,6 +25,9 @@
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-full: 9999px;
+
+  --font-ui: 'Syne', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', monospace;
 }
 
 /* ─── Reset ─── */
@@ -38,11 +41,28 @@
 body {
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-feature-settings: 'cv01', 'cv02', 'cv03';
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+}
+
+/* ─── Subtle noise overlay ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 input, button, select, textarea {
@@ -183,6 +203,45 @@ input, button, select, textarea {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+}
+
+/* ─── Auth pages ─── */
+.auth-page {
+  background: var(--bg-base);
+}
+
+.auth-card {
+  background: rgba(26, 26, 30, 0.8);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.auth-input {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-input::placeholder {
+  color: var(--text-ghost);
+}
+
+.auth-input:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.auth-icon-btn {
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* ─── Skeleton loader ─── */

@@ -149,11 +149,12 @@ export default function History({ transactions, onDelete, onEdit }) {
           total
         </div>
         <div
-          className="leading-none overflow-hidden whitespace-nowrap font-semibold"
+          className="leading-none overflow-hidden whitespace-nowrap font-medium"
           style={{
             fontSize: scaledFontSize(total, 38, 22, 7) + 'px',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           {fmtFull(total)}
@@ -208,7 +209,7 @@ export default function History({ transactions, onDelete, onEdit }) {
                   <span className="text-[13px] flex-1 px-3 font-light truncate" style={{ color: 'var(--text-secondary)' }}>
                     {t.description || '—'}
                   </span>
-                  <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                     {fmtShort(t.amount)}
                   </span>
                 </SwipeRow>
@@ -221,14 +222,14 @@ export default function History({ transactions, onDelete, onEdit }) {
             <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} onEdit={() => onEdit?.(t)} index={i}>
               <span
                 className={`text-[11px] ${seg === 0 ? 'w-10' : 'w-11'} flex-shrink-0 font-medium`}
-                style={{ color: 'var(--text-tertiary)' }}
+                style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
               >
                 {seg === 0 ? fmtTime(t.ts) : fmtDateShort(t.ts)}
               </span>
               <span className="text-[13px] flex-1 px-3 font-light truncate" style={{ color: 'var(--text-secondary)' }}>
                 {t.description || '—'}
               </span>
-              <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                 {fmtShort(t.amount)}
               </span>
             </SwipeRow>

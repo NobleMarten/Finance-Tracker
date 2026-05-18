@@ -31,18 +31,18 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-12">
+    <div className="auth-page min-h-screen flex items-center justify-center px-4 py-12">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(108,140,255,0.15),transparent)]" />
 
       <div
-        className="relative w-full max-w-[400px] rounded-2xl border border-gray-800 bg-gray-800/80 p-8 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl"
+        className="auth-card relative w-full max-w-[400px] rounded-2xl p-8"
         style={{ boxShadow: '0 24px 80px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04) inset' }}
       >
         <div className="mb-8 text-center">
-          <h1 className="text-xl font-semibold tracking-tight text-white">
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Вход
           </h1>
-          <p className="mt-2 text-sm text-gray-400">
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
             Finance Tracker
           </p>
         </div>
@@ -58,7 +58,7 @@ export default function Login() {
           )}
 
           <div>
-            <label htmlFor="login-email" className="mb-2 block text-xs font-medium uppercase tracking-wider text-gray-500">
+            <label htmlFor="login-email" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
               Email
             </label>
             <input
@@ -68,13 +68,13 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[color:var(--accent)]"
+              className="auth-input w-full rounded-xl px-4 py-3 text-sm"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="login-password" className="mb-2 block text-xs font-medium uppercase tracking-wider text-gray-500">
+            <label htmlFor="login-password" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
               Пароль
             </label>
             <div className="relative">
@@ -85,13 +85,13 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-700 bg-gray-900 py-3 pl-4 pr-12 text-sm text-white placeholder-gray-600 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[color:var(--accent)]"
+                className="auth-input w-full rounded-xl py-3 pl-4 pr-12 text-sm"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-400 outline-none transition hover:bg-gray-800 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]"
+                className="auth-icon-btn absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 outline-none"
                 aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
               >
                 {showPassword ? (
@@ -129,7 +129,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-gray-500">
+        <p className="mt-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
           Нет аккаунта?{' '}
           <Link
             to="/register"

@@ -29,7 +29,7 @@ export default function BottomNav({ screen, onNavigate }) {
         className="absolute right-5 bottom-4 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all duration-200"
         style={{
           background: 'var(--accent)',
-          boxShadow: '0 0 20px rgba(108, 140, 255, 0.3)',
+          boxShadow: '0 0 20px var(--accent-glow)',
           animation: screen !== 2 ? 'subtlePulse 3s ease-in-out infinite' : 'none',
         }}
       >

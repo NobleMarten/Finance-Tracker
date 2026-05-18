@@ -85,7 +85,7 @@ func (m *MockRepo) Summary(ctx context.Context, mo int, userID int) (int, error)
 	if mo == 0 {
 		var sum int
 		for _, exp := range m.expenses {
-			if exp.UserID == nil || *exp.UserID != userID {
+			if exp.UserID != nil && *exp.UserID != userID {
 				continue
 			}
 			sum += exp.Amount

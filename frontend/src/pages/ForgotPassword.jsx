@@ -23,21 +23,21 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4 py-12">
+    <div className="auth-page min-h-screen flex items-center justify-center px-4 py-12">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(108,140,255,0.12),transparent)]" />
 
       <div
-        className="relative w-full max-w-[400px] rounded-2xl border border-gray-800 bg-gray-800/80 p-8 backdrop-blur-xl"
+        className="auth-card relative w-full max-w-[400px] rounded-2xl p-8"
         style={{ boxShadow: '0 24px 80px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04) inset' }}
       >
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold tracking-tight text-white">
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Сброс пароля
           </h1>
-          <p className="mt-3 text-left text-sm leading-relaxed text-gray-400">
-            Пароль <span className="text-gray-300">никогда не отправляют</span> письмом — это небезопасно.
+          <p className="mt-3 text-left text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Пароль <span style={{ color: 'var(--text-primary)' }}>никогда не отправляют</span> письмом — это небезопасно.
             После настройки почты на сервере сюда добавится отправка{' '}
-            <span className="text-gray-300">одноразовой ссылки</span> для установки нового пароля.
+            <span style={{ color: 'var(--text-primary)' }}>одноразовой ссылки</span> для установки нового пароля.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
             )}
 
             <div>
-              <label htmlFor="forgot-email" className="mb-2 block text-xs font-medium uppercase tracking-wider text-gray-500">
+              <label htmlFor="forgot-email" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
                 Email аккаунта
               </label>
               <input
@@ -71,7 +71,7 @@ export default function ForgotPassword() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none transition focus:border-transparent focus:ring-2 focus:ring-[color:var(--accent)]"
+                className="auth-input w-full rounded-xl px-4 py-3 text-sm"
                 placeholder="you@example.com"
               />
             </div>
@@ -90,7 +90,7 @@ export default function ForgotPassword() {
           </form>
         )}
 
-        <p className="mt-8 text-center text-sm text-gray-500">
+        <p className="mt-8 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
           <Link to="/login" className="font-medium text-[color:var(--accent)] transition hover:underline">
             ← Назад ко входу
           </Link>
