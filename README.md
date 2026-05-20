@@ -2,7 +2,7 @@
 
 # 💸 Finance Tracker
 
-Веб-приложение для учёта личных финансов с поддержкой нескольких валют, фильтрацией по месяцам и сводной статистикой расходов.
+Веб-приложение для учёта личных финансов с JWT-авторизацией, поддержкой нескольких валют, фильтрацией по месяцам и сводной статистикой расходов.
 
 ## Стек технологий
 
@@ -11,6 +11,7 @@
 - [Chi](https://github.com/go-chi/chi) — HTTP-роутер
 - [pgx](https://github.com/jackc/pgx) — драйвер PostgreSQL
 - [PostgreSQL](https://www.postgresql.org/) (Supabase) — база данных
+- [golang-jwt](https://github.com/golang-jwt/jwt) — JWT авторизация
 - [open.er-api.com](https://www.exchangerate-api.com/) — API курсов валют
 
 **Frontend**
@@ -25,24 +26,45 @@
 ```
 finance-tracker/
 ├── cmd/
-│   └── main.go               # Точка входа
+│   ├── exp-api/
+│   │   └── main.go               # Точка входа HTTP-сервера
+│   └── exp-cli/
+│       └── main.go               # CLI-клиент (add, list, delete, update, summary)
 ├── internal/
-│   ├── db/
-│   │   └── db.go             # Работа с БД (CRUD)
+│   ├── config/
+│   │   └── config.go             # Загрузка конфига из env
+│   ├── model/
+│   │   ├── expense.go            # Модель расхода
+│   │   ├── User.go               # Модель пользователя
+│   │   └── errors.go             # Доменные ошибки
 │   ├── service/
-│   │   └── service.go        # Бизнес-логика, конвертация валют
+│   │   ├── service.go            # Бизнес-логика расходов
+│   │   ├── user_service.go       # Бизнес-логика пользователей, JWT
+│   │   ├── exchange_service.go   # Получение курсов валют
+│   │   ├── mock_repo.go          # Мок репозитория для тестов
+│   │   └── service_test.go       # Юнит-тесты сервисного слоя
+│   ├── storage/
+│   │   ├── db.go                 # Подключение к БД, конструкторы репозиториев
+│   │   ├── PostgresRepo.go       # SQL-запросы для расходов
+│   │   └── UserRepo.go           # SQL-запросы для пользователей
 │   └── transport/
-│       ├── handler.go        # HTTP-обработчики
-│       ├── middleware.go     # CORS и прочие middleware
-│       └── router.go         # Регистрация маршрутов
+│       ├── handler.go            # HTTP-обработчики расходов
+│       ├── user_handler.go       # HTTP-обработчики авторизации
+│       ├── middleware.go         # CORS, JWT middleware
+│       └── ErrorHelpers.go       # Маппинг ошибок в HTTP-статусы
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # UI-компоненты (Dashboard, History, AddExpense)
-│   │   └── main.jsx
+│   │   ├── api/                  # Fetch-запросы к бэкенду
+│   │   ├── components/           # Dashboard, History, AddExpense, EditExpense и др.
+│   │   ├── context/              # AuthContext (JWT в localStorage)
+│   │   ├── hooks/                # useTransactions
+│   │   ├── pages/                # Login, Register, ForgotPassword
+│   │   └── utils/                # Форматирование, обработка ошибок API
 │   ├── index.html
 │   └── package.json
-├── .env                      # Переменные окружения
 ├── .env.example
+├── Dockerfile
+├── docker-compose.yml
 └── go.mod
 ```
 
@@ -51,8 +73,11 @@ finance-tracker/
 ## Переменные окружения
 
 ```env
-DATABASE_URL=postgres://user:password@host:port/dbname
-PORT=8080
+DBURL=postgres://user:password@host:port/dbname
+HOST=localhost:8080
+JWT_SECRET=your_secret_key
+RateURL=https://v6.exchangerate-api.com/v6/
+RateKey=your_api_key
 ```
 
 ---
@@ -62,11 +87,8 @@ PORT=8080
 ### Backend
 
 ```bash
-# Установить зависимости
 go mod tidy
-
-# Запустить сервер
-go run ./cmd/main.go
+go run ./cmd/exp-api/main.go
 ```
 
 Сервер запустится на `http://localhost:8080`.
@@ -75,12 +97,19 @@ go run ./cmd/main.go
 
 ```bash
 cd frontend
-
 npm install
 npm run dev
 ```
 
 Фронтенд запустится на `http://localhost:5173`.
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+API: `8081`, React: `3000`, PostgreSQL: `5433`.
 
 ---
 
@@ -88,63 +117,30 @@ npm run dev
 
 Базовый URL: `http://localhost:8080`
 
-### Расходы
+### Авторизация
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| `GET` | `/expenses` | Получить все расходы |
-| `GET` | `/expenses/{id}` | Получить расход по ID |
-| `POST` | `/expenses` | Создать новый расход |
-| `DELETE` | `/expenses/{id}` | Удалить расход |
+| `POST` | `/api/register` | Регистрация нового пользователя |
+| `POST` | `/api/login` | Вход, возвращает JWT-токен |
+| `POST` | `/api/auth/forgot-password` | Запрос сброса пароля (заглушка) |
 
-### Сводка
+### Расходы (требуют `Authorization: Bearer <token>`)
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| `GET` | `/summary` | Общая сводка расходов |
-| `GET` | `/summary?month=3` | Сводка за конкретный месяц |
+| `GET` | `/api/expenses` | Список всех расходов пользователя |
+| `POST` | `/api/expenses` | Создать расход |
+| `PATCH` | `/api/expenses/{id}` | Обновить расход |
+| `DELETE` | `/api/expenses/{id}` | Удалить расход |
+| `POST` | `/api/expenses/clear` | Удалить все расходы пользователя |
+| `GET` | `/api/expenses/summary` | Сводка расходов (с конвертацией в USD) |
 
----
+### Прочее
 
-### Примеры запросов
-
-**Создать расход**
-
-```http
-POST /expenses
-Content-Type: application/json
-
-{
-  "amount": 1500,
-  "currency": "RUB",
-  "category": "Food",
-  "description": "Продукты"
-}
-```
-
-**Ответ**
-
-```json
-{
-  "id": 1,
-  "amount": 1500,
-  "created_at": "2026-04-19T12:00:00Z"
-}
-```
-
-**Получить сводку за март**
-
-```http
-GET /summary?month=3
-```
-
-**Ответ**
-
-```json
-{
-  "total": 142.50,
-}
-```
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/api/rate?from=RUB&to=USD` | Текущий курс валют |
 
 ---
 
