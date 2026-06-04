@@ -194,17 +194,21 @@ func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var SumReq SummaryRequest
+	var monthInt int
 
-	if err := json.NewDecoder(r.Body).Decode(&SumReq); err != nil {
-		log.Println(err)
-		WriteError(w, err)
-		return
+	month := r.URL.Query().Get("month")
+	if month != "" {
+		var err error
+		monthInt, err = strconv.Atoi(month)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
 	}
 
 	userID := ctx.Value(UsrContext).(int)
 
-	sum, err := h.svc.Summary(ctx, SumReq.Month, userID)
+	sum, err := h.svc.Summary(ctx, monthInt, userID)
 	if err != nil {
 		WriteError(w, err)
 		return
