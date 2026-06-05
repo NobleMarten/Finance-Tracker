@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -19,6 +20,7 @@ type ItemService interface {
 	Update(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
 	Summary(ctx context.Context, m int, userID int) (int, error)
+	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 }
 
 type ExchangeService interface {
@@ -62,6 +64,7 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(secret))
 		r.Get("/api/expenses", h.Expenses)
+		r.Get("/api/expenses/daily", h.DailyTotal)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)
 		r.Post("/api/expenses/clear", h.Clear)
@@ -269,5 +272,44 @@ func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		http.Error(w, "Failed to encode rate", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	if month == "" {
+		WriteError(w, model.ErrInvalidMonth)
+		return
+	}
+	if year == "" {
+		year = strconv.Itoa(time.Now().Year())
+	}
+
+	monthInt, err := strconv.Atoi(month)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	yearInt, err := strconv.Atoi(year)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	userID := ctx.Value(UsrContext).(int)
+
+	dailyExpense, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(dailyExpense); err != nil {
+		http.Error(w, "Failed to encode daily total", http.StatusInternalServerError)
 	}
 }

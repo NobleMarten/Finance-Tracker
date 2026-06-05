@@ -13,6 +13,7 @@ type ExpenseRepo interface {
 	Clear(ctx context.Context, userID int) error
 	Summary(ctx context.Context, m int, userID int) (int, error)
 	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int) (model.Expense, error)
+	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 }
 
 type ItemService struct {
@@ -112,4 +113,12 @@ func (s *ItemService) Summary(ctx context.Context, m int, userID int) (int, erro
 	}
 
 	return s.repo.Summary(ctx, m, userID)
+}
+
+func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error) {
+	if 0 > m || m > 12 {
+		return []model.DailyExpense{}, model.ErrInvalidMonth
+	}
+
+	return s.repo.DailyTotal(ctx, m, y, userID)
 }

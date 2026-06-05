@@ -101,3 +101,16 @@ func (m *MockRepo) Summary(ctx context.Context, mo int, userID int) (int, error)
 		return sum, nil
 	}
 }
+
+func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int) ([]model.DailyExpense, error) {
+	var DailyExpenses []model.DailyExpense
+	for _, exp := range m.expenses {
+		if exp.CreatedAt.Month() == time.Month(mo) && (exp.UserID == nil || *exp.UserID == userID) {
+			DailyExpenses = append(DailyExpenses, model.DailyExpense{
+				Date:   "",
+				Amount: exp.Amount,
+			})
+		}
+	}
+	return DailyExpenses, nil
+}

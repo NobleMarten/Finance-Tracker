@@ -98,3 +98,25 @@ func (p *PostgresRepo) Summary(ctx context.Context, m int, userID int) (int, err
 	}
 	return summary, nil
 }
+
+func (p *PostgresRepo) DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error) {
+	rows, err := p.DB.QueryContext(ctx, "SELECT date(created_at)::text, SUM(amount) from expenses WHERE EXTRACT(MONTH FROM created_at)=$1 AND EXTRACT(YEAR FROM created_at)=$2 AND user_id = $3 GROUP BY date(created_at)", m, y, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var DailyExpenses []model.DailyExpense
+	for rows.Next() {
+		var DailyExpense model.DailyExpense
+		if err := rows.Scan(&DailyExpense.Date, &DailyExpense.Amount); err != nil {
+			return nil, err
+		}
+		DailyExpenses = append(DailyExpenses, DailyExpense)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return DailyExpenses, nil
+}
