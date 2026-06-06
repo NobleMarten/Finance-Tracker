@@ -114,3 +114,7 @@ func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int) ([
 	}
 	return DailyExpenses, nil
 }
+
+func (m *MockRepo) TopExpenses(ctx context.Context, mo, y int, limit int, userID int) ([]model.Expense, error) {
+	return nil, nil
+}

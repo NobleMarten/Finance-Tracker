@@ -14,6 +14,7 @@ type ExpenseRepo interface {
 	Summary(ctx context.Context, m int, userID int) (int, error)
 	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int) (model.Expense, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
+	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
 }
 
 type ItemService struct {
@@ -117,8 +118,20 @@ func (s *ItemService) Summary(ctx context.Context, m int, userID int) (int, erro
 
 func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error) {
 	if 0 > m || m > 12 {
-		return []model.DailyExpense{}, model.ErrInvalidMonth
+		return nil, model.ErrInvalidMonth
 	}
 
 	return s.repo.DailyTotal(ctx, m, y, userID)
+}
+
+func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+	if 0 > m || m > 12 {
+		return nil, model.ErrInvalidMonth
+	}
+
+	if limit <= 0 {
+		return nil, model.ErrInvalidLimit
+	}
+
+	return s.repo.TopExpenses(ctx, m, y, limit, userID)
 }

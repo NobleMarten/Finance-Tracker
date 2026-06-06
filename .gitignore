@@ -2,3 +2,4 @@ data/expenses.json
 cover.out
 .env.local
 .env
+.agents

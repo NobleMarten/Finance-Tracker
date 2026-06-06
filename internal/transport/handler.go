@@ -21,6 +21,7 @@ type ItemService interface {
 	Clear(ctx context.Context, userID int) error
 	Summary(ctx context.Context, m int, userID int) (int, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
+	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
 }
 
 type ExchangeService interface {
@@ -65,6 +66,7 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Use(AuthMiddleware(secret))
 		r.Get("/api/expenses", h.Expenses)
 		r.Get("/api/expenses/daily", h.DailyTotal)
+		r.Get("/api/expenses/top", h.TopExpenses)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)
 		r.Post("/api/expenses/clear", h.Clear)
@@ -311,5 +313,52 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(dailyExpense); err != nil {
 		http.Error(w, "Failed to encode daily total", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	limit := r.URL.Query().Get("limit")
+
+	userID := ctx.Value(UsrContext).(int)
+
+	if month == "" {
+		WriteError(w, model.ErrInvalidMonth)
+		return
+	}
+	if year == "" {
+		year = strconv.Itoa(time.Now().Year())
+	}
+
+	monthInt, err := strconv.Atoi(month)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	yearInt, err := strconv.Atoi(year)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	topExpenses, err := h.svc.TopExpenses(ctx, monthInt, yearInt, limitInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(topExpenses); err != nil {
+		http.Error(w, "failed to encode top expenses", http.StatusInternalServerError)
 	}
 }

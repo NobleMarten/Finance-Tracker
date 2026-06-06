@@ -120,3 +120,23 @@ func (p *PostgresRepo) DailyTotal(ctx context.Context, m int, y int, userID int)
 	}
 	return DailyExpenses, nil
 }
+
+func (p *PostgresRepo) TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+	rows, err := p.DB.QueryContext(ctx, "SELECT id, amount, title, created_at, user_id from expenses WHERE EXTRACT(MONTH from created_at)=$1 AND EXTRACT(YEAR from created_at)=$2 AND user_id=$3 ORDER BY amount DESC LIMIT $4", m, y, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	var expenses []model.Expense
+	defer rows.Close()
+	for rows.Next() {
+		var expense model.Expense
+		if err := rows.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt, &expense.UserID); err != nil {
+			return nil, err
+		}
+		expenses = append(expenses, expense)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return expenses, nil
+}
