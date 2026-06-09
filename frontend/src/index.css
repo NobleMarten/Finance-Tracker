@@ -26,8 +26,8 @@
   --radius-lg: 18px;
   --radius-full: 9999px;
 
-  --font-ui: 'Syne', system-ui, sans-serif;
-  --font-mono: 'DM Mono', 'Courier New', monospace;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 /* ─── Reset ─── */

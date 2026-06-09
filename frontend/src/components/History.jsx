@@ -100,10 +100,10 @@ export default function History({ transactions, onDelete, onEdit }) {
     if (!swiping.current) return
     const dx = e.changedTouches[0].clientX - touchStart.current
     const THRESHOLD = 50
-    if (dx < -THRESHOLD) {
-      setOffset(o => o + 1) // swipe left → go back in time
-    } else if (dx > THRESHOLD) {
-      setOffset(o => Math.max(0, o - 1)) // swipe right → go forward in time
+    if (dx > THRESHOLD) {
+      setOffset(o => o + 1) // swipe right → go back in time
+    } else if (dx < -THRESHOLD) {
+      setOffset(o => Math.max(0, o - 1)) // swipe left → go forward in time
     }
     swiping.current = false
   }, [])
