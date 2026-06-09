@@ -43,11 +43,13 @@ function NavBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className="w-12 h-10 flex items-center justify-center transition-all duration-250"
+      className="w-12 h-10 flex items-center justify-center transition-colors duration-200"
       style={{
         borderRadius: 'var(--radius-md)',
         background: active ? 'var(--accent-soft)' : 'transparent',
       }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
     >
       {children}
     </button>

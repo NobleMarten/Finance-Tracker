@@ -37,12 +37,13 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#0b0b0b] flex justify-center overflow-hidden">
-      <div 
-        className="w-full h-full max-w-sm flex flex-col bg-[#0b0b0b] relative overflow-hidden"
+    <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      <div
+        className="w-full h-full max-w-sm flex flex-col relative overflow-hidden"
         style={{
+          background: 'var(--bg-base)',
           paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)'
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         <SwipeableScreens screen={screen} setScreen={setScreen} loading={loading}>

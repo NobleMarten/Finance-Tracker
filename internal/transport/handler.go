@@ -19,7 +19,7 @@ type ItemService interface {
 	Delete(ctx context.Context, id, userID int) (model.Expense, error)
 	Update(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
-	Summary(ctx context.Context, m int, userID int) (int, error)
+	Summary(ctx context.Context, m, y int, userID int) (int, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
 }
@@ -200,7 +200,7 @@ func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var monthInt int
-
+	year := r.URL.Query().Get("year")
 	month := r.URL.Query().Get("month")
 	if month != "" {
 		var err error
@@ -211,9 +211,18 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if year == "" {
+		year = strconv.Itoa(time.Now().Year())
+	}
+
+	yearInt, err := strconv.Atoi(year)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
 	userID := ctx.Value(UsrContext).(int)
 
-	sum, err := h.svc.Summary(ctx, monthInt, userID)
+	sum, err := h.svc.Summary(ctx, monthInt, yearInt, userID)
 	if err != nil {
 		WriteError(w, err)
 		return

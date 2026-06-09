@@ -11,7 +11,7 @@ type ExpenseRepo interface {
 	List(ctx context.Context, userID int) ([]model.Expense, error)
 	Delete(ctx context.Context, id int, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
-	Summary(ctx context.Context, m int, userID int) (int, error)
+	Summary(ctx context.Context, m, y int, userID int) (int, error)
 	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int) (model.Expense, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
@@ -107,13 +107,13 @@ func (s *ItemService) Clear(ctx context.Context, userID int) error {
 	return s.repo.Clear(ctx, userID)
 }
 
-func (s *ItemService) Summary(ctx context.Context, m int, userID int) (int, error) {
+func (s *ItemService) Summary(ctx context.Context, m, y int, userID int) (int, error) {
 
 	if 0 > m || m > 12 {
 		return 0, model.ErrInvalidMonth
 	}
 
-	return s.repo.Summary(ctx, m, userID)
+	return s.repo.Summary(ctx, m, y, userID)
 }
 
 func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error) {

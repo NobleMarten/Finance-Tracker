@@ -115,10 +115,8 @@ export default function History({ transactions, onDelete, onEdit }) {
       <div className="flex items-center justify-between px-6 pt-4 pb-2 flex-shrink-0 animate-fade-in delay-1">
         <button
           onClick={() => setOffset(o => o + 1)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors duration-150 hover:bg-[var(--bg-elevated)]"
           style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
@@ -129,10 +127,8 @@ export default function History({ transactions, onDelete, onEdit }) {
         </span>
         <button
           onClick={() => setOffset(o => Math.max(0, o - 1))}
-          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors duration-150 ${offset > 0 ? 'hover:bg-[var(--bg-elevated)]' : 'cursor-default'}`}
           style={{ color: offset === 0 ? 'var(--text-ghost)' : 'var(--text-secondary)' }}
-          onMouseEnter={e => { if (offset > 0) e.currentTarget.style.background = 'var(--bg-elevated)' }}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />

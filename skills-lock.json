@@ -36,6 +36,12 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "1d498596fb45013072974e04de924204e9009f0d0d5c206782745ddbd98eb36e"
+    },
     "receiving-code-review": {
       "source": "obra/superpowers",
       "ref": "main",

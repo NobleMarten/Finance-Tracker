@@ -56,11 +56,12 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
   }
 
   return (
-    <div 
-      className="flex flex-col flex-1 min-h-0 px-6 bg-[#0b0b0b] absolute inset-0 z-50 animate-fade-in-up"
+    <div
+      className="flex flex-col flex-1 min-h-0 px-6 absolute inset-0 z-50 animate-fade-in-up"
       style={{
+        background: 'var(--bg-base)',
         paddingTop: 'calc(env(safe-area-inset-top) + 24px)',
-        paddingBottom: 'env(safe-area-inset-bottom)'
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       {/* header */}
@@ -97,11 +98,12 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
           amount · RUB
         </div>
         <div
-          className="overflow-hidden whitespace-nowrap leading-none font-semibold transition-all duration-150"
+          className="overflow-hidden whitespace-nowrap leading-none font-medium transition-all duration-150"
           style={{
             fontSize: numSize + 'px',
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.01em',
             color: amt === '0' ? 'var(--text-ghost)' : 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
           }}
         >
           {amt}
@@ -127,7 +129,7 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
       <button
         onClick={submit}
         disabled={!ready || busy}
-        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-250 animate-fade-in delay-3"
+        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-200 animate-fade-in delay-3 flex items-center justify-center gap-2"
         style={{
           borderRadius: 'var(--radius-md)',
           background: ready ? 'var(--accent)' : 'var(--bg-surface)',
@@ -135,9 +137,10 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
           border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
           cursor: ready ? 'pointer' : 'not-allowed',
           boxShadow: ready ? '0 0 20px var(--accent-glow)' : 'none',
+          opacity: busy ? 0.7 : 1,
         }}
       >
-        {busy ? '...' : 'save changes'}
+        {busy ? <span className="animate-spin-btn" /> : 'save changes'}
       </button>
 
       {/* Numpad */}
@@ -148,9 +151,8 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
             <button
               key={i}
               onClick={() => press(k)}
-              className="w-16 h-16 flex items-center justify-center transition-all duration-150 active:scale-90"
+              className="w-16 h-16 flex items-center justify-center transition-colors duration-150 active:scale-90 bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)]"
               style={{
-                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-muted)',
                 borderRadius: 'var(--radius-full)',
                 color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
@@ -159,8 +161,6 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
                 fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
                 boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
             >
               {k}
             </button>

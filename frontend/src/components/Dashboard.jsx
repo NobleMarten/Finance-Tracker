@@ -178,10 +178,9 @@ export default function Dashboard({ transactions, onEdit }) {
                   <div
                     key={t.id}
                     onClick={() => onEdit?.(t)}
-                    className="flex items-center justify-between py-1.5"
+                    className="flex items-center justify-between py-1.5 rounded transition-colors duration-150 hover:bg-[var(--bg-hover)] cursor-pointer px-1 -mx-1"
                     style={{
                       borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
-                      cursor: 'pointer',
                     }}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -228,11 +227,10 @@ export default function Dashboard({ transactions, onEdit }) {
           <div
             key={t.id}
             onClick={() => onEdit?.(t)}
-            className={`flex justify-between items-center py-3 animate-fade-in`}
+            className={`flex justify-between items-center py-3 animate-fade-in rounded-lg -mx-2 px-2 transition-colors duration-150 hover:bg-[var(--bg-surface)] cursor-pointer`}
             style={{
               borderTop: '1px solid var(--border-muted)',
               animationDelay: `${0.3 + i * 0.05}s`,
-              cursor: 'pointer',
             }}
           >
             <div className="flex items-center gap-3 min-w-0">

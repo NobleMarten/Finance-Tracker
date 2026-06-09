@@ -81,7 +81,7 @@ func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *strin
 	return model.Expense{}, model.ErrNotFound
 }
 
-func (m *MockRepo) Summary(ctx context.Context, mo int, userID int) (int, error) {
+func (m *MockRepo) Summary(ctx context.Context, mo int, y int, userID int) (int, error) {
 	if mo == 0 {
 		var sum int
 		for _, exp := range m.expenses {

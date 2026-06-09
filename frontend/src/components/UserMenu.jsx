@@ -31,43 +31,68 @@ export default function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-700 bg-gray-800 text-sm font-semibold text-white shadow-md transition hover:border-gray-600 hover:bg-gray-700"
-        style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
+        className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 active:scale-95"
+        style={{
+          background: open ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+          border: `1px solid ${open ? 'var(--accent)' : 'var(--border-subtle)'}`,
+          boxShadow: open ? '0 0 12px var(--accent-glow)' : 'none',
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Меню пользователя"
+        onMouseEnter={e => { if (!open) e.currentTarget.style.borderColor = 'var(--border-muted)' }}
+        onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = 'var(--border-subtle)' }}
       >
-        <span style={{ color: 'var(--accent)' }}>{initialFromEmail(email)}</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>
+          {initialFromEmail(email)}
+        </span>
       </button>
 
       {open && (
         <div
-          className="absolute right-0 top-11 z-[300] min-w-[220px] overflow-hidden rounded-xl border border-gray-800 bg-gray-900 py-2 shadow-2xl"
-          style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.55)' }}
+          className="absolute right-0 top-11 z-[300] min-w-[220px] overflow-hidden animate-scale-in"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset',
+          }}
           role="menu"
         >
-          <div className="border-b border-gray-800 px-4 py-3">
-            <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
+          <div
+            className="px-4 py-3"
+            style={{ borderBottom: '1px solid var(--border-subtle)' }}
+          >
+            <div
+              className="text-[10px] font-medium uppercase tracking-[0.14em]"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
               Пользователь
             </div>
-            <div className="mt-1 truncate text-sm font-medium text-white" title={displayName}>
+            <div
+              className="mt-1 truncate text-[13px] font-medium"
+              style={{ color: 'var(--text-primary)' }}
+              title={displayName}
+            >
               {displayName}
             </div>
             {email && (
-              <div className="mt-0.5 truncate text-xs text-gray-500" title={email}>
+              <div
+                className="mt-0.5 truncate text-[11px]"
+                style={{ color: 'var(--text-tertiary)' }}
+                title={email}
+              >
                 {email}
               </div>
             )}
           </div>
-          <div className="px-2 pt-2">
+          <div className="p-1.5">
             <button
               type="button"
               role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                logout()
-              }}
-              className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-200 transition hover:bg-gray-800"
+              onClick={() => { setOpen(false); logout() }}
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-secondary)' }}
             >
               Выйти
             </button>

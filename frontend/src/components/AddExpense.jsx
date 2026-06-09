@@ -115,7 +115,7 @@ export default function AddExpense({ onAdd }) {
       <button
         onClick={submit}
         disabled={!ready || busy}
-        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-250 animate-fade-in delay-3"
+        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-200 animate-fade-in delay-3 flex items-center justify-center gap-2"
         style={{
           borderRadius: 'var(--radius-md)',
           background: ready ? 'var(--accent)' : 'var(--bg-surface)',
@@ -123,9 +123,10 @@ export default function AddExpense({ onAdd }) {
           border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
           cursor: ready ? 'pointer' : 'not-allowed',
           boxShadow: ready ? '0 0 20px var(--accent-glow)' : 'none',
+          opacity: busy ? 0.7 : 1,
         }}
       >
-        {busy ? '...' : 'add expense'}
+        {busy ? <span className="animate-spin-btn" /> : 'add expense'}
       </button>
 
       {/* Numpad */}
@@ -136,9 +137,8 @@ export default function AddExpense({ onAdd }) {
             <button
               key={i}
               onClick={() => press(k)}
-              className="w-16 h-16 flex items-center justify-center transition-all duration-150 active:scale-90"
+              className="w-16 h-16 flex items-center justify-center transition-colors duration-150 active:scale-90 bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)]"
               style={{
-                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-muted)',
                 borderRadius: 'var(--radius-full)',
                 color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
@@ -147,8 +147,6 @@ export default function AddExpense({ onAdd }) {
                 fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
                 boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-surface)'}
             >
               {k}
             </button>

@@ -82,7 +82,7 @@ func (p *PostgresRepo) Clear(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (p *PostgresRepo) Summary(ctx context.Context, m int, userID int) (int, error) {
+func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int) (int, error) {
 	var summary int
 
 	if m == 0 {
@@ -91,7 +91,7 @@ func (p *PostgresRepo) Summary(ctx context.Context, m int, userID int) (int, err
 			return 0, err
 		}
 	} else {
-		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE EXTRACT(MONTH FROM created_at) = $1 AND user_id = $2", m, userID)
+		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE EXTRACT(MONTH FROM created_at) = $1 AND EXTRACT(YEAR FROM created_at) = $2 AND user_id = $3", m, y, userID)
 		if err := row.Scan(&summary); err != nil {
 			return 0, err
 		}
