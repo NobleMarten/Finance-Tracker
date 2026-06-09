@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { fmtFull, fmtShort, fmtTime, fmtDateShort, scaledFontSize } from '../utils/format'
 
 function groupByWeek(transactions) {
@@ -77,8 +77,45 @@ export default function History({ transactions, onDelete, onEdit }) {
 
   const handleSeg = (i) => { setSeg(i); setOffset(0) }
 
+  const touchStart = useRef(0)
+  const swiping = useRef(false)
+  const locked = useRef(false)
+
+  const onTouchStart = useCallback((e) => {
+    touchStart.current = e.touches[0].clientX
+    swiping.current = false
+    locked.current = false
+  }, [])
+
+  const onTouchMove = useCallback((e) => {
+    if (locked.current) return
+    const dx = Math.abs(e.touches[0].clientX - touchStart.current)
+    const dy = Math.abs(e.touches[0].clientY - (e.touches[0].clientY))
+    if (!swiping.current && dx > 10) {
+      swiping.current = true
+    }
+  }, [])
+
+  const onTouchEnd = useCallback((e) => {
+    if (!swiping.current) return
+    const dx = e.changedTouches[0].clientX - touchStart.current
+    const THRESHOLD = 50
+    if (dx < -THRESHOLD) {
+      setOffset(o => o + 1) // swipe left → go back in time
+    } else if (dx > THRESHOLD) {
+      setOffset(o => Math.max(0, o - 1)) // swipe right → go forward in time
+    }
+    swiping.current = false
+  }, [])
+
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div
+      className="flex flex-col flex-1 min-h-0"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ touchAction: 'pan-y' }}
+    >
       {/* Header */}
       <div className="px-6 pt-6 flex-shrink-0 animate-fade-in">
         <div className="text-[22px] font-semibold tracking-tight mb-5" style={{ color: 'var(--text-primary)' }}>

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { useTransactions } from './hooks/useTransactions'
 import Dashboard from './components/Dashboard'
 import History from './components/History'
@@ -46,7 +46,7 @@ export default function App() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        <SwipeableScreens screen={screen} setScreen={setScreen} loading={loading}>
+        <div className="flex-1 flex flex-col min-h-0">
           {loading && screen === 0 ? (
             <SkeletonLoader />
           ) : (
@@ -56,7 +56,7 @@ export default function App() {
               {screen === 2 && <AddExpense onAdd={handleAdd} />}
             </div>
           )}
-        </SwipeableScreens>
+        </div>
         <BottomNav screen={screen} onNavigate={setScreen} />
         
         {editingExpense && (
@@ -73,58 +73,6 @@ export default function App() {
   )
 }
 
-function SwipeableScreens({ screen, setScreen, loading, children }) {
-  const touchStart = useRef({ x: 0, y: 0 })
-  const swiping = useRef(false)
-  const locked = useRef(false) // locked to vertical scroll, ignore swipe
-
-  const onTouchStart = useCallback((e) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-    swiping.current = false
-    locked.current = false
-  }, [])
-
-  const onTouchMove = useCallback((e) => {
-    if (locked.current) return
-    const dx = e.touches[0].clientX - touchStart.current.x
-    const dy = e.touches[0].clientY - touchStart.current.y
-    // Determine intent after 10px of movement
-    if (!swiping.current && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
-      if (Math.abs(dy) > Math.abs(dx)) {
-        // Vertical scroll — don't intercept
-        locked.current = true
-        return
-      }
-      swiping.current = true
-    }
-  }, [])
-
-  const onTouchEnd = useCallback((e) => {
-    if (locked.current || !swiping.current) return
-    const dx = e.changedTouches[0].clientX - touchStart.current.x
-    const THRESHOLD = 60
-    if (dx < -THRESHOLD && screen === 0) {
-      setScreen(1) // swipe left → History
-    } else if (dx > THRESHOLD && screen === 1) {
-      setScreen(0) // swipe right → Dashboard
-    }
-  }, [screen, setScreen])
-
-  // Only enable swipe on Dashboard and History screens
-  const swipeable = screen === 0 || screen === 1
-
-  return (
-    <div
-      className="flex-1 flex flex-col min-h-0"
-      onTouchStart={swipeable ? onTouchStart : undefined}
-      onTouchMove={swipeable ? onTouchMove : undefined}
-      onTouchEnd={swipeable ? onTouchEnd : undefined}
-      style={{ touchAction: 'pan-y' }}
-    >
-      {children}
-    </div>
-  )
-}
 
 function SkeletonLoader() {
   return (
