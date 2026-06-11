@@ -79,19 +79,14 @@ export default function History({ transactions, onDelete, onEdit }) {
 
   const touchStart = useRef(0)
   const swiping = useRef(false)
-  const locked = useRef(false)
 
   const onTouchStart = useCallback((e) => {
     touchStart.current = e.touches[0].clientX
     swiping.current = false
-    locked.current = false
   }, [])
 
   const onTouchMove = useCallback((e) => {
-    if (locked.current) return
-    const dx = Math.abs(e.touches[0].clientX - touchStart.current)
-    const dy = Math.abs(e.touches[0].clientY - (e.touches[0].clientY))
-    if (!swiping.current && dx > 10) {
+    if (!swiping.current && Math.abs(e.touches[0].clientX - touchStart.current) > 10) {
       swiping.current = true
     }
   }, [])
@@ -135,7 +130,7 @@ export default function History({ transactions, onDelete, onEdit }) {
             <button
               key={lbl}
               onClick={() => handleSeg(i)}
-              className="flex-1 py-2 text-[11px] font-medium tracking-wider transition-all duration-250"
+              className="flex-1 py-2 text-[11px] font-medium tracking-wider transition-all duration-200"
               style={{
                 borderRadius: '8px',
                 background: seg === i ? 'var(--accent-soft)' : 'transparent',
@@ -339,7 +334,7 @@ function SwipeRow({ children, onDelete, onEdit, index }) {
         style={{
           background: '#FF453A',
           borderRadius: '0 4px 4px 0',
-          opacity: swiped ? 1 : 0.5,
+          opacity: swiped ? 1 : 0,
         }}
       >
         <button
