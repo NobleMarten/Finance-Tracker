@@ -1,6 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
+
+function useCountUp(target, duration = 700) {
+  const [display, setDisplay] = useState(0)
+  const prevTarget = useRef(null) // null = fresh mount, animate from 0
+  const frameRef = useRef(null)
+
+  useEffect(() => {
+    if (prevTarget.current === target) return // same value or Strict Mode second fire
+    const from = prevTarget.current === null ? 0 : prevTarget.current
+    prevTarget.current = target
+    if (from === target) { setDisplay(target); return }
+    if (frameRef.current) cancelAnimationFrame(frameRef.current)
+    const startTime = performance.now()
+    const tick = (now) => {
+      const t = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(from + (target - from) * eased))
+      if (t < 1) frameRef.current = requestAnimationFrame(tick)
+      else setDisplay(target)
+    }
+    frameRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current)
+      prevTarget.current = null // reset on unmount → next mount always animates from 0
+    }
+  }, [target, duration])
+
+  return display
+}
 
 function avatarColor(s) {
   if (!s || s === '—') return { bg: 'var(--bg-elevated)', fg: 'var(--text-tertiary)' }
@@ -43,6 +72,7 @@ export default function Dashboard({ transactions, onEdit }) {
       ? (rub * rate).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
       : null
 
+  const animatedMonthVal = useCountUp(monthVal)
   const recent = [...transactions].sort((a, b) => b.ts - a.ts).slice(0, 6)
 
   // Week transactions for mini-history (last 5)
@@ -59,68 +89,89 @@ export default function Dashboard({ transactions, onEdit }) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Month label */}
-      <div className="px-6 pt-6 animate-fade-in delay-1">
-        <span
-          className="text-[11px] uppercase tracking-[0.18em] font-medium"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          {currentMonth()}
-        </span>
-      </div>
-
-      {/* Greeting */}
+      {/* Hero glass card */}
       <div
-        className="px-6 pt-3 text-[16px] font-light animate-fade-in delay-2 animate-text-glow"
-        style={{ color: 'var(--text-secondary)' }}
+        className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(160deg, rgba(108,140,255,0.07) 0%, rgba(20,20,22,0.75) 55%)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25)',
+        }}
       >
-        {greeting()}
-      </div>
-
-      {/* Month total — hero section */}
-      <div className="px-6 pt-6 pb-5 animate-fade-in delay-3">
+        {/* Ambient glow top-right */}
         <div
-          className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          this month
-        </div>
-        <div
-          className="leading-none overflow-hidden whitespace-nowrap font-medium animate-text-glow"
+          className="absolute pointer-events-none"
           style={{
-            fontSize: scaledFontSize(monthVal, 42, 26, 7) + 'px',
-            letterSpacing: '-0.02em',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
+            top: -40, right: -40,
+            width: 140, height: 140,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(108,140,255,0.10) 0%, transparent 70%)',
           }}
-        >
-          {fmtFull(monthVal)}
-        </div>
-        {toUSD(monthVal) && (
-          <div className="flex items-center gap-2 mt-2">
+        />
+
+        <div className="px-5 pt-5 pb-1">
+          <div className="flex items-center justify-between">
             <span
-              className="text-[11px] font-medium uppercase tracking-[0.12em]"
+              className="text-[11px] uppercase tracking-[0.18em] font-medium"
               style={{ color: 'var(--text-tertiary)' }}
             >
-              USD
+              {currentMonth()}
             </span>
-            <span className="text-[12px] animate-text-glow" style={{ color: 'var(--text-secondary)' }}>
-              ≈ {toUSD(monthVal)}
+            <span
+              className="text-[13px] font-light"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {greeting()}
             </span>
           </div>
-        )}
+        </div>
 
-        <MonthSparkline transactions={transactions} monthStart={m0} />
+        <div className="px-5 pt-4 pb-5">
+          <div
+            className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            this month
+          </div>
+          <div
+            className="leading-none overflow-hidden whitespace-nowrap font-medium"
+            style={{
+              fontSize: scaledFontSize(monthVal, 42, 26, 7) + 'px',
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            {animatedMonthVal === monthVal ? fmtFull(monthVal) : fmtShort(animatedMonthVal)}
+          </div>
+          {toUSD(monthVal) && (
+            <div className="flex items-center gap-2 mt-2">
+              <span
+                className="text-[11px] font-medium uppercase tracking-[0.12em]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                USD
+              </span>
+              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                ≈ {toUSD(monthVal)}
+              </span>
+            </div>
+          )}
+          <MonthSparkline transactions={transactions} monthStart={m0} />
+        </div>
       </div>
 
       {/* Week / Today cards */}
-      <div className="px-6 animate-fade-in delay-4">
+      <div className="mx-4 mt-3 animate-fade-in delay-4">
         <div className="flex gap-3">
           {/* Week card — clickable, expands sparkline */}
           <div
-            className="flex-1 surface p-4 cursor-pointer transition-all duration-300"
+            className="flex-1 surface p-4 cursor-pointer transition-colors duration-200 hover:bg-[var(--bg-hover)]"
             onClick={() => setWeekExpanded(e => !e)}
-            style={{ overflow: 'hidden' }}
+            style={{ overflow: 'hidden', borderLeft: '2px solid var(--accent)' }}
           >
             <div className="flex items-center justify-between mb-2">
               <div
@@ -227,7 +278,7 @@ export default function Dashboard({ transactions, onEdit }) {
           <div
             key={t.id}
             onClick={() => onEdit?.(t)}
-            className={`flex justify-between items-center py-3 animate-fade-in rounded-lg -mx-2 px-2 transition-colors duration-150 hover:bg-[var(--bg-surface)] cursor-pointer`}
+            className={`flex justify-between items-center py-3 animate-fade-in transition-colors duration-150 hover:bg-[var(--bg-elevated)] cursor-pointer rounded-lg`}
             style={{
               borderTop: '1px solid var(--border-muted)',
               animationDelay: `${0.3 + i * 0.05}s`,
