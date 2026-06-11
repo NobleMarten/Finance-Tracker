@@ -4,8 +4,8 @@ Personal expense tracking app with JWT auth, multi-currency support and monthly 
 
 > **Stack:** Go · Chi · PostgreSQL · React 18 · Tailwind CSS · Docker
 
-<!-- Add a screenshot here: docs/screenshot.png or a GIF recording -->
-<!-- ![Finance Tracker](docs/screenshot.png) -->
+
+<img src="docs/screen1.png" width="350" />
 
 ---
 
