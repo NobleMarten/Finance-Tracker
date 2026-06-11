@@ -130,7 +130,7 @@ export default function AddExpense({ onAdd }) {
       </button>
 
       {/* Numpad */}
-      <div className="grid grid-cols-3 gap-3 flex-1 content-start justify-items-center animate-fade-in-up delay-4">
+      <div className="grid grid-cols-3 gap-3 flex-1 content-start justify-items-center pb-24 animate-fade-in-up delay-4">
         {KEYS.map((k, i) => {
           const isSym = k === '.' || k === '←'
           return (
