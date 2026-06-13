@@ -124,7 +124,7 @@ func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int) 
 	return s.repo.DailyTotal(ctx, m, y, userID)
 }
 
-func (s *ItemService) TopExpe nses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
 	if 0 > m || m > 12 {
 		return nil, model.ErrInvalidMonth
 	}
