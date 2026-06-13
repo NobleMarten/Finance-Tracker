@@ -16,7 +16,6 @@ Clean Architecture — transport → service → storage. All domain types live 
 ```
 cmd/
   exp-api/        # HTTP server entrypoint
-  exp-cli/        # CLI tool: add, list, delete, update, clear, summary
 internal/
   config/         # Env config loader
   model/          # Domain models and errors
