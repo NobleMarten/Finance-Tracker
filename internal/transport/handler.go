@@ -22,6 +22,7 @@ type ItemService interface {
 	Summary(ctx context.Context, m, y int, userID int) (int, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
+	AvgPerDay(ctx context.Context, m, y, userID int) (int, error)
 }
 
 type ExchangeService interface {
@@ -53,8 +54,12 @@ type PatchResponse struct {
 	Title  *string `json:"title"`
 }
 
-type SummaryRequest struct {
-	Month int `json:"month"`
+type StatsExpense struct {
+	DailyTotals  []model.DailyExpense `json:"daily"`
+	TopExp       []model.Expense      `json:"topexp"`
+	AvgPerDay    int                  `json:"avgday"`
+	CurrentMonth int                  `json:"currentmonth"`
+	PrevMonth    int                  `json:"prevmonth"`
 }
 
 func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
@@ -67,6 +72,7 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Get("/api/expenses", h.Expenses)
 		r.Get("/api/expenses/daily", h.DailyTotal)
 		r.Get("/api/expenses/top", h.TopExpenses)
+		r.Get("/api/stats", h.Stats)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)
 		r.Post("/api/expenses/clear", h.Clear)
@@ -369,5 +375,94 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(topExpenses); err != nil {
 		http.Error(w, "failed to encode top expenses", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	month := r.URL.Query().Get("month")
+	year := r.URL.Query().Get("year")
+	limit := r.URL.Query().Get("limit")
+
+	userID := ctx.Value(UsrContext).(int)
+
+	if month == "" {
+		WriteError(w, model.ErrInvalidMonth)
+		return
+	}
+	if year == "" {
+		year = strconv.Itoa(time.Now().Year())
+	}
+	if limit == "" {
+		limit = "3"
+	}
+
+	monthInt, err := strconv.Atoi(month)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	yearInt, err := strconv.Atoi(year)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	prevYear := yearInt
+	prevMonthInt := monthInt
+	if monthInt == 1 {
+		prevMonthInt = 12
+		prevYear = yearInt - 1
+	} else {
+		prevMonthInt = monthInt - 1
+		prevYear = yearInt
+	}
+
+	dailyExp, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	topExp, err := h.svc.TopExpenses(ctx, monthInt, yearInt, limitInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	avgExp, err := h.svc.AvgPerDay(ctx, monthInt, yearInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	sumExp, err := h.svc.Summary(ctx, monthInt, yearInt, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	prevsum, err := h.svc.Summary(ctx, prevMonthInt, prevYear, userID)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	StatsResp := StatsExpense{
+		DailyTotals:  dailyExp,
+		TopExp:       topExp,
+		AvgPerDay:    avgExp,
+		CurrentMonth: sumExp,
+		PrevMonth:    prevsum,
+	}
+
+	w.Header().Set("Content-type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(StatsResp); err != nil {
+		http.Error(w, "failed to encode stats", http.StatusInternalServerError)
 	}
 }

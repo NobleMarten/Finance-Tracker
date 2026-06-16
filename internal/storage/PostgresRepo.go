@@ -107,18 +107,18 @@ func (p *PostgresRepo) DailyTotal(ctx context.Context, m int, y int, userID int)
 
 	defer rows.Close()
 
-	var DailyExpenses []model.DailyExpense
+	var dailyExpenses []model.DailyExpense
 	for rows.Next() {
 		var DailyExpense model.DailyExpense
 		if err := rows.Scan(&DailyExpense.Date, &DailyExpense.Amount); err != nil {
 			return nil, err
 		}
-		DailyExpenses = append(DailyExpenses, DailyExpense)
+		dailyExpenses = append(dailyExpenses, DailyExpense)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return DailyExpenses, nil
+	return dailyExpenses, nil
 }
 
 func (p *PostgresRepo) TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
