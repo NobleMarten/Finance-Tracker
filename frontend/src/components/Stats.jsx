@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { api } from '../api/api'
 import { fmtShort } from '../utils/format'
 
@@ -11,7 +11,23 @@ function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
 }
 
-export default function Stats() {
+// Respect the OS "reduce motion" setting so bars/progress snap to their
+// final state instead of animating.
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () => typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const handler = () => setReduced(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return reduced
+}
+
+export default function Stats({ onAddExpense }) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -56,28 +72,26 @@ export default function Stats() {
     amount: dailyMap[i + 1] ?? 0,
   }))
 
-  const maxAmount = Math.max(...dailyData.map(d => d.amount), 1)
+  const maxDayAmount = Math.max(...dailyData.map(d => d.amount), 0)
+  const maxAmount = Math.max(maxDayAmount, 1)
 
   const delta =
     stats && stats.prevmonth > 0
       ? Math.round(((stats.currentmonth - stats.prevmonth) / stats.prevmonth) * 100)
       : null
 
-  const maxDay2 = Math.max(...dailyData.map(d => d.amount), 0)
+  const isEmpty = stats && !loading && stats.currentmonth === 0
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
 
-      {/* A — Hero summary card */}
+      {/* Hero summary card */}
       <div
         className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, rgba(108,140,255,0.11) 0%, rgba(26,26,30,0.95) 60%)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'linear-gradient(160deg, rgba(108,140,255,0.08) 0%, var(--bg-surface) 55%)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.35)',
         }}
       >
         <div className="absolute pointer-events-none"
@@ -86,26 +100,24 @@ export default function Stats() {
 
         {/* Month selector inside card */}
         <div className="flex items-center justify-between px-5 pt-5">
-          <button onClick={prevMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+          <button onClick={prevMonth} aria-label="Previous month"
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
             <ChevronLeft />
           </button>
-          <div className="text-[11px] uppercase tracking-[0.18em] font-medium"
-            style={{ color: 'var(--text-tertiary)' }}>
+          <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             {MONTHS_FULL[month - 1]} {year}
           </div>
-          <button onClick={nextMonth} disabled={isCurrentMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-full transition-colors disabled:opacity-20"
+          <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-20"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
             <ChevronRight />
           </button>
         </div>
 
         <div className="px-5 pt-4 pb-5">
-          <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-2"
-            style={{ color: 'var(--text-tertiary)' }}>
-            total spent
+          <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Total spent
           </div>
           <div
             className="text-[38px] leading-none font-medium"
@@ -118,13 +130,13 @@ export default function Stats() {
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{
-                  background: delta > 0 ? 'rgba(255,107,107,0.12)' : 'rgba(74,222,128,0.12)',
-                  color: delta > 0 ? '#ff6b6b' : '#4ade80',
+                  background: delta > 0 ? 'rgba(255,107,107,0.14)' : 'rgba(74,222,128,0.14)',
+                  color: delta > 0 ? '#ff8585' : '#5ee89a',
                 }}
               >
                 {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
               </span>
-              <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                 vs last month
               </span>
             </div>
@@ -134,61 +146,67 @@ export default function Stats() {
 
       {loading && (
         <div className="flex-1 flex items-center justify-center py-12">
-          <div className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>Loading…</div>
+          <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Loading…</div>
         </div>
       )}
 
       {error && (
         <div className="mx-5 mt-3 px-4 py-3 rounded-xl text-[13px]"
-          style={{ background: 'rgba(255,80,80,0.08)', color: '#ff6b6b' }}>
+          style={{ background: 'rgba(255,80,80,0.10)', color: '#ff8585' }}>
           {error}
         </div>
       )}
 
-      {stats && !loading && (
+      {isEmpty && (
+        <EmptyState
+          isCurrentMonth={isCurrentMonth}
+          monthName={MONTHS_FULL[month - 1]}
+          onAddExpense={onAddExpense}
+        />
+      )}
+
+      {stats && !loading && !isEmpty && (
         <>
           {/* Bar chart */}
           <div className="mx-4 mt-4 mb-5">
-            <div className="text-[11px] uppercase tracking-[0.14em] font-medium mb-3"
-              style={{ color: 'var(--text-tertiary)' }}>
-              daily spending
+            <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Daily spending
             </div>
             <BarChart data={dailyData} maxAmount={maxAmount} />
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-          {/* D — Stat cards 2×2 grid */}
+          {/* Stat cards 2×2 grid */}
           <div className="mx-4 mt-4 grid grid-cols-2 gap-3 mb-5">
-            <StatCard label="avg / day" value={stats.avgday} />
-            <StatCard label="max / day" value={maxDay2} />
-            <StatCard label="prev month" value={stats.prevmonth} />
+            <StatCard label="Avg / day" value={stats.avgday} />
+            <StatCard label="Max / day" value={maxDayAmount} />
+            <StatCard label="Prev month" value={stats.prevmonth} />
             <StatCard
               label="vs prev"
               value={null}
               extra={delta !== null ? (
                 <span
                   className="text-[18px] font-medium"
-                  style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? '#ff6b6b' : '#4ade80' }}
+                  style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? '#ff8585' : '#5ee89a' }}
                 >
                   {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
                 </span>
               ) : (
-                <span className="text-[18px] font-medium" style={{ color: 'var(--text-ghost)', fontFamily: 'var(--font-mono)' }}>—</span>
+                <span className="text-[18px] font-medium" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>—</span>
               )}
             />
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-          {/* B — Top expenses with progress bars */}
+          {/* Top expenses with progress bars */}
           <div className="px-5 pt-4">
-            <div className="text-[11px] uppercase tracking-[0.14em] font-medium mb-3"
-              style={{ color: 'var(--text-tertiary)' }}>
-              top expenses
+            <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Top expenses
             </div>
             {(!stats.topexp || stats.topexp.length === 0) && (
-              <p className="text-[13px] pt-1" style={{ color: 'var(--text-ghost)' }}>
+              <p className="text-[13px] pt-1" style={{ color: 'var(--text-tertiary)' }}>
                 No expenses this month
               </p>
             )}
@@ -210,13 +228,12 @@ export default function Stats() {
                       >
                         {i + 1}
                       </span>
-                      <span className="text-[13px] font-light truncate"
-                        style={{ color: 'var(--text-secondary)' }}>
+                      <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
                         {exp.title || '—'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 pl-3 flex-shrink-0">
-                      <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                         {pct}%
                       </span>
                       <span
@@ -238,9 +255,49 @@ export default function Stats() {
   )
 }
 
+function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-16 animate-fade-in">
+      <div
+        className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
+        style={{ background: 'var(--accent-soft)' }}
+      >
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+          stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="21" x2="21" y2="21" />
+          <rect x="5" y="11" width="3.4" height="7" rx="1" />
+          <rect x="10.3" y="7" width="3.4" height="11" rx="1" />
+          <rect x="15.6" y="13" width="3.4" height="5" rx="1" />
+        </svg>
+      </div>
+
+      <h3 className="text-[16px] font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+        {isCurrentMonth ? 'No expenses yet' : `Nothing in ${monthName}`}
+      </h3>
+      <p className="text-[13px] leading-relaxed max-w-[240px]" style={{ color: 'var(--text-secondary)' }}>
+        {isCurrentMonth
+          ? 'Add your first expense and your spending breakdown will show up here.'
+          : 'No expenses were recorded this month.'}
+      </p>
+
+      {isCurrentMonth && onAddExpense && (
+        <button
+          onClick={onAddExpense}
+          className="mt-6 px-5 h-10 rounded-full text-[13px] font-medium active:scale-95 transition-transform"
+          style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 0 20px var(--accent-glow)' }}
+        >
+          Add expense
+        </button>
+      )}
+    </div>
+  )
+}
+
 function BarChart({ data, maxAmount }) {
+  const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
   const [hovered, setHovered] = useState(null)
+  const [selected, setSelected] = useState(null) // tap-to-pin for touch devices
   const BAR_H = 72
   const barWidth = Math.max(4, Math.min(12, Math.floor(280 / Math.max(data.length, 1)) - 2))
   const gap = Math.max(1, Math.min(3, Math.floor(280 / Math.max(data.length, 1)) - barWidth))
@@ -249,10 +306,12 @@ function BarChart({ data, maxAmount }) {
   const gradId = 'bar-grad'
 
   useEffect(() => {
+    setSelected(null)
+    if (reduced) { setAnimated(true); return }
     setAnimated(false)
     const id = setTimeout(() => setAnimated(true), 30)
     return () => clearTimeout(id)
-  }, [data])
+  }, [data, reduced])
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -260,7 +319,8 @@ function BarChart({ data, maxAmount }) {
         viewBox={`0 0 ${svgW} ${BAR_H + 18}`}
         width="100%"
         style={{ display: 'block', minWidth: Math.min(totalW, 280), overflow: 'visible' }}
-        aria-hidden="true"
+        role="img"
+        aria-label={`Daily spending chart, highest day ${fmtShort(maxAmount)} ₽`}
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -278,7 +338,8 @@ function BarChart({ data, maxAmount }) {
         {data.map((d, i) => {
           const fullBarH = d.amount > 0 ? Math.max(3, (d.amount / maxAmount) * BAR_H) : 2
           const x = i * (barWidth + gap)
-          const isHov = hovered === i
+          // Hover wins on desktop; otherwise fall back to the tapped (pinned) bar.
+          const isActive = hovered === i || (hovered === null && selected === i)
           const hasData = d.amount > 0
           const delay = i * 0.012
           const tooltipX = Math.max(0, Math.min(x - 8, svgW - 56))
@@ -288,8 +349,12 @@ function BarChart({ data, maxAmount }) {
               key={d.day}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
+              onClick={() => hasData && setSelected(p => (p === i ? null : i))}
               style={{ cursor: hasData ? 'pointer' : 'default' }}
             >
+              {/* Full-height transparent hit target — makes tiny bars tappable on touch */}
+              <rect x={x} y={0} width={barWidth + gap} height={BAR_H} fill="transparent" />
+
               {/* Bar — grows from bottom via scaleY */}
               <g transform={`translate(${x}, ${BAR_H})`}>
                 <rect
@@ -298,11 +363,13 @@ function BarChart({ data, maxAmount }) {
                   width={barWidth}
                   height={fullBarH}
                   rx={Math.min(2, barWidth / 2)}
-                  fill={!hasData ? 'var(--bg-elevated)' : isHov ? 'var(--accent)' : `url(#${gradId})`}
+                  fill={!hasData ? 'var(--bg-elevated)' : isActive ? 'var(--accent)' : `url(#${gradId})`}
                   style={{
                     transformOrigin: '0px 0px',
                     transform: animated ? 'scaleY(1)' : 'scaleY(0)',
-                    transition: `transform 0.45s cubic-bezier(0.34,1.2,0.64,1) ${delay}s, fill 0.12s`,
+                    transition: reduced
+                      ? 'fill 0.12s'
+                      : `transform 0.45s cubic-bezier(0.34,1.2,0.64,1) ${delay}s, fill 0.12s`,
                   }}
                 />
               </g>
@@ -314,15 +381,15 @@ function BarChart({ data, maxAmount }) {
                   y={BAR_H + 14}
                   textAnchor="middle"
                   fontSize="8"
-                  fill={isHov ? 'var(--accent)' : 'var(--text-tertiary)'}
+                  fill={isActive ? 'var(--accent)' : 'rgba(255,255,255,0.5)'}
                 >
                   {d.day}
                 </text>
               )}
 
               {/* Tooltip */}
-              {isHov && hasData && (
-                <g>
+              {isActive && hasData && (
+                <g style={{ pointerEvents: 'none' }}>
                   <rect
                     x={tooltipX}
                     y={Math.max(1, BAR_H - fullBarH - 20)}
@@ -362,8 +429,7 @@ function StatCard({ label, value, extra }) {
         borderRadius: 'var(--radius-md)',
       }}
     >
-      <div className="text-[11px] uppercase tracking-[0.14em] font-medium mb-2"
-        style={{ color: 'var(--text-tertiary)' }}>
+      <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
         {label}
       </div>
       {value !== null ? (
@@ -380,12 +446,14 @@ function StatCard({ label, value, extra }) {
 }
 
 function ProgressBar({ pct, index }) {
-  const [width, setWidth] = useState(0)
+  const reduced = usePrefersReducedMotion()
+  const [width, setWidth] = useState(reduced ? pct : 0)
 
   useEffect(() => {
+    if (reduced) { setWidth(pct); return }
     const id = setTimeout(() => setWidth(pct), 60 + index * 80)
     return () => clearTimeout(id)
-  }, [pct, index])
+  }, [pct, index, reduced])
 
   return (
     <div
@@ -397,7 +465,7 @@ function ProgressBar({ pct, index }) {
         style={{
           width: `${width}%`,
           background: 'linear-gradient(90deg, rgba(108,140,255,0.5) 0%, var(--accent) 100%)',
-          transition: 'width 0.6s cubic-bezier(0.34,1.1,0.64,1)',
+          transition: reduced ? 'none' : 'width 0.6s cubic-bezier(0.34,1.1,0.64,1)',
         }}
       />
     </div>
