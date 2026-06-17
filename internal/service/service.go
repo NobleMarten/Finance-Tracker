@@ -136,23 +136,9 @@ func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, user
 	return s.repo.TopExpenses(ctx, m, y, limit, userID)
 }
 
-func (s *ItemService) AvgPerDay(ctx context.Context, m, y, userID int) (int, error) {
-	if 0 > m || m > 12 {
-		return 0, model.ErrInvalidMonth
+func (s *ItemService) AvgPerDay(sum int, lenDaily int) int {
+	if lenDaily == 0 {
+		return 0
 	}
-
-	summ, err := s.Summary(ctx, m, y, userID)
-	if err != nil {
-		return 0, err
-	}
-
-	dailyExp, err := s.DailyTotal(ctx, m, y, userID)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(dailyExp) == 0 {
-		return 0, nil
-	}
-	return summ / len(dailyExp), nil
+	return sum / lenDaily
 }

@@ -22,7 +22,7 @@ type ItemService interface {
 	Summary(ctx context.Context, m, y int, userID int) (int, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
-	AvgPerDay(ctx context.Context, m, y, userID int) (int, error)
+	AvgPerDay(sum int, lenDaily int) int
 }
 
 type ExchangeService interface {
@@ -435,11 +435,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
-	avgExp, err := h.svc.AvgPerDay(ctx, monthInt, yearInt, userID)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
+
 	sumExp, err := h.svc.Summary(ctx, monthInt, yearInt, userID)
 	if err != nil {
 		WriteError(w, err)
@@ -451,6 +447,8 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
+
+	avgExp := h.svc.AvgPerDay(sumExp, len(dailyExp))
 
 	StatsResp := StatsExpense{
 		DailyTotals:  dailyExp,
