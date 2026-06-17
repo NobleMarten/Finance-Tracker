@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/api'
-import { fmtShort } from '../utils/format'
+import { fmtShort, scaledFontSize } from '../utils/format'
+import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
+import CountUp from './CountUp'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -9,22 +11,6 @@ const MONTHS_FULL = [
 
 function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
-}
-
-// Respect the OS "reduce motion" setting so bars/progress snap to their
-// final state instead of animating.
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () => typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const handler = () => setReduced(mq.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-  return reduced
 }
 
 export default function Stats({ onAddExpense }) {
@@ -87,19 +73,22 @@ export default function Stats({ onAddExpense }) {
 
       {/* Hero summary card */}
       <div
-        className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
+        className="mx-4 mt-5 animate-fade-in relative"
         style={{
           background: 'linear-gradient(160deg, rgba(108,140,255,0.08) 0%, var(--bg-surface) 55%)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
         }}
       >
-        <div className="absolute pointer-events-none"
-          style={{ top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(108,140,255,0.10) 0%, transparent 70%)' }} />
+        {/* Glow lives in its own clip layer so the card never clips the content */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ borderRadius: 'inherit' }}>
+          <div className="absolute"
+            style={{ top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(108,140,255,0.10) 0%, transparent 70%)' }} />
+        </div>
 
         {/* Month selector inside card */}
-        <div className="flex items-center justify-between px-5 pt-5">
+        <div className="relative flex items-center justify-between px-5 pt-5">
           <button onClick={prevMonth} aria-label="Previous month"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
@@ -115,15 +104,19 @@ export default function Stats({ onAddExpense }) {
           </button>
         </div>
 
-        <div className="px-5 pt-4 pb-5">
+        <div className="relative px-5 pt-4 pb-5">
           <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
             Total spent
           </div>
           <div
-            className="text-[38px] leading-none font-medium"
-            style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+            className="font-medium whitespace-nowrap"
+            style={{
+              fontSize: scaledFontSize(stats?.currentmonth ?? 0, 38, 22, 7) + 'px',
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+            }}
           >
-            {loading ? '—' : fmtShort(stats?.currentmonth ?? 0)} ₽
+            {loading ? '—' : <CountUp value={stats?.currentmonth ?? 0} format={fmtShort} />} ₽
           </div>
           {delta !== null && (
             <div className="flex items-center gap-2 mt-2">
@@ -240,7 +233,7 @@ export default function Stats({ onAddExpense }) {
                         className="text-[15px] font-medium whitespace-nowrap"
                         style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
                       >
-                        {fmtShort(exp.amount)} ₽
+                        <CountUp value={exp.amount} format={fmtShort} /> ₽
                       </span>
                     </div>
                   </div>
@@ -434,10 +427,14 @@ function StatCard({ label, value, extra }) {
       </div>
       {value !== null ? (
         <div
-          className="text-[18px] font-medium whitespace-nowrap overflow-hidden"
-          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+          className="font-medium whitespace-nowrap"
+          style={{
+            fontSize: scaledFontSize(value, 18, 13, 6) + 'px',
+            lineHeight: 1.2,
+            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em',
+          }}
         >
-          {fmtShort(value)} ₽
+          <CountUp value={value} format={fmtShort} /> ₽
         </div>
       ) : null}
       {extra && <div className="mt-1">{extra}</div>}

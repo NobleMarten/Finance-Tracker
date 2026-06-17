@@ -38,6 +38,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  /* Stop mobile browsers from inflating large text independently of layout,
+     which overflowed the Stats hero card on some devices. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);
