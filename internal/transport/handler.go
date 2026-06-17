@@ -415,8 +415,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prevYear := yearInt
-	prevMonthInt := monthInt
+	var prevMonthInt, prevYear int
 	if monthInt == 1 {
 		prevMonthInt = 12
 		prevYear = yearInt - 1
