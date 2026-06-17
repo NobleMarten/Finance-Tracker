@@ -103,4 +103,6 @@ export const api = {
     req(`/api/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getRate: (from = 'RUB', to = 'USD') =>
     req(`/api/rate?from=${from}&to=${to}`),
+  getStats: (month, year) =>
+    req(`/api/stats?month=${month}&year=${year}&limit=3`),
 }

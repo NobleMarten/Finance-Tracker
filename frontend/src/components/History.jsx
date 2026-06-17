@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { fmtFull, fmtShort, fmtTime, fmtDateShort, scaledFontSize } from '../utils/format'
+import CountUp from './CountUp'
 
 function groupByWeek(transactions) {
   if (transactions.length === 0) return []
@@ -177,15 +178,16 @@ export default function History({ transactions, onDelete, onEdit }) {
           total
         </div>
         <div
-          className="leading-none overflow-hidden whitespace-nowrap font-medium"
+          className="whitespace-nowrap font-medium"
           style={{
             fontSize: scaledFontSize(total, 38, 22, 7) + 'px',
+            lineHeight: 1.15,
             letterSpacing: '-0.02em',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-mono)',
           }}
         >
-          {fmtFull(total)}
+          <CountUp value={total} format={fmtFull} />
         </div>
       </div>
 

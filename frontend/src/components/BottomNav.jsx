@@ -98,6 +98,9 @@ export default function BottomNav({ screen, onNavigate }) {
         <NavBtn active={screen === 1} onClick={() => onNavigate(1)}>
           <HistoryIcon active={screen === 1} />
         </NavBtn>
+        <NavBtn active={screen === 3} onClick={() => onNavigate(3)}>
+          <StatsIcon active={screen === 3} />
+        </NavBtn>
       </div>
 
       {/* Right — add button */}
@@ -155,6 +158,20 @@ function HistoryIcon({ active }) {
     >
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  )
+}
+
+function StatsIcon({ active }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--accent)' : 'var(--text-tertiary)'}
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      className="transition-colors duration-200"
+    >
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
     </svg>
   )
 }

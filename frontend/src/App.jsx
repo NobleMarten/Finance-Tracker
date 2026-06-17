@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard'
 import History from './components/History'
 import AddExpense from './components/AddExpense'
 import EditExpense from './components/EditExpense'
+import Stats from './components/Stats'
 import BottomNav from './components/BottomNav'
 import Toast from './components/Toast'
 import { fmtShort } from './utils/format'
@@ -54,6 +55,7 @@ export default function App() {
               {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} />}
               {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} />}
               {screen === 2 && <AddExpense onAdd={handleAdd} />}
+              {screen === 3 && <Stats onAddExpense={() => setScreen(2)} />}
             </div>
           )}
         </div>

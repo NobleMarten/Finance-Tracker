@@ -135,3 +135,10 @@ func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, user
 
 	return s.repo.TopExpenses(ctx, m, y, limit, userID)
 }
+
+func (s *ItemService) AvgPerDay(sum int, lenDaily int) int {
+	if lenDaily == 0 {
+		return 0
+	}
+	return sum / lenDaily
+}

@@ -4,3 +4,4 @@ cover.out
 .env
 .agents.DS_Store
 .agents
+.claude
