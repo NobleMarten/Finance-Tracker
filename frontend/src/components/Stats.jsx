@@ -162,10 +162,11 @@ export default function Stats({ onAddExpense }) {
         <>
           {/* Bar chart */}
           <div className="mx-4 mt-4 mb-5">
-            <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Daily spending
-            </div>
-            <BarChart data={dailyData} maxAmount={maxAmount} />
+            <BarChart
+              data={dailyData}
+              maxAmount={maxAmount}
+              monthLabel={MONTHS_FULL[month - 1].slice(0, 3)}
+            />
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
@@ -286,7 +287,7 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
   )
 }
 
-function BarChart({ data, maxAmount }) {
+function BarChart({ data, maxAmount, monthLabel }) {
   const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
   const [hovered, setHovered] = useState(null)
@@ -306,8 +307,29 @@ function BarChart({ data, maxAmount }) {
     return () => clearTimeout(id)
   }, [data, reduced])
 
+  const activeIndex = hovered !== null ? hovered : selected
+  const active = activeIndex != null ? data[activeIndex] : null
+
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div>
+      {/* Active day's value lives here, above the bars — never overlapping them */}
+      <div className="flex items-baseline justify-between gap-3 mb-3" style={{ minHeight: 18 }}>
+        <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+          Daily spending
+        </span>
+        {active && active.amount > 0 ? (
+          <span className="text-[12px] whitespace-nowrap">
+            <span style={{ color: 'var(--text-tertiary)' }}>{active.day} {monthLabel} · </span>
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {fmtShort(active.amount)} ₽
+            </span>
+          </span>
+        ) : (
+          <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a bar</span>
+        )}
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
       <svg
         viewBox={`0 0 ${svgW} ${BAR_H + 18}`}
         width="100%"
@@ -335,7 +357,6 @@ function BarChart({ data, maxAmount }) {
           const isActive = hovered === i || (hovered === null && selected === i)
           const hasData = d.amount > 0
           const delay = i * 0.012
-          const tooltipX = Math.max(0, Math.min(x - 8, svgW - 56))
 
           return (
             <g
@@ -367,47 +388,24 @@ function BarChart({ data, maxAmount }) {
                 />
               </g>
 
-              {/* Day label */}
-              {(d.day === 1 || d.day % 5 === 0) && (
+              {/* Day label — every 5th day, plus the active one for clarity */}
+              {(d.day === 1 || d.day % 5 === 0 || isActive) && (
                 <text
                   x={x + barWidth / 2}
                   y={BAR_H + 14}
                   textAnchor="middle"
                   fontSize="8"
+                  fontWeight={isActive ? 600 : 400}
                   fill={isActive ? 'var(--accent)' : 'rgba(255,255,255,0.5)'}
                 >
                   {d.day}
                 </text>
               )}
-
-              {/* Tooltip */}
-              {isActive && hasData && (
-                <g style={{ pointerEvents: 'none' }}>
-                  <rect
-                    x={tooltipX}
-                    y={Math.max(1, BAR_H - fullBarH - 20)}
-                    width={54}
-                    height={15}
-                    rx={4}
-                    fill="var(--bg-elevated)"
-                    stroke="var(--border-subtle)"
-                    strokeWidth="0.5"
-                  />
-                  <text
-                    x={tooltipX + 27}
-                    y={Math.max(1, BAR_H - fullBarH - 20) + 10}
-                    textAnchor="middle"
-                    fontSize="8"
-                    fill="var(--text-primary)"
-                  >
-                    {fmtShort(d.amount)} ₽
-                  </text>
-                </g>
-              )}
             </g>
           )
         })}
       </svg>
+      </div>
     </div>
   )
 }
