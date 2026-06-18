@@ -8,19 +8,22 @@ services:
       - RateURL=${RateURL}
       - RateKey=${RateKey}
       - JWT_SECRET=${JWT_SECRET}
-    restart: always
+    restart: unless-stopped
     ports:
       - "8081:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
+
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
     depends_on:
       - backend
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -34,6 +37,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
 
