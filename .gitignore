@@ -1,7 +1,8 @@
 data/expenses.json
+skills-lock.json
 cover.out
 .env.local
 .env
-.agents.DS_Store
 .agents
 .claude
+CLAUDE.md
