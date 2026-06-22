@@ -82,7 +82,7 @@ func (p *PostgresRepo) Clear(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int) (int, error) {
+func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int, tz string) (int, error) {
 	var summary int
 
 	if m == 0 {
@@ -91,7 +91,7 @@ func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int) (int, 
 			return 0, err
 		}
 	} else {
-		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE EXTRACT(MONTH FROM created_at) = $1 AND EXTRACT(YEAR FROM created_at) = $2 AND user_id = $3", m, y, userID)
+		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE EXTRACT(MONTH FROM created_at AT TIME ZONE $4) = $1 AND EXTRACT(YEAR FROM created_at AT TIME ZONE $4) = $2 AND user_id = $3", m, y, userID, tz)
 		if err := row.Scan(&summary); err != nil {
 			return 0, err
 		}
@@ -99,8 +99,8 @@ func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int) (int, 
 	return summary, nil
 }
 
-func (p *PostgresRepo) DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error) {
-	rows, err := p.DB.QueryContext(ctx, "SELECT date(created_at)::text, SUM(amount) from expenses WHERE EXTRACT(MONTH FROM created_at)=$1 AND EXTRACT(YEAR FROM created_at)=$2 AND user_id = $3 GROUP BY date(created_at)", m, y, userID)
+func (p *PostgresRepo) DailyTotal(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error) {
+	rows, err := p.DB.QueryContext(ctx, "SELECT date(created_at AT TIME ZONE $4)::text, SUM(amount) from expenses WHERE EXTRACT(MONTH FROM created_at AT TIME ZONE $4)=$1 AND EXTRACT(YEAR FROM created_at AT TIME ZONE $4)=$2 AND user_id = $3 GROUP BY date(created_at AT TIME ZONE $4)", m, y, userID, tz)
 	if err != nil {
 		return nil, err
 	}

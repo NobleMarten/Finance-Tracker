@@ -199,8 +199,9 @@ func TestSummary(t *testing.T) {
 			}
 			userID := 1
 			y := 2026
+			tz := ""
 
-			sum, err := repo.Summary(ctx, tt.month, y, userID)
+			sum, err := repo.Summary(ctx, tt.month, y, userID, tz)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, tt.wantSum, sum)
