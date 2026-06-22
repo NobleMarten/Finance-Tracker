@@ -81,7 +81,7 @@ func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *strin
 	return model.Expense{}, model.ErrNotFound
 }
 
-func (m *MockRepo) Summary(ctx context.Context, mo int, y int, userID int) (int, error) {
+func (m *MockRepo) Summary(ctx context.Context, mo int, y int, userID int, tz string) (int, error) {
 	if mo == 0 {
 		var sum int
 		for _, exp := range m.expenses {
@@ -102,7 +102,7 @@ func (m *MockRepo) Summary(ctx context.Context, mo int, y int, userID int) (int,
 	}
 }
 
-func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int) ([]model.DailyExpense, error) {
+func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int, tz string) ([]model.DailyExpense, error) {
 	var DailyExpenses []model.DailyExpense
 	for _, exp := range m.expenses {
 		if exp.CreatedAt.Month() == time.Month(mo) && (exp.UserID == nil || *exp.UserID == userID) {

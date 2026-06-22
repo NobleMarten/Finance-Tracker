@@ -19,8 +19,8 @@ type ItemService interface {
 	Delete(ctx context.Context, id, userID int) (model.Expense, error)
 	Update(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
-	Summary(ctx context.Context, m, y int, userID int) (int, error)
-	DailyTotal(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
+	Summary(ctx context.Context, m, y int, userID int, tz string) (int, error)
+	DailyTotal(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
 	AvgPerDay(sum int, lenDaily int) int
 }
@@ -208,6 +208,10 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 	var monthInt int
 	year := r.URL.Query().Get("year")
 	month := r.URL.Query().Get("month")
+	tz := r.URL.Query().Get("tz")
+	if tz == "" {
+		tz = "UTC"
+	}
 	if month != "" {
 		var err error
 		monthInt, err = strconv.Atoi(month)
@@ -228,7 +232,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := ctx.Value(UsrContext).(int)
 
-	sum, err := h.svc.Summary(ctx, monthInt, yearInt, userID)
+	sum, err := h.svc.Summary(ctx, monthInt, yearInt, userID, tz)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -296,6 +300,10 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	month := r.URL.Query().Get("month")
 	year := r.URL.Query().Get("year")
+	tz := r.URL.Query().Get("tz")
+	if tz == "" {
+		tz = "UTC"
+	}
 	if month == "" {
 		WriteError(w, model.ErrInvalidMonth)
 		return
@@ -318,7 +326,7 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 
 	userID := ctx.Value(UsrContext).(int)
 
-	dailyExpense, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID)
+	dailyExpense, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID, tz)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -383,6 +391,11 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 	month := r.URL.Query().Get("month")
 	year := r.URL.Query().Get("year")
 	limit := r.URL.Query().Get("limit")
+	tz := r.URL.Query().Get("tz")
+
+	if tz == "" {
+		tz = "UTC"
+	}
 
 	userID := ctx.Value(UsrContext).(int)
 
@@ -424,7 +437,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		prevYear = yearInt
 	}
 
-	dailyExp, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID)
+	dailyExp, err := h.svc.DailyTotal(ctx, monthInt, yearInt, userID, tz)
 	if err != nil {
 		WriteError(w, err)
 		return
@@ -435,13 +448,13 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sumExp, err := h.svc.Summary(ctx, monthInt, yearInt, userID)
+	sumExp, err := h.svc.Summary(ctx, monthInt, yearInt, userID, tz)
 	if err != nil {
 		WriteError(w, err)
 		return
 	}
 
-	prevsum, err := h.svc.Summary(ctx, prevMonthInt, prevYear, userID)
+	prevsum, err := h.svc.Summary(ctx, prevMonthInt, prevYear, userID, tz)
 	if err != nil {
 		WriteError(w, err)
 		return

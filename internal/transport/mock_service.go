@@ -11,8 +11,8 @@ type MockService struct {
 	DeleteFunc      func(ctx context.Context, id, userID int) (model.Expense, error)
 	UpdateFunc      func(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error)
 	ClearFunc       func(ctx context.Context, userID int) error
-	SummaryFunc     func(ctx context.Context, m, y int, userID int) (int, error)
-	DailyTotalFunc  func(ctx context.Context, m int, y int, userID int) ([]model.DailyExpense, error)
+	SummaryFunc     func(ctx context.Context, m, y int, userID int, tz string) (int, error)
+	DailyTotalFunc  func(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error)
 	TopExpensesFunc func(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
 	AvgPerDayFunc   func(sum int, lenDaily int) int
 }
@@ -39,12 +39,12 @@ func (m *MockService) Clear(ctx context.Context, userID int) error {
 	return m.ClearFunc(ctx, userID)
 }
 
-func (m *MockService) Summary(ctx context.Context, mo, y int, userID int) (int, error) {
-	return m.SummaryFunc(ctx, mo, y, userID)
+func (m *MockService) Summary(ctx context.Context, mo, y int, userID int, tz string) (int, error) {
+	return m.SummaryFunc(ctx, mo, y, userID, tz)
 }
 
-func (m *MockService) DailyTotal(ctx context.Context, mo int, y int, userID int) ([]model.DailyExpense, error) {
-	return m.DailyTotalFunc(ctx, mo, y, userID)
+func (m *MockService) DailyTotal(ctx context.Context, mo int, y int, userID int, tz string) ([]model.DailyExpense, error) {
+	return m.DailyTotalFunc(ctx, mo, y, userID, tz)
 }
 
 func (m *MockService) TopExpenses(ctx context.Context, mo, y int, limit int, userID int) ([]model.Expense, error) {

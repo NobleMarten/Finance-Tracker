@@ -16,7 +16,7 @@ func TestExpenses(t *testing.T) {
 		name       string
 		listFunc   func(ctx context.Context, userID int) ([]model.Expense, error)
 		wantStatus int
-		wantError  bool
+		wantErr    bool
 	}{
 		{"succes", func(ctx context.Context, userID int) ([]model.Expense, error) {
 			return []model.Expense{
@@ -39,7 +39,7 @@ func TestExpenses(t *testing.T) {
 			rec := httptest.NewRecorder()
 			h.Expenses(rec, req)
 			json.NewDecoder(rec.Body).Decode(&got)
-			if !tt.wantError {
+			if !tt.wantErr {
 				assert.Equal(t, 2, got.Total)
 				assert.Equal(t, "Coffee", got.Items[0].Title)
 			}
