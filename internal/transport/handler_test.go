@@ -38,7 +38,9 @@ func TestExpenses(t *testing.T) {
 			req = req.WithContext(ctx)
 			rec := httptest.NewRecorder()
 			h.Expenses(rec, req)
-			json.NewDecoder(rec.Body).Decode(&got)
+			if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+				t.Fatalf("failed to decode response body: %v", err)
+			}
 			if !tt.wantErr {
 				assert.Equal(t, 2, got.Total)
 				assert.Equal(t, "Coffee", got.Items[0].Title)
