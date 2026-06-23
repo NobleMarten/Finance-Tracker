@@ -89,7 +89,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
   }
 
   return (
-    <PullToRefresh onRefresh={onRefresh} className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+    <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto">
       {/* Hero glass card */}
       <div
         className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
