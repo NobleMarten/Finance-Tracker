@@ -11,7 +11,7 @@ import { fmtShort } from './utils/format'
 
 export default function App() {
   const [screen, setScreen] = useState(0)
-  const { transactions, loading, add, update, remove } = useTransactions()
+  const { transactions, loading, add, update, remove, refresh } = useTransactions()
   const [toast, setToast] = useState(null)
   const [editingExpense, setEditingExpense] = useState(null)
 
@@ -52,8 +52,8 @@ export default function App() {
             <SkeletonLoader />
           ) : (
             <div key={screen} className="flex-1 flex flex-col min-h-0 animate-fade-in">
-              {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} />}
-              {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} />}
+              {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} onRefresh={refresh} />}
+              {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} onRefresh={refresh} />}
               {screen === 2 && <AddExpense onAdd={handleAdd} />}
               {screen === 3 && <Stats onAddExpense={() => setScreen(2)} />}
             </div>

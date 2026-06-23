@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { fmtFull, fmtShort, fmtTime, fmtDateShort, scaledFontSize } from '../utils/format'
 import CountUp from './CountUp'
+import PullToRefresh from './PullToRefresh'
 
 function groupByWeek(transactions) {
   if (transactions.length === 0) return []
@@ -68,7 +69,7 @@ function getRange(seg, offset) {
   }
 }
 
-export default function History({ transactions, onDelete, onEdit }) {
+export default function History({ transactions, onDelete, onEdit, onRefresh }) {
   const [seg, setSeg] = useState(0)
   const [offset, setOffset] = useState(0)
 
@@ -194,7 +195,7 @@ export default function History({ transactions, onDelete, onEdit }) {
       <div className="mx-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Transaction list */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-28">
+      <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto px-6 pb-28">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
             <div
@@ -265,7 +266,7 @@ export default function History({ transactions, onDelete, onEdit }) {
             </SwipeRow>
           ))
         )}
-      </div>
+      </PullToRefresh>
     </div>
   )
 }
