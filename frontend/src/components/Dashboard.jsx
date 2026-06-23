@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
+import PullToRefresh from './PullToRefresh'
 
 function useCountUp(target, duration = 700) {
   const [display, setDisplay] = useState(0)
@@ -46,7 +47,7 @@ function avatarColor(s) {
   }
 }
 
-export default function Dashboard({ transactions, onEdit }) {
+export default function Dashboard({ transactions, onEdit, onRefresh }) {
   const [rate, setRate] = useState(null)
   const [weekExpanded, setWeekExpanded] = useState(false)
 
@@ -88,7 +89,7 @@ export default function Dashboard({ transactions, onEdit }) {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <PullToRefresh onRefresh={onRefresh} className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       {/* Hero glass card */}
       <div
         className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
@@ -260,7 +261,7 @@ export default function Dashboard({ transactions, onEdit }) {
       <div className="mx-6 mt-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Recent transactions */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-28 animate-fade-in delay-5">
+      <div className="px-6 pb-28 animate-fade-in delay-5">
         <div
           className="text-[11px] uppercase tracking-[0.14em] font-medium py-4"
           style={{ color: 'var(--text-tertiary)' }}
@@ -319,7 +320,7 @@ export default function Dashboard({ transactions, onEdit }) {
           )
         })}
       </div>
-    </div>
+    </PullToRefresh>
   )
 }
 

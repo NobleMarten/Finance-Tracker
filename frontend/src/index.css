@@ -103,6 +103,11 @@ input, button, select, textarea {
   to { transform: rotate(360deg); }
 }
 
+.animate-spin-svg {
+  animation: spin 0.8s linear infinite;
+  transform-origin: center;
+}
+
 .animate-spin-btn {
   animation: spin 0.7s linear infinite;
   display: inline-block;

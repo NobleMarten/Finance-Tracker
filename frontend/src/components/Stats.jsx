@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/api'
 import { fmtShort, scaledFontSize } from '../utils/format'
 import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
 import CountUp from './CountUp'
+import PullToRefresh from './PullToRefresh'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -21,14 +22,16 @@ export default function Stats({ onAddExpense }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     setLoading(true)
     setError(null)
-    api.getStats(month, year)
+    return api.getStats(month, year)
       .then(setStats)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [month, year])
+
+  useEffect(() => { loadStats() }, [loadStats])
 
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
@@ -69,7 +72,7 @@ export default function Stats({ onAddExpense }) {
   const isEmpty = stats && !loading && stats.currentmonth === 0
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
+    <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
 
       {/* Hero summary card */}
       <div
@@ -245,7 +248,7 @@ export default function Stats({ onAddExpense }) {
           </div>
         </>
       )}
-    </div>
+    </PullToRefresh>
   )
 }
 
