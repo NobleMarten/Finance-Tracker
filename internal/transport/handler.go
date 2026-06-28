@@ -136,7 +136,7 @@ func (h *Handler) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidID)
 		return
 	}
 
