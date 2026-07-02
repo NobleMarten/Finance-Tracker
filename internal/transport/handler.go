@@ -54,6 +54,11 @@ type PatchResponse struct {
 	Title  *string `json:"title"`
 }
 
+type SummaryResponse struct {
+	Sum    int     `json:"sum"`
+	SumUSD float64 `json:"sum_usd"`
+}
+
 type StatsExpense struct {
 	DailyTotals  []model.DailyExpense `json:"daily"`
 	TopExp       []model.Expense      `json:"topexp"`
@@ -216,7 +221,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		var err error
 		monthInt, err = strconv.Atoi(month)
 		if err != nil {
-			WriteError(w, err)
+			WriteError(w, model.ErrInvalidMonth)
 			return
 		}
 	}
@@ -245,10 +250,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := struct {
-		Sum    int     `json:"sum"`
-		SumUSD float64 `json:"sum_usd"`
-	}{
+	res := SummaryResponse{
 		Sum:    sum,
 		SumUSD: rate * float64(sum),
 	}
@@ -314,7 +316,7 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
@@ -357,7 +359,7 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
@@ -412,7 +414,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
