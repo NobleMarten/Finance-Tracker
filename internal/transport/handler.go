@@ -39,6 +39,11 @@ type ListExpense struct {
 	Total int             `json:"total"`
 }
 
+type ListDailyExpenses struct {
+	Items []model.DailyExpense `json:"items"`
+	Total int                  `json:"total"`
+}
+
 type NewExpenseRequest struct {
 	Amount int    `json:"amount"`
 	Title  string `json:"title"`
@@ -232,7 +237,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 	userID := ctx.Value(UsrContext).(int)
@@ -322,7 +327,7 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
@@ -334,9 +339,14 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	listDaily := ListDailyExpenses{
+		Items: dailyExpense,
+		Total: len(dailyExpense),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(dailyExpense); err != nil {
+	if err := json.NewEncoder(w).Encode(listDaily); err != nil {
 		http.Error(w, "Failed to encode daily total", http.StatusInternalServerError)
 	}
 }

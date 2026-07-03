@@ -300,3 +300,60 @@ func TestSummary(t *testing.T) {
 		})
 	}
 }
+
+func TestDailyTotal(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantStatus int
+		wantErr    bool
+		wantErrVal error
+		wantExp    []model.DailyExpense
+		wantAmount int
+		wantTotal  int
+	}{
+		{"succes", "?month=6&year=2026", 200, false, nil,
+			[]model.DailyExpense{
+				{Date: "2026-06-18", Amount: 1000},
+				{Date: "2026-06-18", Amount: 2000}}, 1000, 2},
+		{"invalid month", "?month=abc&year=2026", 400, true, nil,
+			[]model.DailyExpense{
+				{Date: "2026-06-18", Amount: 1000},
+				{Date: "2026-06-18", Amount: 2000}}, 0, 0},
+		{"empty month", "?month=&year=2026", 400, true, nil,
+			[]model.DailyExpense{
+				{Date: "2026-06-18", Amount: 1000},
+				{Date: "2026-06-18", Amount: 2000}}, 0, 0},
+		{"invalid year", "?month=6&year=abc", 400, true, nil,
+			[]model.DailyExpense{
+				{Date: "2026-06-18", Amount: 1000},
+				{Date: "2026-06-18", Amount: 2000}}, 0, 0},
+		{"something error", "?month=6&year=2026", 500, true, model.ErrSomething,
+			nil, 0, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got ListDailyExpenses
+			h := &Handler{svc: &MockService{DailyTotalFunc: func(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error) {
+				return tt.wantExp, tt.wantErrVal
+			}}}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/api/daily"+tt.query, nil)
+			ctx := context.WithValue(req.Context(), UsrContext, 1)
+			req = req.WithContext(ctx)
+			h.DailyTotal(rec, req)
+
+			if !tt.wantErr {
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("failed to decode response body: %v", err)
+				}
+				assert.Equal(t, tt.wantExp, got.Items)
+				assert.Equal(t, tt.wantTotal, got.Total)
+			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
+		})
+	}
+}
+
+// func Test
