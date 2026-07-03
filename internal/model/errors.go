@@ -24,5 +24,5 @@ var (
 	ErrDBDown            = errors.New("db error")
 	ErrSomething         = errors.New("something error")
 	ErrInvalidYear       = errors.New("invalid year")
-	EmptyMonth           = errors.New("empty month")
+	ErrEmptyMonth        = errors.New("empty month")
 )
