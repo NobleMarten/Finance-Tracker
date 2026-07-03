@@ -261,9 +261,15 @@ func TestSummary(t *testing.T) {
 		{"succes", "?month=6&year=2026", 1000, 10, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
 			return 1000, nil
 		}, 200, false, nil, 0.01},
+		{"empty year", "?month=6&year=", 1000, 10, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+			return 1000, nil
+		}, 200, false, nil, 0.01},
 		{"invalid month", "?month=abc&year=2026", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
 			return 1000, model.ErrInvalidMonth
-		}, 400, true, nil, 0.01},
+		}, 400, true, nil, 0},
+		{"invalid year", "?month=6&year=abc", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+			return 1000, model.ErrInvalidMonth
+		}, 400, true, nil, 0},
 		{"api down", "?month=6&year=2026", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
 			return 1000, nil
 		}, 500, true, errors.New("api down"), 0.01},
@@ -383,6 +389,8 @@ func TestTopExpense(t *testing.T) {
 			400, true, nil},
 		{"empty month", "?month=&year=2026&limit=1", []model.Expense{},
 			400, true, nil},
+		{"invalid limit", "?month=6&year=abc&limit=abc", []model.Expense{},
+			400, true, nil},
 		{"something err", "?month=6&year=2026&limit=1", []model.Expense{},
 			500, true, model.ErrSomething},
 	}
@@ -404,6 +412,91 @@ func TestTopExpense(t *testing.T) {
 					t.Fatalf("failed to decode response body: %v", err)
 				}
 				assert.Equal(t, tt.wantExp, got)
+			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
+		})
+	}
+}
+
+func TestStats(t *testing.T) {
+	tests := []struct {
+		name           string
+		query          string
+		wantSumCurrent int
+		wantSumPrev    int
+		wantExpDaily   []model.DailyExpense
+		wantTop        []model.Expense
+		wantAvg        int
+		wantStatus     int
+		wantErr        bool
+		wantErrVal     error
+	}{
+		{"success", "?month=6&year=2026&limit=1", 1200, 1000,
+			[]model.DailyExpense{{Date: "2026-06-18", Amount: 1200}},
+			[]model.Expense{{ID: 2, Title: "enenrgy drink", Amount: 500, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil}},
+			1000, 200, false, nil},
+		{"invalid month", "?month=abc&year=2026&limit=1", 0, 0,
+			[]model.DailyExpense{},
+			[]model.Expense{},
+			0, 400, true, nil},
+		{"invalid year", "?month=6&year=abc&limit=1", 0, 0,
+			[]model.DailyExpense{},
+			[]model.Expense{},
+			0, 400, true, nil},
+		{"invalid limit", "?month=6&year=2026&limit=abc", 0, 0,
+			[]model.DailyExpense{},
+			[]model.Expense{},
+			0, 400, true, nil},
+		{"empty month", "?month=&year=2026&limit=1", 0, 0,
+			[]model.DailyExpense{},
+			[]model.Expense{},
+			0, 400, true, nil},
+		{"something err", "?month=6&year=2026&limit=1", 0, 0,
+			[]model.DailyExpense{},
+			[]model.Expense{},
+			0, 500, true, model.ErrSomething},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got StatsExpense
+			var cnt int
+			h := &Handler{svc: &MockService{
+				DailyTotalFunc: func(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error) {
+					return tt.wantExpDaily, tt.wantErrVal
+				},
+				SummaryFunc: func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+					cnt += 1
+					if cnt == 1 {
+						return tt.wantSumCurrent, tt.wantErrVal
+					} else {
+						m -= 1
+						return tt.wantSumPrev, tt.wantErrVal
+					}
+
+				},
+				TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+					return tt.wantTop, tt.wantErrVal
+				},
+				AvgPerDayFunc: func(sum int, lenDaily int) int {
+					return tt.wantAvg
+				},
+			}}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/api/expenses/stats"+tt.query, nil)
+			ctx := context.WithValue(req.Context(), UsrContext, 1)
+			req = req.WithContext(ctx)
+			h.Stats(rec, req)
+
+			if !tt.wantErr {
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("failed to decode response body: %v", err)
+				}
+				assert.Equal(t, tt.wantExpDaily, got.DailyTotals)
+				assert.Equal(t, tt.wantTop, got.TopExp)
+				assert.Equal(t, tt.wantSumCurrent, got.CurrentMonth)
+				assert.Equal(t, tt.wantSumPrev, got.PrevMonth)
+				assert.Equal(t, tt.wantAvg, got.AvgPerDay)
 			}
 			assert.Equal(t, tt.wantStatus, rec.Code)
 		})

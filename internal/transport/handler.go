@@ -384,7 +384,7 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidLimit)
 		return
 	}
 
@@ -433,13 +433,13 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidLimit)
 		return
 	}
 
