@@ -356,4 +356,56 @@ func TestDailyTotal(t *testing.T) {
 	}
 }
 
-// func Test
+func TestTopExpense(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantExp    []model.Expense
+		wantStatus int
+		wantErr    bool
+		wantErrVal error
+	}{
+		{"success", "?month=6&year=2026&limit=1", []model.Expense{{ID: 1, Title: "Coffee", Amount: 150, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil}},
+			200, false, nil},
+		{"limit >3", "?month=6&year=2026&limit=4", []model.Expense{{ID: 1, Title: "Coffee", Amount: 150, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil},
+			{ID: 2, Title: "enenrgy drink", Amount: 300, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil},
+			{ID: 3, Title: "Tea", Amount: 100, CreatedAt: time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC), UserID: nil},
+			{ID: 4, Title: "Ball", Amount: 1500, CreatedAt: time.Date(2026, 6, 20, 0, 0, 0, 0, time.UTC), UserID: nil}},
+			200, false, nil},
+		{"no limit", "?month=6&year=2026&", []model.Expense{{ID: 1, Title: "Coffee", Amount: 150, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil},
+			{ID: 2, Title: "enenrgy drink", Amount: 300, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil},
+			{ID: 3, Title: "Tea", Amount: 100, CreatedAt: time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC), UserID: nil},
+		},
+			200, false, nil},
+		{"invalid month", "?month=abc&year=2026&limit=1", []model.Expense{},
+			400, true, nil},
+		{"invalid year", "?month=6&year=abc&limit=1", []model.Expense{},
+			400, true, nil},
+		{"empty month", "?month=&year=2026&limit=1", []model.Expense{},
+			400, true, nil},
+		{"something err", "?month=6&year=2026&limit=1", []model.Expense{},
+			500, true, model.ErrSomething},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []model.Expense
+			h := &Handler{svc: &MockService{TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+				return tt.wantExp, tt.wantErrVal
+			}}}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/api/expenses/top"+tt.query, nil)
+			ctx := context.WithValue(req.Context(), UsrContext, 1)
+			req = req.WithContext(ctx)
+			h.TopExpenses(rec, req)
+
+			if !tt.wantErr {
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("failed to decode response body: %v", err)
+				}
+				assert.Equal(t, tt.wantExp, got)
+			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
+		})
+	}
+}

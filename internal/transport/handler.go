@@ -366,6 +366,9 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 	if year == "" {
 		year = strconv.Itoa(time.Now().Year())
 	}
+	if limit == "" {
+		limit = "3"
+	}
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
@@ -375,7 +378,7 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
