@@ -6,3 +6,5 @@ cover.out
 .agents
 .claude
 CLAUDE.md
+coverage.out
+cov.out

@@ -21,4 +21,8 @@ var (
 	ErrInternal          = errors.New("internal error")
 	ErrInvalidToken      = errors.New("invalid token")
 	ErrInvalidLimit      = errors.New("invalid limit")
+	ErrDBDown            = errors.New("db error")
+	ErrSomething         = errors.New("something error")
+	ErrInvalidYear       = errors.New("invalid year")
+	ErrEmptyMonth        = errors.New("empty month")
 )

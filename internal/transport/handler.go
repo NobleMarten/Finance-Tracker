@@ -39,6 +39,11 @@ type ListExpense struct {
 	Total int             `json:"total"`
 }
 
+type ListDailyExpenses struct {
+	Items []model.DailyExpense `json:"items"`
+	Total int                  `json:"total"`
+}
+
 type NewExpenseRequest struct {
 	Amount int    `json:"amount"`
 	Title  string `json:"title"`
@@ -54,12 +59,23 @@ type PatchResponse struct {
 	Title  *string `json:"title"`
 }
 
+type SummaryResponse struct {
+	Sum    int     `json:"sum"`
+	SumUSD float64 `json:"sum_usd"`
+}
+
 type StatsExpense struct {
 	DailyTotals  []model.DailyExpense `json:"daily"`
 	TopExp       []model.Expense      `json:"topexp"`
 	AvgPerDay    int                  `json:"avgday"`
 	CurrentMonth int                  `json:"currentmonth"`
 	PrevMonth    int                  `json:"prevmonth"`
+}
+
+type RateExpense struct {
+	From string  `json:"from"`
+	To   string  `json:"to"`
+	Rate float64 `json:"rate"`
 }
 
 func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
@@ -73,6 +89,7 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Get("/api/expenses/daily", h.DailyTotal)
 		r.Get("/api/expenses/top", h.TopExpenses)
 		r.Get("/api/stats", h.Stats)
+		r.Get("/api/rate", h.Rate)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)
 		r.Post("/api/expenses/clear", h.Clear)
@@ -136,7 +153,7 @@ func (h *Handler) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidID)
 		return
 	}
 
@@ -216,7 +233,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		var err error
 		monthInt, err = strconv.Atoi(month)
 		if err != nil {
-			WriteError(w, err)
+			WriteError(w, model.ErrInvalidMonth)
 			return
 		}
 	}
@@ -227,7 +244,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 	userID := ctx.Value(UsrContext).(int)
@@ -245,10 +262,7 @@ func (h *Handler) Summary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := struct {
-		Sum    int     `json:"sum"`
-		SumUSD float64 `json:"sum_usd"`
-	}{
+	res := SummaryResponse{
 		Sum:    sum,
 		SumUSD: rate * float64(sum),
 	}
@@ -280,11 +294,7 @@ func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := struct {
-		From string  `json:"from"`
-		To   string  `json:"to"`
-		Rate float64 `json:"rate"`
-	}{
+	res := RateExpense{
 		From: from,
 		To:   to,
 		Rate: rate,
@@ -314,13 +324,13 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
@@ -332,9 +342,14 @@ func (h *Handler) DailyTotal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	listDaily := ListDailyExpenses{
+		Items: dailyExpense,
+		Total: len(dailyExpense),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(dailyExpense); err != nil {
+	if err := json.NewEncoder(w).Encode(listDaily); err != nil {
 		http.Error(w, "Failed to encode daily total", http.StatusInternalServerError)
 	}
 }
@@ -354,22 +369,25 @@ func (h *Handler) TopExpenses(w http.ResponseWriter, r *http.Request) {
 	if year == "" {
 		year = strconv.Itoa(time.Now().Year())
 	}
+	if limit == "" {
+		limit = "3"
+	}
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidLimit)
 		return
 	}
 
@@ -412,19 +430,19 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 
 	monthInt, err := strconv.Atoi(month)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidMonth)
 		return
 	}
 
 	yearInt, err := strconv.Atoi(year)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidYear)
 		return
 	}
 
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, model.ErrInvalidLimit)
 		return
 	}
 

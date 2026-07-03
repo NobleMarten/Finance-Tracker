@@ -42,6 +42,18 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "INVALID_MONTH",
 			Message: err.Error(),
 		}
+	case errors.Is(err, model.ErrInvalidYear):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_YEAR",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrInvalidLimit):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_LIMIT",
+			Message: err.Error(),
+		}
 	case errors.Is(err, model.ErrNotFound):
 		status = http.StatusNotFound
 		res = ErrorResponse{
