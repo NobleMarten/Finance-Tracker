@@ -72,6 +72,12 @@ type StatsExpense struct {
 	PrevMonth    int                  `json:"prevmonth"`
 }
 
+type RateExpense struct {
+	From string  `json:"from"`
+	To   string  `json:"to"`
+	Rate float64 `json:"rate"`
+}
+
 func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 	return &Handler{svc: svc, exchangeService: exsvc}
 }
@@ -83,6 +89,7 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Get("/api/expenses/daily", h.DailyTotal)
 		r.Get("/api/expenses/top", h.TopExpenses)
 		r.Get("/api/stats", h.Stats)
+		r.Get("/api/rate", h.Rate)
 		r.Post("/api/expenses", h.PostExpense)
 		r.Get("/api/expenses/summary", h.Summary)
 		r.Post("/api/expenses/clear", h.Clear)
@@ -287,11 +294,7 @@ func (h *Handler) Rate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := struct {
-		From string  `json:"from"`
-		To   string  `json:"to"`
-		Rate float64 `json:"rate"`
-	}{
+	res := RateExpense{
 		From: from,
 		To:   to,
 		Rate: rate,

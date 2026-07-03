@@ -470,7 +470,6 @@ func TestStats(t *testing.T) {
 					if cnt == 1 {
 						return tt.wantSumCurrent, tt.wantErrVal
 					} else {
-						m -= 1
 						return tt.wantSumPrev, tt.wantErrVal
 					}
 
@@ -483,7 +482,7 @@ func TestStats(t *testing.T) {
 				},
 			}}
 			rec := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", "/api/expenses/stats"+tt.query, nil)
+			req := httptest.NewRequest("GET", "/api/stats"+tt.query, nil)
 			ctx := context.WithValue(req.Context(), UsrContext, 1)
 			req = req.WithContext(ctx)
 			h.Stats(rec, req)
@@ -497,6 +496,47 @@ func TestStats(t *testing.T) {
 				assert.Equal(t, tt.wantSumCurrent, got.CurrentMonth)
 				assert.Equal(t, tt.wantSumPrev, got.PrevMonth)
 				assert.Equal(t, tt.wantAvg, got.AvgPerDay)
+			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
+		})
+	}
+}
+
+func TestRate(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantStatus int
+		wantErr    bool
+		wantFrom   string
+		wantTo     string
+		wantRate   float64
+		wantErrVal error
+	}{
+		{"success", "?from=RUB&to=USD", 200, false, "RUB", "USD", 10, nil},
+		{"no query", "?from=&to=", 200, false, "RUB", "USD", 10, nil},
+		{"something err", "?from=&to=", 500, true, "RUB", "USD", 0, model.ErrSomething},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got RateExpense
+			h := &Handler{exchangeService: &MockExchange{GetRateFunc: func(ctx context.Context, from, to string) (float64, error) {
+				return tt.wantRate, tt.wantErrVal
+			}}}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/api/rate", nil)
+			ctx := context.WithValue(req.Context(), UsrContext, 1)
+			req = req.WithContext(ctx)
+			h.Rate(rec, req)
+
+			if !tt.wantErr {
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("failed to decode response body: %v", err)
+				}
+				assert.Equal(t, tt.wantRate, got.Rate)
+				assert.Equal(t, tt.wantFrom, got.From)
+				assert.Equal(t, tt.wantTo, got.To)
 			}
 			assert.Equal(t, tt.wantStatus, rec.Code)
 		})
