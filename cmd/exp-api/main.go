@@ -57,7 +57,7 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(transport.MyCors)
+	r.Use(transport.MyCors(conf.AllowedOrigins))
 
 	h.RegisterRouteres(r, conf.JWTSecret)
 	uh.RegisterHandler(r)

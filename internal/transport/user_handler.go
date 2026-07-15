@@ -76,14 +76,19 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   3600,
+		Path:     "/",
+	}
+	http.SetCookie(w, cookie)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(token); err != nil {
-		WriteError(w, err)
-		slog.Error("Failed to encode response body", "error", err)
-		return
-	}
 }
 
 const authPrefix = "Bearer "
@@ -109,12 +114,17 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   3600,
+		Path:     "/",
+	}
+	http.SetCookie(w, cookie)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(token); err != nil {
-		WriteError(w, err)
-		slog.Error("Failed to encode response body", "error", err)
-		return
-	}
 }

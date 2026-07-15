@@ -4,34 +4,45 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
+	"slices"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func MyCors(next http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func MyCors(allowedOrigins []string) func(http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if slices.Contains(allowedOrigins, origin) {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Add("Vary", "Origin")
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, authPrefix) {
-				http.Error(w, "Missing or invalid Authorization header", http.StatusUnauthorized)
+
+			cookie, err := r.Cookie("token")
+			if err != nil {
+				http.Error(w, "Cookie not found", http.StatusUnauthorized)
 				return
 			}
 
-			tokenStr := strings.TrimPrefix(authHeader, authPrefix)
+			tokenStr := cookie.Value
+
+			// tokenStr := strings.TrimPrefix(authHeader, authPrefix)
 
 			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {

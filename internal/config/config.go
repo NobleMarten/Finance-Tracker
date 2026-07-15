@@ -3,12 +3,14 @@ package config
 import (
 	"FinanceTracker/internal/model"
 	"os"
+	"strings"
 )
 
 type Config struct {
-	DBURL     string
-	Host      string
-	JWTSecret []byte
+	DBURL          string
+	Host           string
+	JWTSecret      []byte
+	AllowedOrigins []string
 }
 
 func NewConfig() (*Config, error) {
@@ -27,9 +29,18 @@ func NewConfig() (*Config, error) {
 		return nil, model.ErrEmptyJWTSecret
 	}
 
+	allowedOrigins := strings.Split((strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))), ",")
+	for i := range allowedOrigins {
+		allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
+	}
+	if allowedOrigins[0] == "" {
+		return nil, model.ErrEmptyAllowedOrigins
+	}
+
 	return &Config{
-		DBURL:     db,
-		Host:      host,
-		JWTSecret: jwtSecret,
+		DBURL:          db,
+		Host:           host,
+		JWTSecret:      jwtSecret,
+		AllowedOrigins: allowedOrigins,
 	}, nil
 }
