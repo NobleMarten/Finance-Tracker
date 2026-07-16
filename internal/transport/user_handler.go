@@ -2,6 +2,8 @@ package transport
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 
@@ -27,6 +29,7 @@ func NewUserHandler(usvc UserService) *UserHandler {
 func (u *UserHandler) RegisterHandler(r *chi.Mux) {
 	r.Post("/api/register", u.Register)
 	r.Post("/api/login", u.Login)
+	r.Post("/api/logout", u.Logout)
 	r.Post("/api/auth/forgot-password", u.ForgotPassword)
 }
 
@@ -43,6 +46,52 @@ type LoginRequest struct {
 
 type ForgotPasswordRequest struct {
 	Email string `json:"email"`
+}
+
+func generateCSRFToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func buildAuthCookie(value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     "token",
+		Value:    value,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   maxAge,
+		Path:     "/",
+	}
+}
+
+func buildCSRFCookie(value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     "csrf_token",
+		Value:    value,
+		HttpOnly: false,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   maxAge,
+		Path:     "/",
+	}
+}
+
+func SetAuthCookie(w http.ResponseWriter, token string) error {
+	tokenCSRF, err := generateCSRFToken()
+	if err != nil {
+		return err
+	}
+
+	cookie := buildAuthCookie(token, 3600)
+	cookieCSRF := buildCSRFCookie(tokenCSRF, 3600)
+
+	http.SetCookie(w, cookie)
+	http.SetCookie(w, cookieCSRF)
+	return nil
 }
 
 func (u *UserHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -76,16 +125,10 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "token",
-		Value:    token,
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   3600,
-		Path:     "/",
+	if err := SetAuthCookie(w, token); err != nil {
+		WriteError(w, err)
+		return
 	}
-	http.SetCookie(w, cookie)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -114,16 +157,21 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie := &http.Cookie{
-		Name:     "token",
-		Value:    token,
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   3600,
-		Path:     "/",
+	if err := SetAuthCookie(w, token); err != nil {
+		WriteError(w, err)
+		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
+
+func (u *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie := buildAuthCookie("", -1)
+	cookieCSRF := buildCSRFCookie("", -1)
+
 	http.SetCookie(w, cookie)
+	http.SetCookie(w, cookieCSRF)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"slices"
@@ -20,7 +21,7 @@ func MyCors(allowedOrigins []string) func(http.Handler) http.Handler { // middle
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token")
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -28,6 +29,29 @@ func MyCors(allowedOrigins []string) func(http.Handler) http.Handler { // middle
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func CSRFMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+		cookieCSRFToken, err := r.Cookie("csrf_token")
+		if err != nil {
+			http.Error(w, "Cookie not found", http.StatusForbidden)
+			return
+		}
+		headerCSRFToken := r.Header.Get("X-CSRF-Token")
+		cookieCSRFTokenValue := cookieCSRFToken.Value
+		if subtle.ConstantTimeCompare([]byte(cookieCSRFTokenValue), []byte(headerCSRFToken)) == 1 {
+			next.ServeHTTP(w, r)
+			return
+		} else {
+			http.Error(w, "Failed action with CSRF-token", http.StatusForbidden)
+			return
+		}
+	})
 }
 
 func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
