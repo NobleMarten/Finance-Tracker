@@ -134,8 +134,6 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-const authPrefix = "Bearer "
-
 type contextKey struct{}
 
 var UsrContext = contextKey{}
