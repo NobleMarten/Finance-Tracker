@@ -1,4 +1,3 @@
-import { AUTH_TOKEN_KEY } from '../constants/authStorage'
 import { formatApiError, formatAuthApiError } from '../utils/apiError'
 
 /**
@@ -17,41 +16,57 @@ function normalizeApiBase(raw) {
 
 const BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
 
-function authHeaders() {
-  const t = localStorage.getItem(AUTH_TOKEN_KEY)
-  if (!t) return {}
-  return { Authorization: `Bearer ${t}` }
+/**
+ * Auth is now cookie-based (httpOnly `token` cookie set by the backend).
+ * JS can no longer read the auth token — the browser attaches it automatically
+ * as long as every request opts in with `credentials: 'include'`.
+ *
+ * CSRF protection: the backend also sets a NON-httpOnly `csrf_token` cookie.
+ * For state-changing requests (POST/PATCH/DELETE) we read that cookie and echo
+ * it back in the `X-CSRF-Token` header (double-submit pattern). The backend
+ * compares the two; a foreign site can send the cookie but cannot read it to
+ * set the matching header, so its forged request is rejected.
+ */
+const CSRF_COOKIE = 'csrf_token'
+const CSRF_HEADER = 'X-CSRF-Token'
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+function readCookie(name) {
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(name + '='))
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : ''
 }
 
-async function parseAuthToken(res) {
-  const text = await res.text()
-  if (!res.ok) {
-    throw new Error(formatAuthApiError(text))
-  }
-  if (!text) throw new Error('Empty response')
-  let body
-  try {
-    body = JSON.parse(text)
-  } catch {
-    throw new Error('Invalid server response')
-  }
-  const token = typeof body === 'string' ? body : body?.token
-  if (typeof token !== 'string' || !token) {
-    throw new Error('No token in response')
-  }
-  return token
+/** Adds the CSRF header for state-changing methods; safe methods get nothing. */
+function csrfHeaders(method) {
+  if (SAFE_METHODS.has((method ?? 'GET').toUpperCase())) return {}
+  const token = readCookie(CSRF_COOKIE)
+  return token ? { [CSRF_HEADER]: token } : {}
+}
+
+/**
+ * When any request comes back 401 the cookie is missing/expired. Broadcast it
+ * so AuthContext can clear the local session and bounce to /login. Using an
+ * event keeps api.js free of React/router imports.
+ */
+function notifyUnauthorized() {
+  window.dispatchEvent(new Event('auth:unauthorized'))
 }
 
 async function req(path, options = {}) {
+  const method = options.method ?? 'GET'
   const res = await fetch(`${BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders(),
+      ...csrfHeaders(method),
       ...options.headers,
     },
   })
   if (!res.ok) {
+    if (res.status === 401) notifyUnauthorized()
     const text = await res.text()
     throw new Error(formatApiError(text))
   }
@@ -59,25 +74,51 @@ async function req(path, options = {}) {
   return res.json()
 }
 
+/** Login/register set httpOnly cookies and return an empty body — nothing to parse. */
+async function ensureOk(res) {
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(formatAuthApiError(text))
+  }
+}
+
 export const authApi = {
-  login: (email, password) =>
-    fetch(`${BASE}/api/login`, {
+  login: async (email, password) => {
+    const res = await fetch(`${BASE}/api/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-    }).then(parseAuthToken),
+    })
+    await ensureOk(res)
+  },
 
-  register: (login, email, password) =>
-    fetch(`${BASE}/api/register`, {
+  register: async (login, email, password) => {
+    const res = await fetch(`${BASE}/api/register`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login, email, password }),
-    }).then(parseAuthToken),
+    })
+    await ensureOk(res)
+  },
+
+  logout: async () => {
+    // /api/logout is public and CSRF-exempt, but include the header anyway in
+    // case it ever moves behind the protected group. credentials so the server
+    // sees which session to clear.
+    await fetch(`${BASE}/api/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { ...csrfHeaders('POST') },
+    }).catch(() => {})
+  },
 
   /** Заготовка: позже здесь будет отправка ссылки сброса, а не пароля. */
   requestPasswordReset: async (email) => {
     const res = await fetch(`${BASE}/api/auth/forgot-password`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim() }),
     })

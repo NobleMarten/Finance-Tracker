@@ -85,6 +85,7 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware(secret))
+		r.Use(CSRFMiddleware)
 		r.Get("/api/expenses", h.Expenses)
 		r.Get("/api/expenses/daily", h.DailyTotal)
 		r.Get("/api/expenses/top", h.TopExpenses)
@@ -96,8 +97,6 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Delete("/api/expenses/{id}", h.DeleteExpenses)
 		r.Patch("/api/expenses/{id}", h.PatchExpenses)
 	})
-
-	r.Get("/api/rate", h.Rate)
 }
 
 func (h *Handler) Expenses(w http.ResponseWriter, r *http.Request) {

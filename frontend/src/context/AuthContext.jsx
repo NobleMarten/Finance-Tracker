@@ -2,19 +2,23 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../constants/authStorage'
+import { AUTH_USER_KEY } from '../constants/authStorage'
 import { authApi } from '../api/api'
 
 const AuthContext = createContext(null)
 
-function readToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
-}
-
+/**
+ * The auth token now lives in an httpOnly cookie the browser manages — JS
+ * cannot read it. So the client no longer stores a token. We keep only the
+ * non-sensitive user profile (email/name) in localStorage as a hint for
+ * routing/UI. The real source of truth is the server: any protected request
+ * returns 401 when the cookie is missing/expired, which triggers logout.
+ */
 function readUser() {
   try {
     const raw = localStorage.getItem(AUTH_USER_KEY)
@@ -29,29 +33,23 @@ function readUser() {
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate()
-  const [token, setToken] = useState(readToken)
   const [user, setUser] = useState(readUser)
 
-  const persistSession = useCallback((nextToken, nextUser) => {
-    localStorage.setItem(AUTH_TOKEN_KEY, nextToken)
+  const persistSession = useCallback((nextUser) => {
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser))
-    setToken(nextToken)
     setUser(nextUser)
   }, [])
 
   const clearSession = useCallback(() => {
-    localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
-    setToken(null)
     setUser(null)
   }, [])
 
   const login = useCallback(
     async (email, password, redirectTo = '/') => {
-      const nextToken = await authApi.login(email, password)
+      await authApi.login(email, password)
       const name = email.includes('@') ? email.split('@')[0] : email
-      const nextUser = { email, name }
-      persistSession(nextToken, nextUser)
+      persistSession({ email, name })
       navigate(redirectTo, { replace: true })
     },
     [navigate, persistSession]
@@ -59,31 +57,41 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(
     async (loginName, email, password, redirectTo = '/') => {
-      const nextToken = await authApi.register(loginName, email, password)
-      const nextUser = { email, name: loginName }
-      persistSession(nextToken, nextUser)
+      await authApi.register(loginName, email, password)
+      persistSession({ email, name: loginName })
       navigate(redirectTo, { replace: true })
     },
     [navigate, persistSession]
   )
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await authApi.logout()
     clearSession()
     navigate('/login', { replace: true })
   }, [clearSession, navigate])
 
-  const isAuthenticated = Boolean(token)
+  // Server-driven expiry: api.js fires this when any request returns 401.
+  // Clear the stale local session and send the user back to login.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      clearSession()
+      navigate('/login', { replace: true })
+    }
+    window.addEventListener('auth:unauthorized', onUnauthorized)
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized)
+  }, [clearSession, navigate])
+
+  const isAuthenticated = Boolean(user)
 
   const value = useMemo(
     () => ({
-      token,
       user,
       login,
       register,
       logout,
       isAuthenticated,
     }),
-    [token, user, login, register, logout, isAuthenticated]
+    [user, login, register, logout, isAuthenticated]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
