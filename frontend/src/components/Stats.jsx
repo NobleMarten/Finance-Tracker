@@ -5,6 +5,7 @@ import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
+import YearHeatmap from './YearHeatmap'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -23,6 +24,11 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [detailDay, setDetailDay] = useState(null) // drill-down: selected day number
+  const [view, setView] = useState('bars') // 'bars' (default) | 'year' (contribution grid)
+  const [chartSel, setChartSel] = useState(null) // pinned day number (bars)
+  const [chartHover, setChartHover] = useState(null) // hovered day number (bars)
+  const [yearHover, setYearHover] = useState(null) // hovered cell in year grid: { year, month, day, amount }
+  const [yearSel, setYearSel] = useState(null) // tap-pinned cell in year grid (touch)
 
   const loadStats = useCallback(() => {
     setLoading(true)
@@ -37,18 +43,33 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
+  function clearChartSel() { setChartSel(null); setChartHover(null); setYearHover(null); setYearSel(null) }
+
+  const toggleYearSel = (cell) =>
+    setYearSel(p => (p && p.month === cell.month && p.day === cell.day ? null : cell))
+
   function prevMonth() {
-    setDetailDay(null)
+    setDetailDay(null); clearChartSel()
     if (month === 1) { setMonth(12); setYear(y => y - 1) }
     else setMonth(m => m - 1)
   }
 
   function nextMonth() {
     if (isCurrentMonth) return
-    setDetailDay(null)
+    setDetailDay(null); clearChartSel()
     if (month === 12) { setMonth(1); setYear(y => y + 1) }
     else setMonth(m => m + 1)
   }
+
+  function changeView(v) { setView(v); clearChartSel() }
+
+  // Jump from the year strip to a specific date's day detail.
+  function goToDate(y, m, d) {
+    clearChartSel()
+    setYear(y); setMonth(m); setDetailDay(d)
+  }
+
+  const toggleSel = (day) => setChartSel(p => (p === day ? null : day))
 
   const maxDay = isCurrentMonth ? now.getDate() : getDaysInMonth(month, year)
 
@@ -67,6 +88,11 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
   const maxDayAmount = Math.max(...dailyData.map(d => d.amount), 0)
   const maxAmount = Math.max(maxDayAmount, 1)
+
+  const monthShort = MONTHS_FULL[month - 1].slice(0, 3)
+  const activeDay = chartHover ?? chartSel // hover wins over the pinned day
+  const activeAmount = activeDay ? (dailyMap[activeDay] ?? 0) : 0
+  const yearActive = yearHover ?? yearSel // year grid: hover wins over pinned cell
 
   const delta =
     stats && stats.prevmonth > 0
@@ -166,14 +192,108 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
       {stats && !loading && !isEmpty && (
         <>
-          {/* Bar chart */}
+          {/* Daily bars ⇄ yearly contribution heatmap */}
           <div className="mx-4 mt-4 mb-5">
-            <BarChart
-              data={dailyData}
-              maxAmount={maxAmount}
-              monthLabel={MONTHS_FULL[month - 1].slice(0, 3)}
-              onOpenDay={setDetailDay}
-            />
+            {/* Header: title + view toggle */}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {view === 'bars' ? 'Daily spending' : 'This year'}
+                </span>
+                {view === 'year' && (
+                  <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{year}</span>
+                )}
+              </div>
+              <div
+                className="flex p-0.5 gap-0.5"
+                style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}
+              >
+                <button
+                  onClick={() => changeView('bars')}
+                  aria-label="Bar chart view"
+                  className="w-7 h-7 flex items-center justify-center rounded-md transition-all active:scale-95"
+                  style={{ background: view === 'bars' ? 'var(--accent-soft)' : 'transparent', color: view === 'bars' ? 'var(--accent)' : 'var(--text-tertiary)' }}
+                >
+                  <BarsIcon />
+                </button>
+                <button
+                  onClick={() => changeView('year')}
+                  aria-label="Yearly heatmap view"
+                  className="w-7 h-7 flex items-center justify-center rounded-md transition-all active:scale-95"
+                  style={{ background: view === 'year' ? 'var(--accent-soft)' : 'transparent', color: view === 'year' ? 'var(--accent)' : 'var(--text-tertiary)' }}
+                >
+                  <GridIcon />
+                </button>
+              </div>
+            </div>
+
+            {view === 'bars' ? (
+              <>
+                {/* Active-day value — tap to open that day */}
+                <div className="flex justify-end mb-3" style={{ minHeight: 18 }}>
+                  {activeAmount > 0 ? (
+                    <button
+                      onClick={() => setDetailDay(activeDay)}
+                      className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
+                      style={{ background: 'var(--accent-soft)' }}
+                      aria-label={`View expenses for ${activeDay} ${monthShort}`}
+                    >
+                      <span style={{ color: 'var(--accent)' }}>{activeDay} {monthShort} · </span>
+                      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                        {fmtShort(activeAmount)} ₽
+                      </span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a bar</span>
+                  )}
+                </div>
+                <BarChart
+                  data={dailyData}
+                  maxAmount={maxAmount}
+                  active={activeDay}
+                  onSelect={toggleSel}
+                  onHover={setChartHover}
+                />
+              </>
+            ) : (
+              <>
+                {/* Active day's value — tap a square to pin it, tap the pill to open */}
+                <div className="flex justify-end mb-3" style={{ minHeight: 18 }}>
+                  {yearActive ? (
+                    <button
+                      onClick={() => goToDate(yearActive.year, yearActive.month, yearActive.day)}
+                      className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
+                      style={{ background: 'var(--accent-soft)' }}
+                      aria-label={`View expenses for ${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                    >
+                      <span style={{ color: 'var(--accent)' }}>
+                        {yearActive.day} {MONTHS_FULL[yearActive.month - 1].slice(0, 3)} ·{' '}
+                      </span>
+                      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                        {fmtShort(yearActive.amount)} ₽
+                      </span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a day</span>
+                  )}
+                </div>
+                <YearHeatmap
+                  transactions={transactions}
+                  year={year}
+                  active={yearActive}
+                  onSelect={toggleYearSel}
+                  onHoverDate={setYearHover}
+                />
+              </>
+            )}
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
@@ -354,11 +474,9 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
   )
 }
 
-function BarChart({ data, maxAmount, monthLabel, onOpenDay }) {
+function BarChart({ data, maxAmount, active, onSelect, onHover }) {
   const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
-  const [hovered, setHovered] = useState(null)
-  const [selected, setSelected] = useState(null) // tap-to-pin for touch devices
   const BAR_H = 72
   const barWidth = Math.max(4, Math.min(12, Math.floor(280 / Math.max(data.length, 1)) - 2))
   const gap = Math.max(1, Math.min(3, Math.floor(280 / Math.max(data.length, 1)) - barWidth))
@@ -367,44 +485,14 @@ function BarChart({ data, maxAmount, monthLabel, onOpenDay }) {
   const gradId = 'bar-grad'
 
   useEffect(() => {
-    setSelected(null)
     if (reduced) { setAnimated(true); return }
     setAnimated(false)
     const id = setTimeout(() => setAnimated(true), 30)
     return () => clearTimeout(id)
   }, [data, reduced])
 
-  const activeIndex = hovered !== null ? hovered : selected
-  const active = activeIndex != null ? data[activeIndex] : null
-
   return (
     <div>
-      {/* Active day's value lives here, above the bars — never overlapping them */}
-      <div className="flex items-baseline justify-between gap-3 mb-3" style={{ minHeight: 18 }}>
-        <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Daily spending
-        </span>
-        {active && active.amount > 0 ? (
-          <button
-            onClick={() => onOpenDay?.(active.day)}
-            className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
-            style={{ background: 'var(--accent-soft)' }}
-            aria-label={`View expenses for ${active.day} ${monthLabel}`}
-          >
-            <span style={{ color: 'var(--accent)' }}>{active.day} {monthLabel} · </span>
-            <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
-              {fmtShort(active.amount)} ₽
-            </span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-              stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        ) : (
-          <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a bar</span>
-        )}
-      </div>
-
       <div style={{ overflowX: 'auto' }}>
       <svg
         viewBox={`0 0 ${svgW} ${BAR_H + 18}`}
@@ -429,17 +517,16 @@ function BarChart({ data, maxAmount, monthLabel, onOpenDay }) {
         {data.map((d, i) => {
           const fullBarH = d.amount > 0 ? Math.max(3, (d.amount / maxAmount) * BAR_H) : 2
           const x = i * (barWidth + gap)
-          // Hover wins on desktop; otherwise fall back to the tapped (pinned) bar.
-          const isActive = hovered === i || (hovered === null && selected === i)
+          const isActive = d.day === active
           const hasData = d.amount > 0
           const delay = i * 0.012
 
           return (
             <g
               key={d.day}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => hasData && setSelected(p => (p === i ? null : i))}
+              onMouseEnter={() => hasData && onHover?.(d.day)}
+              onMouseLeave={() => onHover?.(null)}
+              onClick={() => hasData && onSelect?.(d.day)}
               style={{ cursor: hasData ? 'pointer' : 'default' }}
             >
               {/* Full-height transparent hit target — makes tiny bars tappable on touch */}
@@ -540,6 +627,27 @@ function ProgressBar({ pct, index }) {
         }}
       />
     </div>
+  )
+}
+
+function GridIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  )
+}
+
+function BarsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="4" y="12" width="4" height="8" rx="1" />
+      <rect x="10" y="6" width="4" height="14" rx="1" />
+      <rect x="16" y="14" width="4" height="6" rx="1" />
+    </svg>
   )
 }
 
