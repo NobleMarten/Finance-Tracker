@@ -123,7 +123,7 @@ function NavBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className="w-12 h-10 flex items-center justify-center transition-colors duration-200"
+      className="w-12 h-10 flex items-center justify-center transition-all duration-200 active:scale-90"
       style={{
         borderRadius: 'var(--radius-md)',
         background: active ? 'var(--accent-soft)' : 'transparent',

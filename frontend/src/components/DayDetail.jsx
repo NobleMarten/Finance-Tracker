@@ -91,7 +91,7 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
               <div
                 key={t.id}
                 onClick={() => onEdit?.(t)}
-                className="flex justify-between items-center py-3 animate-fade-in transition-colors duration-150 hover:bg-[var(--bg-elevated)] cursor-pointer rounded-lg"
+                className="flex justify-between items-center py-3 animate-fade-in transition-all duration-150 hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)] active:scale-[0.99] cursor-pointer rounded-lg"
                 style={{
                   borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
                   animationDelay: `${i * 0.03}s`,

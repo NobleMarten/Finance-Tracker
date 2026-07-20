@@ -53,7 +53,7 @@ export default function App() {
           ) : (
             <div key={screen} className="flex-1 flex flex-col min-h-0 animate-fade-in">
               {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} onRefresh={refresh} />}
-              {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} onRefresh={refresh} />}
+              {screen === 1 && <History transactions={transactions} loading={loading} onDelete={handleDelete} onEdit={setEditingExpense} onRefresh={refresh} />}
               {screen === 2 && <AddExpense onAdd={handleAdd} />}
               {screen === 3 && <Stats onAddExpense={() => setScreen(2)} transactions={transactions} onEdit={setEditingExpense} />}
             </div>

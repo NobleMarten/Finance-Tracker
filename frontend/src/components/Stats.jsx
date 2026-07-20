@@ -98,7 +98,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
         {/* Month selector inside card */}
         <div className="relative flex items-center justify-between px-5 pt-5">
           <button onClick={prevMonth} aria-label="Previous month"
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
             <ChevronLeft />
           </button>
@@ -106,7 +106,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
             {MONTHS_FULL[month - 1]} {year}
           </div>
           <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors disabled:opacity-20"
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-20 disabled:active:scale-100"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
             <ChevronRight />
           </button>
@@ -124,7 +124,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
               letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
             }}
           >
-            {loading ? '—' : <CountUp value={stats?.currentmonth ?? 0} format={fmtShort} />} ₽
+            {loading
+              ? <span className="skeleton inline-block align-middle h-8 w-40" />
+              : <><CountUp value={stats?.currentmonth ?? 0} format={fmtShort} /> ₽</>}
           </div>
           {delta !== null && (
             <div className="flex items-center gap-2 mt-2">
@@ -145,11 +147,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
         </div>
       </div>
 
-      {loading && (
-        <div className="flex-1 flex items-center justify-center py-12">
-          <div className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Loading…</div>
-        </div>
-      )}
+      {loading && <StatsSkeleton />}
 
       {error && (
         <div className="mx-5 mt-3 px-4 py-3 rounded-xl text-[13px]"
@@ -267,6 +265,53 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
         onClose={() => setDetailDay(null)}
       />
     )}
+    </div>
+  )
+}
+
+function StatsSkeleton() {
+  return (
+    <div className="animate-fade-in">
+      {/* Chart placeholder */}
+      <div className="mx-4 mt-4 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="skeleton h-3 w-24" />
+          <div className="skeleton h-3 w-16" />
+        </div>
+        <div className="skeleton w-full" style={{ height: 90, borderRadius: 'var(--radius-md)' }} />
+      </div>
+
+      <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+      {/* 2×2 stat cards */}
+      <div className="mx-4 mt-4 grid grid-cols-2 gap-3 mb-5">
+        {[0, 1, 2, 3].map(i => (
+          <div
+            key={i}
+            className="p-4"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}
+          >
+            <div className="skeleton h-3 w-16 mb-3" />
+            <div className="skeleton h-5 w-20" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+      {/* Top expenses */}
+      <div className="px-5 pt-4">
+        <div className="skeleton h-3 w-24 mb-4" />
+        {[0, 1, 2].map(i => (
+          <div key={i} className="py-3" style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="skeleton h-3 w-28" />
+              <div className="skeleton h-3 w-14" />
+            </div>
+            <div className="skeleton h-[3px] w-full" />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
