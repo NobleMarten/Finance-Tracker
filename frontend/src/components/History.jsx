@@ -69,7 +69,7 @@ function getRange(seg, offset) {
   }
 }
 
-export default function History({ transactions, onDelete, onEdit, onRefresh }) {
+export default function History({ transactions, loading, onDelete, onEdit, onRefresh }) {
   const [seg, setSeg] = useState(0)
   const [offset, setOffset] = useState(0)
 
@@ -132,7 +132,7 @@ export default function History({ transactions, onDelete, onEdit, onRefresh }) {
             <button
               key={lbl}
               onClick={() => handleSeg(i)}
-              className="flex-1 py-2 text-[11px] font-medium tracking-wider transition-all duration-200"
+              className="flex-1 py-2 text-[11px] font-medium tracking-wider transition-all duration-200 active:scale-95"
               style={{
                 borderRadius: '8px',
                 background: seg === i ? 'var(--accent-soft)' : 'transparent',
@@ -196,7 +196,9 @@ export default function History({ transactions, onDelete, onEdit, onRefresh }) {
 
       {/* Transaction list */}
       <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto px-6 pb-28">
-        {filtered.length === 0 ? (
+        {loading && transactions.length === 0 ? (
+          <ListSkeleton />
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
@@ -267,6 +269,24 @@ export default function History({ transactions, onDelete, onEdit, onRefresh }) {
           ))
         )}
       </PullToRefresh>
+    </div>
+  )
+}
+
+function ListSkeleton() {
+  return (
+    <div className="animate-fade-in pt-2">
+      {[0, 1, 2, 3, 4, 5].map(i => (
+        <div
+          key={i}
+          className="flex items-center py-3"
+          style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
+        >
+          <div className="skeleton h-3 w-10 flex-shrink-0" />
+          <div className="skeleton h-3 flex-1 mx-3" style={{ maxWidth: 140 }} />
+          <div className="skeleton h-4 w-14 flex-shrink-0" />
+        </div>
+      ))}
     </div>
   )
 }

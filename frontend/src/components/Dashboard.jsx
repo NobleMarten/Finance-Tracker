@@ -170,7 +170,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
         <div className="flex gap-3">
           {/* Week card — clickable, expands sparkline */}
           <div
-            className="flex-1 surface p-4 cursor-pointer transition-colors duration-200 hover:bg-[var(--bg-hover)]"
+            className="flex-1 surface p-4 cursor-pointer transition-all duration-200 hover:bg-[var(--bg-hover)] active:scale-[0.99]"
             onClick={() => setWeekExpanded(e => !e)}
             style={{ overflow: 'hidden', borderLeft: '2px solid var(--accent)' }}
           >
@@ -230,7 +230,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
                   <div
                     key={t.id}
                     onClick={() => onEdit?.(t)}
-                    className="flex items-center justify-between py-1.5 rounded transition-colors duration-150 hover:bg-[var(--bg-hover)] cursor-pointer px-1 -mx-1"
+                    className="flex items-center justify-between py-1.5 rounded transition-colors duration-150 hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] cursor-pointer px-1 -mx-1"
                     style={{
                       borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
                     }}
@@ -269,9 +269,26 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
           recent
         </div>
         {recent.length === 0 && (
-          <p className="text-[13px] pt-2" style={{ color: 'var(--text-ghost)' }}>
-            no expenses yet
-          </p>
+          <div className="flex flex-col items-center text-center py-10 animate-fade-in">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center mb-3"
+              style={{ background: 'var(--accent-soft)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                <polyline points="14 3 14 8 19 8" />
+                <line x1="8" y1="13" x2="15" y2="13" />
+                <line x1="8" y1="17" x2="13" y2="17" />
+              </svg>
+            </div>
+            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+              No expenses yet
+            </p>
+            <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+              Tap + to add your first one
+            </p>
+          </div>
         )}
         {recent.map((t, i) => {
           const c = avatarColor(t.description)
@@ -279,7 +296,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
           <div
             key={t.id}
             onClick={() => onEdit?.(t)}
-            className={`flex justify-between items-center py-3 animate-fade-in transition-colors duration-150 hover:bg-[var(--bg-elevated)] cursor-pointer rounded-lg`}
+            className={`flex justify-between items-center py-3 animate-fade-in transition-all duration-150 hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)] active:scale-[0.99] cursor-pointer rounded-lg`}
             style={{
               borderTop: '1px solid var(--border-muted)',
               animationDelay: `${0.3 + i * 0.05}s`,
