@@ -12,10 +12,10 @@ const DAY_MS = 86400000
  * GitHub-contributions-style heatmap of daily spending across a whole year.
  * Columns = ISO weeks (Monday-first), rows = weekdays. Built client-side from
  * all transactions. Horizontally scrollable. Tapping a day with spending calls
- * `onSelectDate(year, month, day)` with a 1-based month; hovering a day with
- * spending calls `onHoverDate({ year, month, day, amount })` (null on leave).
+ * `onSelect({ year, month, day, amount })` (1-based month) to pin it; hovering
+ * calls `onHoverDate(cell | null)`. `active` is the currently highlighted cell.
  */
-export default function YearHeatmap({ transactions, year, onSelectDate, onHoverDate }) {
+export default function YearHeatmap({ transactions, year, active, onSelect, onHoverDate }) {
   const scrollRef = useRef(null)
   // Aggregate spend per calendar day of `year`.
   const byKey = new Map()
@@ -74,6 +74,8 @@ export default function YearHeatmap({ transactions, year, onSelectDate, onHoverD
         <g transform={`translate(0, ${LABEL_H})`}>
           {cells.map((c, i) => {
             const hasData = c.amount > 0
+            const cell = { year, month: c.m + 1, day: c.day, amount: c.amount }
+            const isActive = active && active.month === cell.month && active.day === cell.day
             return (
               <rect
                 key={i}
@@ -83,9 +85,11 @@ export default function YearHeatmap({ transactions, year, onSelectDate, onHoverD
                 height={CELL}
                 rx="2"
                 fill={heatColor(c.amount, max)}
+                stroke={isActive ? 'var(--accent)' : 'none'}
+                strokeWidth={isActive ? 1.5 : 0}
                 style={{ cursor: hasData ? 'pointer' : 'default' }}
-                onClick={() => hasData && onSelectDate?.(year, c.m + 1, c.day)}
-                onMouseEnter={() => hasData && onHoverDate?.({ year, month: c.m + 1, day: c.day, amount: c.amount })}
+                onClick={() => hasData && onSelect?.(cell)}
+                onMouseEnter={() => hasData && onHoverDate?.(cell)}
                 onMouseLeave={() => onHoverDate?.(null)}
               />
             )

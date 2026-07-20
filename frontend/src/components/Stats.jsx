@@ -28,6 +28,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const [chartSel, setChartSel] = useState(null) // pinned day number (bars)
   const [chartHover, setChartHover] = useState(null) // hovered day number (bars)
   const [yearHover, setYearHover] = useState(null) // hovered cell in year grid: { year, month, day, amount }
+  const [yearSel, setYearSel] = useState(null) // tap-pinned cell in year grid (touch)
 
   const loadStats = useCallback(() => {
     setLoading(true)
@@ -42,7 +43,10 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
-  function clearChartSel() { setChartSel(null); setChartHover(null); setYearHover(null) }
+  function clearChartSel() { setChartSel(null); setChartHover(null); setYearHover(null); setYearSel(null) }
+
+  const toggleYearSel = (cell) =>
+    setYearSel(p => (p && p.month === cell.month && p.day === cell.day ? null : cell))
 
   function prevMonth() {
     setDetailDay(null); clearChartSel()
@@ -88,6 +92,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const monthShort = MONTHS_FULL[month - 1].slice(0, 3)
   const activeDay = chartHover ?? chartSel // hover wins over the pinned day
   const activeAmount = activeDay ? (dailyMap[activeDay] ?? 0) : 0
+  const yearActive = yearHover ?? yearSel // year grid: hover wins over pinned cell
 
   const delta =
     stats && stats.prevmonth > 0
@@ -256,20 +261,20 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
               </>
             ) : (
               <>
-                {/* Hovered day's value — same accent pill as the bar chart */}
+                {/* Active day's value — tap a square to pin it, tap the pill to open */}
                 <div className="flex justify-end mb-3" style={{ minHeight: 18 }}>
-                  {yearHover ? (
+                  {yearActive ? (
                     <button
-                      onClick={() => goToDate(yearHover.year, yearHover.month, yearHover.day)}
+                      onClick={() => goToDate(yearActive.year, yearActive.month, yearActive.day)}
                       className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
                       style={{ background: 'var(--accent-soft)' }}
-                      aria-label={`View expenses for ${yearHover.day} ${MONTHS_FULL[yearHover.month - 1].slice(0, 3)}`}
+                      aria-label={`View expenses for ${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
                     >
                       <span style={{ color: 'var(--accent)' }}>
-                        {yearHover.day} {MONTHS_FULL[yearHover.month - 1].slice(0, 3)} ·{' '}
+                        {yearActive.day} {MONTHS_FULL[yearActive.month - 1].slice(0, 3)} ·{' '}
                       </span>
                       <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
-                        {fmtShort(yearHover.amount)} ₽
+                        {fmtShort(yearActive.amount)} ₽
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                         stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -283,7 +288,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
                 <YearHeatmap
                   transactions={transactions}
                   year={year}
-                  onSelectDate={goToDate}
+                  active={yearActive}
+                  onSelect={toggleYearSel}
                   onHoverDate={setYearHover}
                 />
               </>
