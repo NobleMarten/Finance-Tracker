@@ -30,6 +30,17 @@
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
+/* ─── Monetary figures ─── */
+/* Tabular, mono, slightly tightened — the "financial" number treatment.
+   Shorthand for the mono + tracking that's otherwise repeated inline. */
+@layer components {
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+    letter-spacing: -0.01em;
+  }
+}
+
 /* ─── Reset ─── */
 * {
   box-sizing: border-box;
