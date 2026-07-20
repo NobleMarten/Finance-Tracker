@@ -4,6 +4,7 @@ import { fmtShort, scaledFontSize } from '../utils/format'
 import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
+import DayDetail from './DayDetail'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -14,13 +15,14 @@ function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
 }
 
-export default function Stats({ onAddExpense }) {
+export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [detailDay, setDetailDay] = useState(null) // drill-down: selected day number
 
   const loadStats = useCallback(() => {
     setLoading(true)
@@ -36,12 +38,14 @@ export default function Stats({ onAddExpense }) {
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
   function prevMonth() {
+    setDetailDay(null)
     if (month === 1) { setMonth(12); setYear(y => y - 1) }
     else setMonth(m => m - 1)
   }
 
   function nextMonth() {
     if (isCurrentMonth) return
+    setDetailDay(null)
     if (month === 12) { setMonth(1); setYear(y => y + 1) }
     else setMonth(m => m + 1)
   }
@@ -72,6 +76,7 @@ export default function Stats({ onAddExpense }) {
   const isEmpty = stats && !loading && stats.currentmonth === 0
 
   return (
+    <div className="relative flex flex-col flex-1 min-h-0">
     <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
 
       {/* Hero summary card */}
@@ -169,6 +174,7 @@ export default function Stats({ onAddExpense }) {
               data={dailyData}
               maxAmount={maxAmount}
               monthLabel={MONTHS_FULL[month - 1].slice(0, 3)}
+              onOpenDay={setDetailDay}
             />
           </div>
 
@@ -249,6 +255,19 @@ export default function Stats({ onAddExpense }) {
         </>
       )}
     </PullToRefresh>
+
+    {detailDay != null && (
+      <DayDetail
+        day={detailDay}
+        month={month}
+        year={year}
+        monthName={MONTHS_FULL[month - 1]}
+        transactions={transactions}
+        onEdit={onEdit}
+        onClose={() => setDetailDay(null)}
+      />
+    )}
+    </div>
   )
 }
 
@@ -290,7 +309,7 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
   )
 }
 
-function BarChart({ data, maxAmount, monthLabel }) {
+function BarChart({ data, maxAmount, monthLabel, onOpenDay }) {
   const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
   const [hovered, setHovered] = useState(null)
@@ -321,12 +340,21 @@ function BarChart({ data, maxAmount, monthLabel }) {
           Daily spending
         </span>
         {active && active.amount > 0 ? (
-          <span className="text-[12px] whitespace-nowrap">
-            <span style={{ color: 'var(--text-tertiary)' }}>{active.day} {monthLabel} · </span>
-            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+          <button
+            onClick={() => onOpenDay?.(active.day)}
+            className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
+            style={{ background: 'var(--accent-soft)' }}
+            aria-label={`View expenses for ${active.day} ${monthLabel}`}
+          >
+            <span style={{ color: 'var(--accent)' }}>{active.day} {monthLabel} · </span>
+            <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
               {fmtShort(active.amount)} ₽
             </span>
-          </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         ) : (
           <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a bar</span>
         )}

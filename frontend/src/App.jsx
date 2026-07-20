@@ -55,7 +55,7 @@ export default function App() {
               {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} onRefresh={refresh} />}
               {screen === 1 && <History transactions={transactions} onDelete={handleDelete} onEdit={setEditingExpense} onRefresh={refresh} />}
               {screen === 2 && <AddExpense onAdd={handleAdd} />}
-              {screen === 3 && <Stats onAddExpense={() => setScreen(2)} />}
+              {screen === 3 && <Stats onAddExpense={() => setScreen(2)} transactions={transactions} onEdit={setEditingExpense} />}
             </div>
           )}
         </div>

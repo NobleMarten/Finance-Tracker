@@ -26,7 +26,7 @@ func (p *PostgresRepo) List(ctx context.Context, userID int) ([]model.Expense, e
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() // закроем результат запроса (rows) и освободим connection
 
 	var expenses []model.Expense
 	for rows.Next() { // rows.Next() возвращает true, если есть следующая строка, и false, если строк больше нет или произошла ошибка
