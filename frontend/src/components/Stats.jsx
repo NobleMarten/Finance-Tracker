@@ -6,6 +6,7 @@ import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
 import YearHeatmap from './YearHeatmap'
+import MonthlyTrend from './MonthlyTrend'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -29,6 +30,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const [chartHover, setChartHover] = useState(null) // hovered day number (bars)
   const [yearHover, setYearHover] = useState(null) // hovered cell in year grid: { year, month, day, amount }
   const [yearSel, setYearSel] = useState(null) // tap-pinned cell in year grid (touch)
+  const [trendSel, setTrendSel] = useState(null) // pinned month index in the trend
+  const [trendHover, setTrendHover] = useState(null) // hovered month index in the trend
 
   const loadStats = useCallback(() => {
     setLoading(true)
@@ -43,7 +46,11 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
-  function clearChartSel() { setChartSel(null); setChartHover(null); setYearHover(null); setYearSel(null) }
+  function clearChartSel() {
+    setChartSel(null); setChartHover(null)
+    setYearHover(null); setYearSel(null)
+    setTrendSel(null); setTrendHover(null)
+  }
 
   const toggleYearSel = (cell) =>
     setYearSel(p => (p && p.month === cell.month && p.day === cell.day ? null : cell))
@@ -67,6 +74,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   function goToDate(y, m, d) {
     clearChartSel()
     setYear(y); setMonth(m); setDetailDay(d)
+  }
+
+  // Jump from the monthly trend to a whole month.
+  function goToMonth(y, m) {
+    clearChartSel()
+    setYear(y); setMonth(m)
   }
 
   const toggleSel = (day) => setChartSel(p => (p === day ? null : day))
@@ -93,6 +106,22 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
   const activeDay = chartHover ?? chartSel // hover wins over the pinned day
   const activeAmount = activeDay ? (dailyMap[activeDay] ?? 0) : 0
   const yearActive = yearHover ?? yearSel // year grid: hover wins over pinned cell
+
+  // Monthly trend — last 6 months of totals, computed client-side from transactions.
+  const TREND_N = 6
+  const trendBase = new Date(now.getFullYear(), now.getMonth(), 1)
+  const trendData = Array.from({ length: TREND_N }, (_, i) => {
+    const d = new Date(trendBase.getFullYear(), trendBase.getMonth() - (TREND_N - 1 - i), 1)
+    return { year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS_FULL[d.getMonth()].slice(0, 3), amount: 0 }
+  })
+  for (const t of transactions) {
+    const b = trendData.find(m => m.year === t.ts.getFullYear() && m.month === t.ts.getMonth() + 1)
+    if (b) b.amount += t.amount
+  }
+  const trendMax = Math.max(...trendData.map(m => m.amount), 1)
+  const trendActive = trendHover ?? trendSel
+  const trendItem = trendActive != null ? trendData[trendActive] : null
+  const toggleTrendSel = (i) => setTrendSel(p => (p === i ? null : i))
 
   const delta =
     stats && stats.prevmonth > 0
@@ -369,6 +398,43 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
                 </div>
               )
             })}
+          </div>
+
+          <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+          {/* Monthly trend — last 6 months */}
+          <div className="mx-4 mt-4 mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Last 6 months
+              </span>
+              {trendItem && trendItem.amount > 0 ? (
+                <button
+                  onClick={() => goToMonth(trendItem.year, trendItem.month)}
+                  className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
+                  style={{ background: 'var(--accent-soft)' }}
+                  aria-label={`Go to ${trendItem.label} ${trendItem.year}`}
+                >
+                  <span style={{ color: 'var(--accent)' }}>{trendItem.label} · </span>
+                  <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                    {fmtShort(trendItem.amount)} ₽
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              ) : (
+                <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a month</span>
+              )}
+            </div>
+            <MonthlyTrend
+              data={trendData}
+              max={trendMax}
+              active={trendActive}
+              onSelect={toggleTrendSel}
+              onHover={setTrendHover}
+            />
           </div>
         </>
       )}
