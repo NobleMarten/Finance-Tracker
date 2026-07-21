@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { AUTH_USER_KEY } from '../constants/authStorage'
 import { authApi } from '../api/api'
+import { cacheClear } from '../utils/cache'
 
 const AuthContext = createContext(null)
 
@@ -42,6 +43,7 @@ export function AuthProvider({ children }) {
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(AUTH_USER_KEY)
+    cacheClear() // drop cached data so it can't leak to the next user on this device
     setUser(null)
   }, [])
 

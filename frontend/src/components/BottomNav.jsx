@@ -75,9 +75,10 @@ export default function BottomNav({ screen, onNavigate }) {
     <div
       className="absolute bottom-0 left-0 right-0 h-20 flex items-center justify-between px-5 z-40"
       style={{
-        background: 'linear-gradient(to top, var(--bg-base) 60%, transparent)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        /* No backdrop-filter: a fixed bar blurring the scrolling content beneath
+           recomputes every frame and is the main scroll-jank source on iOS. The
+           opaque gradient keeps the bar readable without the per-frame cost. */
+        background: 'linear-gradient(to top, var(--bg-base) 72%, transparent)',
       }}
     >
       {/* Left — user avatar */}
