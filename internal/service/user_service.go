@@ -69,10 +69,12 @@ func (u *UserService) Login(ctx context.Context, email, password string) (string
 	return token, nil
 }
 
+const SessionTime = 30 * 24 * 60 * 60
+
 func (u *UserService) CreateJWT(ctx context.Context, userID int) (string, error) {
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(SessionTime * time.Second).Unix(),
 	})
 
 	token, err := claims.SignedString(u.jwtSecret)

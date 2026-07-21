@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"FinanceTracker/internal/service"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -86,8 +87,8 @@ func SetAuthCookie(w http.ResponseWriter, token string) error {
 		return err
 	}
 
-	cookie := buildAuthCookie(token, 3600)
-	cookieCSRF := buildCSRFCookie(tokenCSRF, 3600)
+	cookie := buildAuthCookie(token, service.SessionTime)
+	cookieCSRF := buildCSRFCookie(tokenCSRF, service.SessionTime)
 
 	http.SetCookie(w, cookie)
 	http.SetCookie(w, cookieCSRF)
