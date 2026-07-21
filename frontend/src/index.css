@@ -61,8 +61,9 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.04;
-  mix-blend-mode: overlay;
+  /* No mix-blend-mode: on iOS a blended full-screen fixed layer is recomposited
+     every frame and janks scrolling. Plain low-opacity noise keeps the texture cheap. */
+  opacity: 0.03;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 240px 240px;
 }
