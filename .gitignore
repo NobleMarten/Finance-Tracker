@@ -8,3 +8,6 @@ cover.out
 CLAUDE.md
 coverage.out
 cov.out
+
+# Dependencies are reproducible from package-lock.json via `npm ci`; don't track them.
+frontend/node_modules
