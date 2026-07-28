@@ -1,4 +1,5 @@
 import { fmtTime, fmtShort, fmtFull, scaledFontSize } from '../utils/format'
+import { toDateInput, todayInput } from '../utils/date'
 import CountUp from './CountUp'
 
 function avatarColor(s) {
@@ -19,8 +20,14 @@ function avatarColor(s) {
  * Full-screen drill-down over the Stats area listing every expense recorded on a
  * single day. Rows are tappable → open the app-level Edit screen via `onEdit`.
  * The total shown is the sum of the listed rows, so header and list always agree.
+ *
+ * `onAddHere` jumps to the add screen with this day pre-selected — the natural
+ * place to record something you forgot, since you are already looking at it.
  */
-export default function DayDetail({ day, month, year, monthName, transactions, onEdit, onClose }) {
+export default function DayDetail({ day, month, year, monthName, transactions, onEdit, onAddHere, onClose }) {
+  const dateInput = toDateInput(new Date(year, month - 1, day))
+  const canAdd = Boolean(onAddHere) && dateInput <= todayInput()
+
   const dayTx = transactions
     .filter(t =>
       t.ts.getFullYear() === year &&
@@ -52,6 +59,21 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
         <div className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
           {day} {monthName} {year}
         </div>
+
+        {canAdd && (
+          <button
+            onClick={() => onAddHere(dateInput)}
+            aria-label={`Add expense on ${day} ${monthName} ${year}`}
+            className="w-9 h-9 ml-auto flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
+            style={{ background: 'var(--accent-glow)', border: '1px solid var(--accent)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Total */}
