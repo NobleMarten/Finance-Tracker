@@ -11,3 +11,9 @@ cov.out
 
 # Dependencies are reproducible from package-lock.json via `npm ci`; don't track them.
 frontend/node_modules
+
+# Build output. The image builds it itself (frontend/Dockerfile runs `npm run build`),
+# so a committed dist/ is dead weight that dirties the diff on every local build.
+frontend/dist
+
+.DS_Store
