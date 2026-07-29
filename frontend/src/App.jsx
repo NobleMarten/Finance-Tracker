@@ -35,7 +35,14 @@ export default function App() {
   }
 
   const handleAdd = async (data) => {
-    await add(data)
+    try {
+      await add(data)
+    } catch (e) {
+      // Surface the reason (e.g. a rejected date) instead of failing silently,
+      // then rethrow so AddExpense keeps the form filled for a retry.
+      showToast(e.message)
+      throw e
+    }
     const when = data.date && data.date !== todayInput() ? ` · ${dayLabel(data.date)}` : ''
     showToast(`+ ${fmtShort(data.amount)} ₽ added${when}`)
     setAddDate(null)
@@ -43,7 +50,12 @@ export default function App() {
   }
 
   const handleUpdate = async (id, data) => {
-    await update(id, data)
+    try {
+      await update(id, data)
+    } catch (e) {
+      showToast(e.message)
+      throw e
+    }
     showToast('expense updated')
     setEditingExpense(null)
   }

@@ -13,9 +13,9 @@ type ExpenseRepo interface {
 	Delete(ctx context.Context, id int, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
 	Summary(ctx context.Context, m, y int, userID int, tz string) (int, error)
-	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int) (model.Expense, error)
+	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int, spentAt *time.Time) (model.Expense, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error)
-	TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error)
+	TopExpenses(ctx context.Context, m, y int, limit int, userID int, tz string) ([]model.Expense, error)
 }
 
 type ItemService struct {
@@ -52,6 +52,17 @@ func ValidateAmount(amount int) (int, error) {
 	return amount, nil
 }
 
+func ValidateDate(spentAt *time.Time) (*time.Time, error) {
+	if spentAt == nil {
+		return spentAt, nil
+	}
+	if spentAt.After(time.Now().Add(24*time.Hour)) || spentAt.Before(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)) {
+		return nil, model.ErrFutureDate
+	}
+	return spentAt, nil
+
+}
+
 func (s *ItemService) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 	if amount < 0 {
 		return model.Expense{}, model.ErrNegativeAmount
@@ -61,6 +72,11 @@ func (s *ItemService) Add(ctx context.Context, amount int, title string, userID 
 	}
 
 	title, err := ValidateTitle(title)
+	if err != nil {
+		return model.Expense{}, err
+	}
+
+	spentAt, err = ValidateDate(spentAt)
 	if err != nil {
 		return model.Expense{}, err
 	}
@@ -81,7 +97,7 @@ func (s *ItemService) Delete(ctx context.Context, id, userID int) (model.Expense
 	return s.repo.Delete(ctx, id, userID)
 }
 
-func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtitle *string, userID int) (model.Expense, error) {
+func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtitle *string, userID int, spentAt *time.Time) (model.Expense, error) {
 
 	id, err := ValidateID(id)
 	if err != nil {
@@ -101,7 +117,12 @@ func (s *ItemService) Update(ctx context.Context, id int, newamount *int, newtit
 		}
 	}
 
-	return s.repo.Update(ctx, id, newamount, newtitle, userID)
+	spentAt, err = ValidateDate(spentAt)
+	if err != nil {
+		return model.Expense{}, err
+	}
+
+	return s.repo.Update(ctx, id, newamount, newtitle, userID, spentAt)
 }
 
 func (s *ItemService) Clear(ctx context.Context, userID int) error {
@@ -125,7 +146,7 @@ func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int, 
 	return s.repo.DailyTotal(ctx, m, y, userID, tz)
 }
 
-func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, userID int, tz string) ([]model.Expense, error) {
 	if 0 > m || m > 12 {
 		return nil, model.ErrInvalidMonth
 	}
@@ -134,7 +155,7 @@ func (s *ItemService) TopExpenses(ctx context.Context, m, y int, limit int, user
 		return nil, model.ErrInvalidLimit
 	}
 
-	return s.repo.TopExpenses(ctx, m, y, limit, userID)
+	return s.repo.TopExpenses(ctx, m, y, limit, userID, tz)
 }
 
 func (s *ItemService) AvgPerDay(sum int, lenDaily int) int {

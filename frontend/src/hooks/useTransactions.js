@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/api'
 import { cacheGet, cacheSet } from '../utils/cache'
-import { toSpentAt, todayInput } from '../utils/date'
+import { toSpentAt, toSpentAtKeepingTime, todayInput } from '../utils/date'
 
 const CACHE_KEY = 'transactions'
 
@@ -68,6 +68,13 @@ export function useTransactions() {
     const body = {}
     if (payload.description !== undefined) body.title = payload.description
     if (payload.amount !== undefined) body.amount = payload.amount
+    // Absent means "leave the date alone" — the backend COALESCEs a null spent_at.
+    // `baseTs` carries the expense's current timestamp so only the day moves.
+    if (payload.date !== undefined) {
+      body.spent_at = payload.baseTs
+        ? toSpentAtKeepingTime(payload.date, payload.baseTs)
+        : toSpentAt(payload.date)
+    }
 
     // We only send patching to backend, but backend returns the updated full expense
     const updated = await api.updateTransaction(id, body)

@@ -34,6 +34,15 @@ function utcOffset(d) {
   return `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
 }
 
+/** Local Date → RFC3339 with an explicit offset, e.g. `2026-06-20T12:00:00+03:00`. */
+function toRfc3339(at) {
+  return (
+    `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` +
+    `T${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}` +
+    utcOffset(at)
+  )
+}
+
 /**
  * `YYYY-MM-DD` → RFC3339 instant for that calendar day.
  *
@@ -49,14 +58,33 @@ export function toSpentAt(dateInput) {
     ? new Date()
     : new Date(y, m - 1, d, 12, 0, 0, 0)
 
-  return (
-    `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` +
-    `T${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}` +
-    utcOffset(at)
-  )
+  return toRfc3339(at)
 }
 
-/** Human label for the date chip: `today` / `yesterday` / `20 июл`. */
+/**
+ * Moves an existing expense to another calendar day, keeping its time of day.
+ *
+ * Editing a date almost always means "right time, wrong day", so overwriting a
+ * recorded 14:30 with noon would lose real information. Pinning to noon is only
+ * a fallback for expenses that never had a meaningful time to begin with.
+ *
+ * Clamped to now: carrying a late-evening time onto today would otherwise
+ * produce a timestamp in the future.
+ */
+export function toSpentAtKeepingTime(dateInput, originalTs) {
+  const [y, m, d] = dateInput.split('-').map(Number)
+  const src = new Date(originalTs)
+  const at = new Date(y, m - 1, d, src.getHours(), src.getMinutes(), src.getSeconds(), 0)
+  const now = new Date()
+
+  return toRfc3339(at > now ? now : at)
+}
+
+/**
+ * Human label for the date chip: `today` / `yesterday` / `20 Jun`.
+ * en-GB for day-before-month order, and English to match the rest of the UI
+ * chrome (Stats spells its months out in English too).
+ */
 export function dayLabel(dateInput) {
   if (dateInput === todayInput()) return 'today'
 
@@ -68,5 +96,5 @@ export function dayLabel(dateInput) {
   const date = new Date(y, m - 1, d)
   const opts = { day: 'numeric', month: 'short' }
   if (y !== new Date().getFullYear()) opts.year = 'numeric'
-  return date.toLocaleDateString('ru-RU', opts)
+  return date.toLocaleDateString('en-GB', opts)
 }

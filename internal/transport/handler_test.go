@@ -58,23 +58,23 @@ func TestPostExp(t *testing.T) {
 	tests := []struct {
 		name       string
 		body       NewExpenseRequest
-		addfunc    func(ctx context.Context, amount int, title string, userID int) (model.Expense, error)
+		addfunc    func(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error)
 		wantStatus int
 		wantErr    bool
 		rawBody    string
 	}{
-		{"succes", NewExpenseRequest{Title: "Coffee", Amount: 150}, func(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+		{"succes", NewExpenseRequest{Title: "Coffee", Amount: 150}, func(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 			return model.Expense{ID: 1, Title: "Coffee", Amount: 150, CreatedAt: time.Date(2026, 6, 18, 0, 0, 0, 0, time.UTC), UserID: nil}, nil
 		},
 			201, false, ""},
-		{"TooLongTitle", NewExpenseRequest{Title: "TestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTesttttttttrddfg", Amount: 150}, func(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+		{"TooLongTitle", NewExpenseRequest{Title: "TestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTestttttttTesttttttttrddfg", Amount: 150}, func(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 			return model.Expense{}, model.ErrTooLongTitle
 		},
 			400, true, ""},
-		{"failed to decode", NewExpenseRequest{Title: "Coffee", Amount: 150}, func(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+		{"failed to decode", NewExpenseRequest{Title: "Coffee", Amount: 150}, func(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 			return model.Expense{}, model.ErrTooLongTitle
 		},
-			500, true, "{не json"},
+			400, true, "{не json"},
 	}
 
 	for _, tt := range tests {
@@ -198,7 +198,7 @@ func TestPatchExp(t *testing.T) {
 				req = httptest.NewRequest("PATCH", "/api/expenses/{id}", &buf)
 			}
 
-			h := &Handler{svc: &MockService{UpdateFunc: func(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error) {
+			h := &Handler{svc: &MockService{UpdateFunc: func(ctx context.Context, id int, amount *int, title *string, userID int, spentAt *time.Time) (model.Expense, error) {
 				return tt.wantExp, tt.wantErrVal
 			}}}
 			rec := httptest.NewRecorder()
@@ -398,7 +398,7 @@ func TestTopExpense(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got []model.Expense
-			h := &Handler{svc: &MockService{TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+			h := &Handler{svc: &MockService{TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int, tz string) ([]model.Expense, error) {
 				return tt.wantExp, tt.wantErrVal
 			}}}
 			rec := httptest.NewRecorder()
@@ -474,7 +474,7 @@ func TestStats(t *testing.T) {
 					}
 
 				},
-				TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int) ([]model.Expense, error) {
+				TopExpensesFunc: func(ctx context.Context, m, y int, limit int, userID int, tz string) ([]model.Expense, error) {
 					return tt.wantTop, tt.wantErrVal
 				},
 				AvgPerDayFunc: func(sum int, lenDaily int) int {

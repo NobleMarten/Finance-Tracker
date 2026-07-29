@@ -72,6 +72,12 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "USER_EXISTS",
 			Message: err.Error(),
 		}
+	case errors.Is(err, model.ErrFutureDate):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_DATE",
+			Message: err.Error(),
+		}
 	case errors.Is(err, model.ErrIncorrectPassword):
 		status = http.StatusUnauthorized
 		res = ErrorResponse{
