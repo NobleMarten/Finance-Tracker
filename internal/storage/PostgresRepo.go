@@ -4,6 +4,7 @@ import (
 	"FinanceTracker/internal/model"
 	"context"
 	"database/sql"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -12,10 +13,10 @@ import (
 // 	DB *sql.DB // указатель нужен для возможности изменять состояние базы данных внутри методов
 // }
 
-func (p *PostgresRepo) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
-	row := p.DB.QueryRowContext(ctx, "INSERT INTO expenses (title, amount, user_id) VALUES ($1, $2, $3) RETURNING id, amount, title, created_at, user_id", title, amount, userID)
+func (p *PostgresRepo) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
+	row := p.DB.QueryRowContext(ctx, "INSERT INTO expenses (title, amount, user_id, spent_at) VALUES ($1, $2, $3, COALESCE($4, now())) RETURNING id, amount, title, created_at, user_id, spent_at", title, amount, userID, spentAt)
 	var expense model.Expense
-	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt, &expense.UserID); err != nil {
+	if err := row.Scan(&expense.ID, &expense.Amount, &expense.Title, &expense.CreatedAt, &expense.UserID, &expense.SpentAt); err != nil {
 		return model.Expense{}, err
 	}
 	return expense, nil

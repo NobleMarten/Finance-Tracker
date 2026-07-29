@@ -38,7 +38,8 @@ func TestAdd(t *testing.T) {
 					},
 				},
 			}
-			expense, err := repo.Add(ctx, tt.amount, tt.title, userID)
+			var spentAt *time.Time
+			expense, err := repo.Add(ctx, tt.amount, tt.title, userID, spentAt)
 			assert.ErrorIs(t, err, tt.wantErr)
 			if tt.wantErr == nil {
 				assert.Equal(t, tt.amount, expense.Amount)

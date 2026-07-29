@@ -10,7 +10,7 @@ type MockRepo struct {
 	expenses []model.Expense
 }
 
-func (m *MockRepo) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+func (m *MockRepo) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 
 	var maxID int
 

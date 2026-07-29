@@ -4,10 +4,11 @@ import (
 	"FinanceTracker/internal/model"
 	"context"
 	"strings"
+	"time"
 )
 
 type ExpenseRepo interface {
-	Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error)
+	Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error)
 	List(ctx context.Context, userID int) ([]model.Expense, error)
 	Delete(ctx context.Context, id int, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
@@ -51,7 +52,7 @@ func ValidateAmount(amount int) (int, error) {
 	return amount, nil
 }
 
-func (s *ItemService) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+func (s *ItemService) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 	if amount < 0 {
 		return model.Expense{}, model.ErrNegativeAmount
 	}
@@ -64,7 +65,7 @@ func (s *ItemService) Add(ctx context.Context, amount int, title string, userID 
 		return model.Expense{}, err
 	}
 
-	return s.repo.Add(ctx, amount, title, userID)
+	return s.repo.Add(ctx, amount, title, userID, spentAt)
 }
 
 func (s *ItemService) List(ctx context.Context, userID int) ([]model.Expense, error) {

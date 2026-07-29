@@ -8,4 +8,5 @@ type Expense struct {
 	Amount    int       `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
 	UserID    *int      `json:"user_id"`
+	SpentAt   time.Time `json:"spent_at"`
 }
