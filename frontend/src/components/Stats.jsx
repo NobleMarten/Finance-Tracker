@@ -448,6 +448,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
         monthName={MONTHS_FULL[month - 1]}
         transactions={transactions}
         onEdit={onEdit}
+        onAddHere={onAddExpense}
         onClose={() => setDetailDay(null)}
       />
     )}
@@ -529,7 +530,7 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
 
       {isCurrentMonth && onAddExpense && (
         <button
-          onClick={onAddExpense}
+          onClick={() => onAddExpense()}
           className="mt-6 px-5 h-10 rounded-full text-[13px] font-medium active:scale-95 transition-transform"
           style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 0 20px var(--accent-glow)' }}
         >

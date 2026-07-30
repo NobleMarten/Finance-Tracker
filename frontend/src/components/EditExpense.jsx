@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
+import { toDateInput } from '../utils/date'
+import DateChip from './DateChip'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←']
 
 export default function EditExpense({ expense, onUpdate, onCancel }) {
+  const originalDate = toDateInput(expense.ts)
   const [amt, setAmt] = useState(String(expense.amount))
   const [desc, setDesc] = useState(expense.description || '')
+  const [date, setDate] = useState(originalDate)
   const [busy, setBusy] = useState(false)
   const hiddenRef = useRef(null)
 
@@ -39,14 +43,23 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
       amt.length > 7 ? 36 :
         amt.length > 5 ? 44 : 52
 
-  const ready = parseFloat(amt) > 0 && 
-    (parseFloat(amt) !== expense.amount || desc !== (expense.description || ''))
+  const dateChanged = date !== originalDate
+
+  const ready = parseFloat(amt) > 0 &&
+    (parseFloat(amt) !== expense.amount || desc !== (expense.description || '') || dateChanged)
 
   const submit = async () => {
     if (!ready || busy) return
     setBusy(true)
     try {
-      await onUpdate(expense.id, { amount: Math.round(parseFloat(amt)), description: desc })
+      const payload = { amount: Math.round(parseFloat(amt)), description: desc }
+      // Only send the date when it actually moved. `baseTs` keeps the recorded
+      // time of day so editing shifts the day and nothing else.
+      if (dateChanged) {
+        payload.date = date
+        payload.baseTs = expense.ts
+      }
+      await onUpdate(expense.id, payload)
       navigator.vibrate?.(30)
     } catch (e) {
       console.error('update failed:', e)
@@ -123,6 +136,15 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
           borderBottom: '1px solid var(--border-subtle)',
           caretColor: 'var(--accent)',
         }}
+      />
+
+      <DateChip
+        value={date}
+        onChange={setDate}
+        changed={dateChanged}
+        onReset={() => setDate(originalDate)}
+        resetLabel="undo"
+        onAfterClose={() => hiddenRef.current?.focus()}
       />
 
       {/* Submit button */}

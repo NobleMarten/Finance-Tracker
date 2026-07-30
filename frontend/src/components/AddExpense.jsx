@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
+import { todayInput } from '../utils/date'
+import DateChip from './DateChip'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←']
 
-export default function AddExpense({ onAdd }) {
+export default function AddExpense({ onAdd, initialDate }) {
   const [amt, setAmt] = useState('0')
   const [desc, setDesc] = useState('')
+  const [date, setDate] = useState(() => initialDate ?? todayInput())
   const [busy, setBusy] = useState(false)
   const hiddenRef = useRef(null)
+
+  const today = todayInput()
+  const backdated = date !== today
 
   // Focus hidden input on mount so physical keyboard works immediately
   useEffect(() => {
@@ -45,10 +51,11 @@ export default function AddExpense({ onAdd }) {
     if (!ready || busy) return
     setBusy(true)
     try {
-      await onAdd({ amount: Math.round(parseFloat(amt)), description: desc })
+      await onAdd({ amount: Math.round(parseFloat(amt)), description: desc, date })
       navigator.vibrate?.(30)
       setAmt('0')
       setDesc('')
+      setDate(today)
     } catch (e) {
       console.error('add failed:', e)
     } finally {
@@ -109,6 +116,16 @@ export default function AddExpense({ onAdd }) {
           borderBottom: '1px solid var(--border-subtle)',
           caretColor: 'var(--accent)',
         }}
+      />
+
+      <DateChip
+        value={date}
+        onChange={setDate}
+        changed={backdated}
+        onReset={() => setDate(today)}
+        // Hand focus back to the hidden input, or the numpad stops taking
+        // physical keystrokes once the calendar closes.
+        onAfterClose={() => hiddenRef.current?.focus()}
       />
 
       {/* Submit button */}

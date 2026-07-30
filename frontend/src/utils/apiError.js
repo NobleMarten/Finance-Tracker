@@ -24,6 +24,7 @@ const API_ERROR_RU = {
   NEGATIVE_AMOUNT: 'Сумма не может быть отрицательной.',
   INVALID_ID: 'Некорректный идентификатор.',
   INVALID_MONTH: 'Некорректный месяц.',
+  INVALID_DATE: 'Выберите дату не в будущем.',
   NOT_FOUND: 'Данные не найдены.',
   NOT_FOUND_EXPENSE: 'Трата не найдена.',
   USER_EXISTS: 'Пользователь с таким email уже зарегистрирован.',

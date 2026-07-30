@@ -26,4 +26,5 @@ var (
 	ErrInvalidYear         = errors.New("invalid year")
 	ErrEmptyMonth          = errors.New("empty month")
 	ErrEmptyAllowedOrigins = errors.New("empty allowed origins")
+	ErrFutureDate          = errors.New("future or incorrect date")
 )

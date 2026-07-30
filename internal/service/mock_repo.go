@@ -10,7 +10,7 @@ type MockRepo struct {
 	expenses []model.Expense
 }
 
-func (m *MockRepo) Add(ctx context.Context, amount int, title string, userID int) (model.Expense, error) {
+func (m *MockRepo) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
 
 	var maxID int
 
@@ -59,7 +59,7 @@ func (m *MockRepo) Clear(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *string, userID int) (model.Expense, error) {
+func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *string, userID int, spentAt *time.Time) (model.Expense, error) {
 	for i, exp := range m.expenses {
 		if exp.ID == id {
 			if amount != nil {
@@ -115,6 +115,6 @@ func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int, tz
 	return DailyExpenses, nil
 }
 
-func (m *MockRepo) TopExpenses(ctx context.Context, mo, y int, limit int, userID int) ([]model.Expense, error) {
+func (m *MockRepo) TopExpenses(ctx context.Context, mo, y int, limit int, userID int, tz string) ([]model.Expense, error) {
 	return nil, nil
 }

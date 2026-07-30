@@ -5,6 +5,7 @@ import (
 	"FinanceTracker/internal/service"
 	"FinanceTracker/internal/storage"
 	"FinanceTracker/internal/transport"
+	"FinanceTracker/migrations"
 	"context"
 	"database/sql"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+	"github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -35,6 +37,16 @@ func main() {
 		panic(err)
 	}
 	if err := DB.Ping(); err != nil {
+		panic(err)
+	}
+
+	goose.SetBaseFS(migrations.FS)
+
+	if err := goose.SetDialect("pgx"); err != nil {
+		panic(err)
+	}
+
+	if err := goose.Up(DB, "."); err != nil {
 		panic(err)
 	}
 
