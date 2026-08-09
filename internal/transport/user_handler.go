@@ -57,38 +57,64 @@ func generateCSRFToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func buildAuthCookie(value string, maxAge int) *http.Cookie {
+// isRequestHTTPS определяет, пришёл ли запрос по HTTPS.
+//
+// Напрямую по r.TLS это не выяснить: TLS терминирует nginx, а до Go запрос
+// доезжает открытым по localhost — r.TLS всегда nil. Схему исходного запроса
+// сообщает заголовок X-Forwarded-Proto, который проставляет прокси.
+//
+// Заголовку можно доверять только потому, что nginx его перезаписывает
+// (proxy_set_header X-Forwarded-Proto $scheme), а не пробрасывает клиентский.
+// Без этой строки в конфиге любой смог бы прислать заголовок сам и повлиять
+// на флаги куки. Через цепочку прокси значение приходит списком через запятую —
+// исходная схема идёт первой.
+//
+// Фолбэк на r.TLS оставлен для случая, когда бэкенд слушает напрямую.
+func isRequestHTTPS(r *http.Request) bool {
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		first, _, _ := strings.Cut(proto, ",")
+		return strings.EqualFold(strings.TrimSpace(first), "https")
+	}
+	return r.TLS != nil
+}
+
+// secure выводится из запроса, а не из переменной окружения: одна и та же сборка
+// должна работать и по HTTPS на VPS, и по http://localhost в разработке. Ставить
+// Secure безусловно нельзя — браузер такую куку по http не вернёт, и локальный
+// вход молча перестанет работать.
+func buildAuthCookie(value string, maxAge int, secure bool) *http.Cookie {
 	return &http.Cookie{
 		Name:     "token",
 		Value:    value,
 		HttpOnly: true,
-		Secure:   false,
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   maxAge,
 		Path:     "/",
 	}
 }
 
-func buildCSRFCookie(value string, maxAge int) *http.Cookie {
+func buildCSRFCookie(value string, maxAge int, secure bool) *http.Cookie {
 	return &http.Cookie{
 		Name:     "csrf_token",
 		Value:    value,
-		HttpOnly: false,
-		Secure:   false,
+		HttpOnly: false, // читается из JS и дублируется в заголовок X-CSRF-Token
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   maxAge,
 		Path:     "/",
 	}
 }
 
-func SetAuthCookie(w http.ResponseWriter, token string) error {
+func SetAuthCookie(w http.ResponseWriter, r *http.Request, token string) error {
 	tokenCSRF, err := generateCSRFToken()
 	if err != nil {
 		return err
 	}
 
-	cookie := buildAuthCookie(token, service.SessionTime)
-	cookieCSRF := buildCSRFCookie(tokenCSRF, service.SessionTime)
+	secure := isRequestHTTPS(r)
+	cookie := buildAuthCookie(token, service.SessionTime, secure)
+	cookieCSRF := buildCSRFCookie(tokenCSRF, service.SessionTime, secure)
 
 	http.SetCookie(w, cookie)
 	http.SetCookie(w, cookieCSRF)
@@ -126,7 +152,7 @@ func (u *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := SetAuthCookie(w, token); err != nil {
+	if err := SetAuthCookie(w, r, token); err != nil {
 		WriteError(w, err)
 		return
 	}
@@ -156,7 +182,7 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := SetAuthCookie(w, token); err != nil {
+	if err := SetAuthCookie(w, r, token); err != nil {
 		WriteError(w, err)
 		return
 	}
@@ -166,8 +192,11 @@ func (u *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	cookie := buildAuthCookie("", -1)
-	cookieCSRF := buildCSRFCookie("", -1)
+	// Флаги удаляющей куки должны совпадать с флагами выставленной, иначе
+	// браузер сочтёт её другой кукой и оставит старую жить.
+	secure := isRequestHTTPS(r)
+	cookie := buildAuthCookie("", -1, secure)
+	cookieCSRF := buildCSRFCookie("", -1, secure)
 
 	http.SetCookie(w, cookie)
 	http.SetCookie(w, cookieCSRF)
