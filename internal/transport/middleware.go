@@ -6,9 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+const bearerPrefix = "Bearer "
+
+func isBearer(r *http.Request) bool {
+	return strings.HasPrefix(r.Header.Get("Authorization"), bearerPrefix)
+}
 
 func MyCors(allowedOrigins []string) func(http.Handler) http.Handler { // middleware для CORS чтобы фронтенд мог обращаться к бэкенду
 	return func(next http.Handler) http.Handler {
@@ -33,6 +40,10 @@ func MyCors(allowedOrigins []string) func(http.Handler) http.Handler { // middle
 
 func CSRFMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isBearer(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
 		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
@@ -54,9 +65,23 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
+func AuthMiddleware(secret []byte, tokens TokenValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			if isBearer(r) {
+				h := r.Header.Get("Authorization")
+				plaintext := strings.TrimPrefix(h, "Bearer ")
+
+				userID, err := tokens.Validate(r.Context(), plaintext)
+				if err != nil {
+					http.Error(w, "Invalid token", http.StatusUnauthorized)
+					return
+				}
+				ctx := context.WithValue(r.Context(), UsrContext, userID)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
 
 			cookie, err := r.Cookie("token")
 			if err != nil {
@@ -65,8 +90,6 @@ func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 			}
 
 			tokenStr := cookie.Value
-
-			// tokenStr := strings.TrimPrefix(authHeader, authPrefix)
 
 			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {

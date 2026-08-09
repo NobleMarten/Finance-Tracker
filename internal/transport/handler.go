@@ -29,6 +29,10 @@ type ExchangeService interface {
 	GetRate(ctx context.Context, from, to string) (float64, error)
 }
 
+type TokenValidator interface {
+	Validate(ctx context.Context, plaintext string) (int, error)
+}
+
 type Handler struct {
 	svc             ItemService
 	exchangeService ExchangeService
@@ -84,9 +88,9 @@ func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
 	return &Handler{svc: svc, exchangeService: exsvc}
 }
 
-func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
+func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte, tokens TokenValidator) { //*chi.Mux
 	r.Group(func(r chi.Router) {
-		r.Use(AuthMiddleware(secret))
+		r.Use(AuthMiddleware(secret, tokens))
 		r.Use(CSRFMiddleware)
 		r.Get("/api/expenses", h.Expenses)
 		r.Get("/api/expenses/daily", h.DailyTotal)
@@ -98,6 +102,10 @@ func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte) { //*chi.Mux
 		r.Post("/api/expenses/clear", h.Clear)
 		r.Delete("/api/expenses/{id}", h.DeleteExpenses)
 		r.Patch("/api/expenses/{id}", h.PatchExpenses)
+
+		// Принимает и Bearer, и куку — в отличие от /api/v1/tokens,
+		// которые закрыты от токенов через RejectBearerAuth.
+		r.Post("/api/v1/quick-add", h.QuickAdd)
 	})
 }
 
