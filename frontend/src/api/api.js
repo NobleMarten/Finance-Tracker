@@ -149,3 +149,21 @@ export const api = {
     return req(`/api/stats?month=${month}&year=${year}&limit=3&tz=${encodeURIComponent(tz)}`)
   },
 }
+
+/**
+ * Персональные API-токены для машинных клиентов (iOS Shortcuts).
+ *
+ * Управление токенами доступно только по сессионной куке — сервер отвечает 403
+ * на попытку сделать это самим токеном. Поэтому здесь обычный `req`, с куками
+ * и CSRF-заголовком, как везде.
+ *
+ * `create` — единственный вызов, возвращающий plaintext. Сервер его больше
+ * никогда не отдаст, в базе лежит только хеш.
+ */
+export const tokensApi = {
+  list: () => req('/api/v1/tokens'),
+  create: (name) =>
+    req('/api/v1/tokens', { method: 'POST', body: JSON.stringify({ name }) }),
+  revoke: (id) =>
+    req(`/api/v1/tokens/${id}`, { method: 'DELETE' }),
+}

@@ -7,6 +7,7 @@ import EditExpense from './components/EditExpense'
 import Stats from './components/Stats'
 import BottomNav from './components/BottomNav'
 import Toast from './components/Toast'
+import ApiTokens from './components/ApiTokens'
 import { fmtShort } from './utils/format'
 import { dayLabel, todayInput } from './utils/date'
 
@@ -17,6 +18,7 @@ export default function App() {
   const [editingExpense, setEditingExpense] = useState(null)
   // Pre-selected day for the add screen, set when you jump there from a day view.
   const [addDate, setAddDate] = useState(null)
+  const [tokensOpen, setTokensOpen] = useState(false)
 
   const showToast = (msg) => {
     setToast(null)
@@ -87,7 +89,9 @@ export default function App() {
             </div>
           )}
         </div>
-        <BottomNav screen={screen} onNavigate={navigate} />
+        <BottomNav screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
+
+        {tokensOpen && <ApiTokens onClose={() => setTokensOpen(false)} />}
         
         {editingExpense && (
           <EditExpense 
