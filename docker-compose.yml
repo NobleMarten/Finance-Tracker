@@ -11,7 +11,10 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      # Только петля: наружу API попадает исключительно через nginx, который
+      # терминирует TLS. Открытый 0.0.0.0:8081 позволял бы ходить в обход HTTPS —
+      # тогда и куки выставлялись бы без Secure, и весь переезд терял смысл.
+      - "127.0.0.1:8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,7 +24,8 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      # См. комментарий у backend: наружу — только через nginx.
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -37,7 +41,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      # Тоже петля. Бэкенд ходит в базу по внутренней сети Docker (postgres:5432),
+      # опубликованный порт нужен только для psql с самого хоста. На 0.0.0.0 он
+      # означал бы, что в базу можно стучаться из интернета — перебором пароля
+      # или через любую свежую дыру в Postgres.
+      - "127.0.0.1:5433:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
