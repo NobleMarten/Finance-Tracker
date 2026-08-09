@@ -17,3 +17,6 @@ frontend/node_modules
 frontend/dist
 
 .DS_Store
+
+# Тикеты — рабочие заметки, живут в трекере, а не в репозитории.
+docs/FT-*.md
