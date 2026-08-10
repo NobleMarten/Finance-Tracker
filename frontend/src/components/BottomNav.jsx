@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
-function UserAvatar() {
+function UserAvatar({ onOpenTokens }) {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
@@ -57,6 +57,13 @@ function UserAvatar() {
           </div>
           <div className="p-1.5">
             <button
+              onClick={() => { setOpen(false); onOpenTokens?.() }}
+              className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              API tokens
+            </button>
+            <button
               onClick={() => { setOpen(false); logout() }}
               className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-[var(--bg-hover)]"
               style={{ color: 'var(--text-secondary)' }}
@@ -70,7 +77,7 @@ function UserAvatar() {
   )
 }
 
-export default function BottomNav({ screen, onNavigate }) {
+export default function BottomNav({ screen, onNavigate, onOpenTokens }) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 h-20 flex items-center justify-between px-5 z-40"
@@ -82,7 +89,7 @@ export default function BottomNav({ screen, onNavigate }) {
       }}
     >
       {/* Left — user avatar */}
-      <UserAvatar />
+      <UserAvatar onOpenTokens={onOpenTokens} />
 
       {/* Center — nav pill */}
       <div

@@ -90,6 +90,14 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "INVALID_TOKEN",
 			Message: err.Error(),
 		}
+	case errors.Is(err, model.ErrTokenAuthNotAllowed):
+		// 403, а не 401: клиент аутентифицирован, но этим способом сюда нельзя.
+		// Повторять запрос с тем же токеном бессмысленно, и 401 сбивал бы с толку.
+		status = http.StatusForbidden
+		res = ErrorResponse{
+			Code:    "TOKEN_AUTH_NOT_ALLOWED",
+			Message: err.Error(),
+		}
 	case errors.Is(err, model.ErrEmptyJWTSecret):
 		status = http.StatusInternalServerError
 		res = ErrorResponse{

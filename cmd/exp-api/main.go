@@ -61,18 +61,21 @@ func main() {
 
 	svc := service.NewItemService(repo)
 	usvc := service.NewUserService(repoUser, []byte(conf.JWTSecret))
+	tsv := service.NewTokenService(repo)
 
 	exsvc := service.NewExchangeService(base)
 	uh := transport.NewUserHandler(usvc)
 
 	h := transport.NewHandler(svc, exsvc)
+	th := transport.NewTokenHandler(tsv)
 
 	r := chi.NewRouter()
 
 	r.Use(transport.MyCors(conf.AllowedOrigins))
 
-	h.RegisterRouteres(r, conf.JWTSecret)
+	h.RegisterRouteres(r, conf.JWTSecret, tsv)
 	uh.RegisterHandler(r)
+	th.RegisterHandler(r, conf.JWTSecret, tsv)
 
 	srv := &http.Server{
 		Addr:    conf.Host,

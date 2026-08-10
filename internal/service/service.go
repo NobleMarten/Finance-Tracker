@@ -60,7 +60,6 @@ func ValidateDate(spentAt *time.Time) (*time.Time, error) {
 		return nil, model.ErrFutureDate
 	}
 	return spentAt, nil
-
 }
 
 func (s *ItemService) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {

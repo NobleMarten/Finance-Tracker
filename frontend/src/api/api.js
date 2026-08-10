@@ -1,17 +1,29 @@
 import { formatApiError, formatAuthApiError } from '../utils/apiError'
 
 /**
- * VITE_API_URL should be origin only, e.g. http://host:8081
- * (routes already use /api/...). If env mistakenly ends with /api, strip it
- * so we never call /api/api/register.
+ * По умолчанию API живёт на том же origin, что и фронт: запросы уходят
+ * относительными путями (`/api/...`), а до бэкенда их доводит nginx.
+ *
+ * Так адрес не приходится знать на этапе сборки. Vite подставляет import.meta.env
+ * в момент `npm run build`, то есть значение вмораживается в бандл: собранный
+ * образ с зашитым `http://localhost:8080` ходил бы на localhost *браузера*
+ * пользователя, а не сервера. Относительный путь от домена не зависит вовсе —
+ * один и тот же образ работает и локально, и на VPS.
+ *
+ * VITE_API_URL оставлен как аварийный выход на случай, когда фронт и бэкенд
+ * действительно на разных origin. В обычной сборке переменная пустая. Локальная
+ * разработка тоже обходится без неё: dev-сервер проксирует /api по настройке
+ * в vite.config.js.
  */
 function normalizeApiBase(raw) {
-  let u = String(raw ?? 'http://localhost:8080').trim()
-  u = u.replace(/\/+$/, '')
+  let u = String(raw ?? '').trim().replace(/\/+$/, '')
+  if (!u) return ''
+  // Если в переменную по ошибке вписали хвост /api, убираем его —
+  // маршруты ниже добавляют его сами, иначе получится /api/api/register.
   if (u.endsWith('/api')) {
     u = u.slice(0, -4).replace(/\/+$/, '')
   }
-  return u || 'http://localhost:8080'
+  return u
 }
 
 const BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
@@ -148,4 +160,22 @@ export const api = {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     return req(`/api/stats?month=${month}&year=${year}&limit=3&tz=${encodeURIComponent(tz)}`)
   },
+}
+
+/**
+ * Персональные API-токены для машинных клиентов (iOS Shortcuts).
+ *
+ * Управление токенами доступно только по сессионной куке — сервер отвечает 403
+ * на попытку сделать это самим токеном. Поэтому здесь обычный `req`, с куками
+ * и CSRF-заголовком, как везде.
+ *
+ * `create` — единственный вызов, возвращающий plaintext. Сервер его больше
+ * никогда не отдаст, в базе лежит только хеш.
+ */
+export const tokensApi = {
+  list: () => req('/api/v1/tokens'),
+  create: (name) =>
+    req('/api/v1/tokens', { method: 'POST', body: JSON.stringify({ name }) }),
+  revoke: (id) =>
+    req(`/api/v1/tokens/${id}`, { method: 'DELETE' }),
 }
