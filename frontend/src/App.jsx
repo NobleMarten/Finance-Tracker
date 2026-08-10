@@ -65,6 +65,9 @@ export default function App() {
   const handleDelete = async (id) => {
     await remove(id)
     showToast('expense deleted')
+    // Экран редактирования мог быть открыт на этой же трате — закрываем,
+    // иначе он останется висеть над списком, где её уже нет.
+    setEditingExpense(cur => (cur && cur.id === id ? null : cur))
   }
 
   return (
@@ -94,10 +97,11 @@ export default function App() {
         {tokensOpen && <ApiTokens onClose={() => setTokensOpen(false)} />}
         
         {editingExpense && (
-          <EditExpense 
-            expense={editingExpense} 
-            onUpdate={handleUpdate} 
-            onCancel={() => setEditingExpense(null)} 
+          <EditExpense
+            expense={editingExpense}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onCancel={() => setEditingExpense(null)}
           />
         )}
       </div>
