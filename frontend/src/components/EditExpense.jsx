@@ -80,25 +80,32 @@ export default function EditExpense({ expense, onUpdate, onDelete, onCancel }) {
     }
   }
 
-  const remove = async () => {
-    if (busy) return
-    if (!confirmDelete) {
-      setConfirmDelete(true)
-      navigator.vibrate?.(10)
-      return
-    }
-    setBusy(true)
-    try {
-      await onDelete(expense.id)
-      navigator.vibrate?.(30)
-    } catch (e) {
-      console.error('delete failed:', e)
-      setConfirmDelete(false)
-      setBusy(false)
-    }
+const remove = async () => {
+  if (busy) return
+  if (!confirmDelete) {
+    setConfirmDelete(true)
+    navigator.vibrate?.(10)
+    return
+  }
+  setBusy(true)
+
+  let ok = false
+  try {
+    ok = await onDelete(expense.id)
+  } catch (e) {
+    console.error('delete failed:', e)
+  }
+
+  if (ok) {
+    navigator.vibrate?.(30)
     // При успехе экран закрывается родителем, поэтому busy не снимаем —
     // иначе кнопки на мгновение оживут на уже удалённой трате.
+    return
   }
+
+  setConfirmDelete(false)
+  setBusy(false)
+}
 
   return (
     <div
