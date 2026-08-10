@@ -4,18 +4,30 @@ import DateChip from './DateChip'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←']
 
-export default function EditExpense({ expense, onUpdate, onCancel }) {
+export default function EditExpense({ expense, onUpdate, onDelete, onCancel }) {
   const originalDate = toDateInput(expense.ts)
   const [amt, setAmt] = useState(String(expense.amount))
   const [desc, setDesc] = useState(expense.description || '')
   const [date, setDate] = useState(originalDate)
   const [busy, setBusy] = useState(false)
+  // Удаление в два касания. В History оно спрятано за свайпом — сам жест
+  // защищает от случайного нажатия; у кнопки в шапке такой защиты нет,
+  // а промахнуться по соседнему Cancel на телефоне легко.
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const hiddenRef = useRef(null)
 
   // Focus hidden input on mount so physical keyboard works immediately
   useEffect(() => {
     hiddenRef.current?.focus()
   }, [])
+
+  // Взведённое подтверждение само снимается: иначе оно останется висеть, и
+  // следующее касание — уже с другим намерением — удалит трату.
+  useEffect(() => {
+    if (!confirmDelete) return
+    const id = setTimeout(() => setConfirmDelete(false), 3000)
+    return () => clearTimeout(id)
+  }, [confirmDelete])
 
   const press = (ch) => {
     navigator.vibrate?.(10)
@@ -68,6 +80,33 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
     }
   }
 
+const remove = async () => {
+  if (busy) return
+  if (!confirmDelete) {
+    setConfirmDelete(true)
+    navigator.vibrate?.(10)
+    return
+  }
+  setBusy(true)
+
+  let ok = false
+  try {
+    ok = await onDelete(expense.id)
+  } catch (e) {
+    console.error('delete failed:', e)
+  }
+
+  if (ok) {
+    navigator.vibrate?.(30)
+    // При успехе экран закрывается родителем, поэтому busy не снимаем —
+    // иначе кнопки на мгновение оживут на уже удалённой трате.
+    return
+  }
+
+  setConfirmDelete(false)
+  setBusy(false)
+}
+
   return (
     <div
       className="flex flex-col flex-1 min-h-0 px-6 absolute inset-0 z-50 animate-fade-in-up"
@@ -82,15 +121,31 @@ export default function EditExpense({ expense, onUpdate, onCancel }) {
         <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Edit expense
         </div>
-        <button 
-          onClick={onCancel}
-          className="text-[14px] font-medium transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-4">
+          {onDelete && (
+            <button
+              onClick={remove}
+              disabled={busy}
+              aria-label={confirmDelete ? 'Confirm delete' : 'Delete expense'}
+              className="text-[14px] font-medium transition-colors"
+              style={{
+                color: confirmDelete ? '#FF6F91' : 'var(--text-tertiary)',
+                cursor: busy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {confirmDelete ? 'sure?' : 'Delete'}
+            </button>
+          )}
+          <button
+            onClick={onCancel}
+            className="text-[14px] font-medium transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       {/* hidden input to capture physical keyboard */}
