@@ -96,11 +96,18 @@ export default function ApiTokens({ onClose }) {
 
   return (
     <div
-      className="absolute inset-0 z-40 flex flex-col animate-fade-in-up"
-      style={{ background: 'var(--bg-base)' }}
+      className="absolute inset-0 z-50 flex flex-col animate-fade-in-up"
+      style={{
+        background: 'var(--bg-base)',
+        // absolute inset-0 отсчитывается от padding-бокса контейнера, поэтому
+        // отступы под чёлку с него не наследуются — слой обязан задать их сам,
+        // иначе шапка уезжает под статус-бар. Так же сделано в EditExpense.
+        paddingTop: 'calc(env(safe-area-inset-top) + 20px)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4 flex-shrink-0">
+      <div className="flex items-center gap-3 px-5 pb-4 flex-shrink-0">
         <button
           onClick={onClose}
           aria-label="Back"
@@ -117,7 +124,7 @@ export default function ApiTokens({ onClose }) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-28">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-10">
         <p className="text-[13px] font-light mb-5" style={{ color: 'var(--text-tertiary)' }}>
           For adding expenses from iOS Shortcuts without signing in. Each token acts
           on your behalf — revoke it if the device is lost.
