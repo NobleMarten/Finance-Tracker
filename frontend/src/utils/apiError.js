@@ -1,3 +1,33 @@
+/* Тексты короткие намеренно: они уходят и в тост, где места мало.
+   Подсказку «что делать» добавляет уже сам OfflineBanner второй строкой. */
+
+/** Сеть не дошла до сервера вообще: fetch отверг промис. */
+export const NETWORK_ERROR_MESSAGE = 'Нет связи с сервером'
+
+/** Соединение установилось, но ответа не дождались. */
+export const TIMEOUT_ERROR_MESSAGE = 'Сервер не ответил за 20 секунд'
+
+/**
+ * Прокси на пути к API (nginx, Cloudflare) отвечают на 502/504 HTML-страницей.
+ * Раньше она проходила проверку «не JSON и короче 400 символов» и попадала в
+ * интерфейс как есть — пользователь читал вёрстку чужой error-страницы. Теперь
+ * такой ответ распознаётся и заменяется человеческим текстом.
+ */
+function looksLikeHtml(text) {
+  return /^\s*<(!doctype|html|head|body|center|h1|title)\b/i.test(text) ||
+    /<\/(html|body)>/i.test(text)
+}
+
+/**
+ * Человеческий текст для ошибки, выброшенной самим `fetch`, а не сервером.
+ * `TypeError` — соединение не состоялось (DNS, обрыв, ERR_TIMED_OUT),
+ * `AbortError` — сработал наш собственный дедлайн.
+ */
+export function formatFetchFailure(e) {
+  if (e?.name === 'AbortError' || e?.name === 'TimeoutError') return TIMEOUT_ERROR_MESSAGE
+  return NETWORK_ERROR_MESSAGE
+}
+
 /**
  * Parses JSON error body from API: { "code": "...", "message": "..." }
  */
@@ -41,7 +71,7 @@ export function formatApiError(text) {
   const p = parseApiErrorPayload(text)
   if (!p) {
     const t = typeof text === 'string' ? text.trim() : ''
-    if (t && t.length < 400 && !t.startsWith('{')) return t
+    if (t && t.length < 400 && !t.startsWith('{') && !looksLikeHtml(t)) return t
     return 'Произошла ошибка. Попробуйте ещё раз.'
   }
   if (API_ERROR_RU[p.code]) return API_ERROR_RU[p.code]
@@ -56,7 +86,7 @@ export function formatAuthApiError(text) {
   const p = parseApiErrorPayload(text)
   if (!p) {
     const t = typeof text === 'string' ? text.trim() : ''
-    if (t && t.length < 400 && !t.startsWith('{')) return t
+    if (t && t.length < 400 && !t.startsWith('{') && !looksLikeHtml(t)) return t
     return 'Не удалось выполнить вход. Попробуйте ещё раз.'
   }
   if (p.code === 'INCORRECT_PASSWORD' || p.code === 'NOT_FOUND') {

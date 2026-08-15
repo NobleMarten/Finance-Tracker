@@ -24,8 +24,10 @@ export default function Toast({ message, onClose, desktop = false }) {
         boxShadow: desktop ? '0 12px 32px rgba(0,0,0,0.45)' : undefined,
       }}
     >
+      {/* Раньше здесь был whitespace-nowrap: короткие «+ 350 ₽ added» помещались,
+          а текст ошибки просто обрезался по maxWidth. */}
       <span
-        className="text-[13px] font-medium whitespace-nowrap"
+        className="text-[13px] font-medium block"
         style={{ color: 'var(--text-primary)' }}
       >
         {message}

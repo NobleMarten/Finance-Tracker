@@ -10,13 +10,14 @@ import BottomNav from './components/BottomNav'
 import Sidebar from './components/Sidebar'
 import DesktopModal from './components/DesktopModal'
 import Toast from './components/Toast'
+import OfflineBanner from './components/OfflineBanner'
 import ApiTokens from './components/ApiTokens'
 import { fmtShort } from './utils/format'
 import { dayLabel, todayInput } from './utils/date'
 
 export default function App() {
   const [screen, setScreen] = useState(0)
-  const { transactions, loading, add, update, remove, refresh } = useTransactions()
+  const { transactions, loading, error, add, update, remove, refresh } = useTransactions()
   const [toast, setToast] = useState(null)
   const [editingExpense, setEditingExpense] = useState(null)
   // Pre-selected day for the add screen, set when you jump there from a day view.
@@ -145,6 +146,7 @@ export default function App() {
         <Sidebar screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
 
         <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
+          <OfflineBanner message={error} onRetry={refresh} desktop />
           {loading && screen === 0 ? (
             <DesktopSkeleton />
           ) : (
@@ -171,6 +173,7 @@ export default function App() {
         }}
       >
         <div className="flex-1 flex flex-col min-h-0">
+          <OfflineBanner message={error} onRetry={refresh} />
           {loading && screen === 0 ? (
             <SkeletonLoader />
           ) : (
