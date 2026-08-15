@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { todayInput } from '../utils/date'
 import DateChip from './DateChip'
+import Numpad from './Numpad'
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←']
-
-export default function AddExpense({ onAdd, initialDate }) {
+export default function AddExpense({ onAdd, initialDate, desktop = false }) {
   const [amt, setAmt] = useState('0')
   const [desc, setDesc] = useState('')
   const [date, setDate] = useState(() => initialDate ?? todayInput())
@@ -63,16 +62,120 @@ export default function AddExpense({ onAdd, initialDate }) {
     }
   }
 
+  const hiddenInput = (
+    <input
+      ref={hiddenRef}
+      onKeyDown={onKeyDown}
+      readOnly
+      className="absolute opacity-0 w-0 h-0 pointer-events-none"
+      aria-hidden="true"
+    />
+  )
+
+  const descInput = (className) => (
+    <input
+      value={desc}
+      onChange={e => setDesc(e.target.value)}
+      placeholder="what for? (optional)"
+      className={className}
+      style={{
+        color: 'var(--text-secondary)',
+        borderBottom: '1px solid var(--border-subtle)',
+        caretColor: 'var(--accent)',
+      }}
+    />
+  )
+
+  const dateChip = (
+    <DateChip
+      value={date}
+      onChange={setDate}
+      changed={backdated}
+      onReset={() => setDate(today)}
+      // Hand focus back to the hidden input, or the numpad stops taking
+      // physical keystrokes once the calendar closes.
+      onAfterClose={() => hiddenRef.current?.focus()}
+    />
+  )
+
+  if (desktop) {
+    return (
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {hiddenInput}
+        <div className="mx-auto w-full max-w-[900px] min-h-full px-10 py-10 flex flex-col justify-center">
+          <h1 className="text-[26px] font-semibold tracking-tight mb-6 animate-fade-in"
+            style={{ color: 'var(--text-primary)' }}>
+            Add expense
+          </h1>
+
+          <div
+            className="grid grid-cols-[1fr_auto] gap-10 p-8 animate-fade-in delay-1"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-lg)',
+            }}
+          >
+            {/* Form column */}
+            <div className="min-w-0 flex flex-col">
+              <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+                style={{ color: 'var(--text-tertiary)' }}>
+                amount · RUB
+              </div>
+              <div
+                className="overflow-hidden whitespace-nowrap leading-none font-medium transition-all duration-150"
+                style={{
+                  fontSize: (numSize + 12) + 'px',
+                  letterSpacing: '-0.02em',
+                  color: amt === '0' ? 'var(--text-ghost)' : 'var(--text-primary)',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {amt}
+              </div>
+
+              <div className="my-6" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+              {descInput('w-full bg-transparent text-[15px] font-light outline-none pb-3')}
+
+              {dateChip}
+
+              <div className="flex-1 min-h-[24px]" />
+
+              <button
+                onClick={submit}
+                disabled={!ready || busy}
+                className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-6 transition-all duration-200 flex items-center justify-center gap-2"
+                style={{
+                  borderRadius: 'var(--radius-md)',
+                  background: ready ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: ready ? '#fff' : 'var(--text-ghost)',
+                  border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
+                  cursor: ready ? 'pointer' : 'not-allowed',
+                  boxShadow: ready ? '0 4px 20px var(--accent-glow)' : 'none',
+                  opacity: busy ? 0.7 : 1,
+                }}
+              >
+                {busy ? <span className="animate-spin-btn" /> : 'add expense'}
+              </button>
+
+              <p className="text-[11px] mt-3 text-center" style={{ color: 'var(--text-ghost)' }}>
+                type digits on your keyboard · Enter to save · Backspace to correct
+              </p>
+            </div>
+
+            {/* Keypad column — still useful with a mouse, and it anchors the layout */}
+            <Numpad onPress={press} size={72} gap="gap-4" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0 px-6 pt-6">
       {/* hidden input to capture physical keyboard */}
-      <input
-        ref={hiddenRef}
-        onKeyDown={onKeyDown}
-        readOnly
-        className="absolute opacity-0 w-0 h-0 pointer-events-none"
-        aria-hidden="true"
-      />
+      {hiddenInput}
 
       {/* Title */}
       <div
@@ -106,27 +209,9 @@ export default function AddExpense({ onAdd, initialDate }) {
       <div className="my-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Description input */}
-      <input
-        value={desc}
-        onChange={e => setDesc(e.target.value)}
-        placeholder="what for? (optional)"
-        className="w-full bg-transparent text-[14px] font-light outline-none pb-4 flex-shrink-0 animate-fade-in delay-2"
-        style={{
-          color: 'var(--text-secondary)',
-          borderBottom: '1px solid var(--border-subtle)',
-          caretColor: 'var(--accent)',
-        }}
-      />
+      {descInput('w-full bg-transparent text-[14px] font-light outline-none pb-4 flex-shrink-0 animate-fade-in delay-2')}
 
-      <DateChip
-        value={date}
-        onChange={setDate}
-        changed={backdated}
-        onReset={() => setDate(today)}
-        // Hand focus back to the hidden input, or the numpad stops taking
-        // physical keystrokes once the calendar closes.
-        onAfterClose={() => hiddenRef.current?.focus()}
-      />
+      {dateChip}
 
       {/* Submit button */}
       <button
@@ -147,29 +232,10 @@ export default function AddExpense({ onAdd, initialDate }) {
       </button>
 
       {/* Numpad */}
-      <div className="grid grid-cols-3 gap-3 flex-1 content-start justify-items-center pb-24 animate-fade-in-up delay-4">
-        {KEYS.map((k, i) => {
-          const isSym = k === '.' || k === '←'
-          return (
-            <button
-              key={i}
-              onClick={() => press(k)}
-              className="w-16 h-16 flex items-center justify-center transition-colors duration-150 active:scale-90 bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)]"
-              style={{
-                border: '1px solid var(--border-muted)',
-                borderRadius: 'var(--radius-full)',
-                color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                fontSize: isSym ? '16px' : '20px',
-                fontWeight: isSym ? 400 : 500,
-                fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
-                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
-              }}
-            >
-              {k}
-            </button>
-          )
-        })}
-      </div>
+      <Numpad
+        onPress={press}
+        className="flex-1 content-start pb-24 animate-fade-in-up delay-4"
+      />
     </div>
   )
 }

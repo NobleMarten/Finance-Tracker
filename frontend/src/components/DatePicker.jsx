@@ -87,6 +87,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
 
   return createPortal(
     <div
+      data-overlay="datepicker"
       className="fixed inset-0 flex items-center justify-center px-6 animate-fade-in"
       style={{
         // Inline so no build step can drop it, and above the toast layer.

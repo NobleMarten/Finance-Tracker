@@ -239,6 +239,22 @@ input, button, select, textarea {
   animation: toastIn 0.3s ease-out both;
 }
 
+/* Desktop toast — corner-anchored, so it slides in sideways instead of upward. */
+@keyframes toastInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-in-right {
+  animation: toastInRight 0.3s ease-out both;
+}
+
 /* ─── Surface utility ─── */
 .surface {
   background: var(--bg-surface);

@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useTransactions } from './hooks/useTransactions'
+import { useIsDesktop } from './hooks/useMediaQuery'
 import Dashboard from './components/Dashboard'
 import History from './components/History'
 import AddExpense from './components/AddExpense'
 import EditExpense from './components/EditExpense'
 import Stats from './components/Stats'
 import BottomNav from './components/BottomNav'
+import Sidebar from './components/Sidebar'
+import DesktopModal from './components/DesktopModal'
 import Toast from './components/Toast'
 import ApiTokens from './components/ApiTokens'
 import { fmtShort } from './utils/format'
@@ -19,6 +22,7 @@ export default function App() {
   // Pre-selected day for the add screen, set when you jump there from a day view.
   const [addDate, setAddDate] = useState(null)
   const [tokensOpen, setTokensOpen] = useState(false)
+  const isDesktop = useIsDesktop()
 
   const showToast = (msg) => {
     setToast(null)
@@ -70,6 +74,92 @@ export default function App() {
     setEditingExpense(cur => (cur && cur.id === id ? null : cur))
   }
 
+  // The two shells share every handler above and every screen below; they differ
+  // only in chrome and in how much width each screen is handed.
+  const screens = (
+    <>
+      {screen === 0 && (
+        <Dashboard
+          transactions={transactions}
+          onEdit={setEditingExpense}
+          onRefresh={refresh}
+          desktop={isDesktop}
+        />
+      )}
+      {screen === 1 && (
+        <History
+          transactions={transactions}
+          loading={loading}
+          onDelete={handleDelete}
+          onEdit={setEditingExpense}
+          onRefresh={refresh}
+          desktop={isDesktop}
+        />
+      )}
+      {screen === 2 && (
+        <AddExpense
+          key={addDate ?? 'today'}
+          onAdd={handleAdd}
+          initialDate={addDate}
+          desktop={isDesktop}
+        />
+      )}
+      {screen === 3 && (
+        <Stats
+          onAddExpense={goToAdd}
+          transactions={transactions}
+          onEdit={setEditingExpense}
+          desktop={isDesktop}
+        />
+      )}
+    </>
+  )
+
+  const overlays = (
+    <>
+      {tokensOpen && (
+        isDesktop
+          ? (
+            <DesktopModal onClose={() => setTokensOpen(false)} width={620}>
+              <ApiTokens onClose={() => setTokensOpen(false)} />
+            </DesktopModal>
+          )
+          : <ApiTokens onClose={() => setTokensOpen(false)} />
+      )}
+
+      {editingExpense && (
+        <EditExpense
+          expense={editingExpense}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onCancel={() => setEditingExpense(null)}
+          desktop={isDesktop}
+        />
+      )}
+    </>
+  )
+
+  if (isDesktop) {
+    return (
+      <div className="fixed inset-0 flex overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+        <Sidebar screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
+
+        <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
+          {loading && screen === 0 ? (
+            <DesktopSkeleton />
+          ) : (
+            <div key={screen} className="flex-1 flex flex-col min-h-0 animate-fade-in">
+              {screens}
+            </div>
+          )}
+        </main>
+
+        {overlays}
+        {toast && <Toast message={toast} onClose={() => setToast(null)} desktop />}
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <div
@@ -85,25 +175,13 @@ export default function App() {
             <SkeletonLoader />
           ) : (
             <div key={screen} className="flex-1 flex flex-col min-h-0 animate-fade-in">
-              {screen === 0 && <Dashboard transactions={transactions} onEdit={setEditingExpense} onRefresh={refresh} />}
-              {screen === 1 && <History transactions={transactions} loading={loading} onDelete={handleDelete} onEdit={setEditingExpense} onRefresh={refresh} />}
-              {screen === 2 && <AddExpense key={addDate ?? 'today'} onAdd={handleAdd} initialDate={addDate} />}
-              {screen === 3 && <Stats onAddExpense={goToAdd} transactions={transactions} onEdit={setEditingExpense} />}
+              {screens}
             </div>
           )}
         </div>
         <BottomNav screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
 
-        {tokensOpen && <ApiTokens onClose={() => setTokensOpen(false)} />}
-        
-        {editingExpense && (
-          <EditExpense
-            expense={editingExpense}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-            onCancel={() => setEditingExpense(null)}
-          />
-        )}
+        {overlays}
       </div>
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
@@ -139,6 +217,26 @@ function SkeletonLoader() {
             <div className="skeleton h-4 w-16" />
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/** Mirrors the desktop dashboard grid so the first paint has the right shape. */
+function DesktopSkeleton() {
+  return (
+    <div className="flex-1 overflow-hidden px-10 pt-8 animate-fade-in">
+      <div className="skeleton h-3 w-28 mb-8" />
+      <div className="grid grid-cols-3 gap-5 mb-5">
+        <div className="col-span-2 skeleton" style={{ height: 240, borderRadius: 'var(--radius-lg)' }} />
+        <div className="flex flex-col gap-5">
+          <div className="skeleton flex-1" style={{ borderRadius: 'var(--radius-md)' }} />
+          <div className="skeleton flex-1" style={{ borderRadius: 'var(--radius-md)' }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-5">
+        <div className="col-span-2 skeleton" style={{ height: 280, borderRadius: 'var(--radius-lg)' }} />
+        <div className="skeleton" style={{ height: 280, borderRadius: 'var(--radius-lg)' }} />
       </div>
     </div>
   )

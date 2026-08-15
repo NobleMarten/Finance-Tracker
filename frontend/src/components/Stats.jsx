@@ -17,7 +17,7 @@ function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
 }
 
-export default function Stats({ onAddExpense, transactions = [], onEdit }) {
+export default function Stats({ onAddExpense, transactions = [], onEdit, desktop = false }) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -99,6 +99,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
     amount: dailyMap[i + 1] ?? 0,
   }))
 
+  // The wide chart is laid out over the whole month, not just the elapsed part:
+  // at full width a half-drawn axis reads as a bug, whereas the flat stubs for
+  // days still to come read as exactly what they are.
+  const dailyDataFull = Array.from({ length: getDaysInMonth(month, year) }, (_, i) => ({
+    day: i + 1,
+    amount: dailyMap[i + 1] ?? 0,
+  }))
+
   const maxDayAmount = Math.max(...dailyData.map(d => d.amount), 0)
   const maxAmount = Math.max(maxDayAmount, 1)
 
@@ -130,6 +138,295 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
 
   const isEmpty = stats && !loading && stats.currentmonth === 0
 
+  const dayDetail = detailDay != null && (
+    <DayDetail
+      day={detailDay}
+      month={month}
+      year={year}
+      monthName={MONTHS_FULL[month - 1]}
+      transactions={transactions}
+      onEdit={onEdit}
+      onAddHere={onAddExpense}
+      onClose={() => setDetailDay(null)}
+      desktop={desktop}
+    />
+  )
+
+  /* ── Desktop ──────────────────────────────────────────────── */
+  if (desktop) {
+    return (
+      <div className="flex-1 min-h-0 overflow-y-auto relative">
+        <div className="mx-auto w-full max-w-[1480px] px-10 pt-8 pb-12">
+          {/* Header — month navigation lives here rather than inside the hero,
+              since it now steers three panels at once. */}
+          <div className="flex items-center justify-between mb-6 animate-fade-in">
+            <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Statistics
+            </h1>
+            <div
+              className="flex items-center gap-1 p-1"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <button onClick={prevMonth} aria-label="Previous month"
+                className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-elevated)]">
+                <ChevronLeft />
+              </button>
+              <span
+                className="text-[13px] font-medium px-3 min-w-[140px] text-center"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {MONTHS_FULL[month - 1]} {year}
+              </span>
+              <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
+                className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-20 hover:enabled:bg-[var(--bg-elevated)]">
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-5 px-4 py-3 rounded-xl text-[13px]"
+              style={{ background: 'rgba(255,80,80,0.10)', color: '#ff8585' }}>
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-5 items-start">
+            {/* ── Left rail: the figures ── */}
+            <div className="flex flex-col gap-5 min-w-0">
+              <div
+                className="relative overflow-hidden animate-fade-in"
+                style={{
+                  background: 'linear-gradient(150deg, rgba(108,140,255,0.10) 0%, var(--bg-surface) 55%)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              >
+                <div className="absolute pointer-events-none"
+                  style={{ top: -60, right: -50, width: 220, height: 220, borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(108,140,255,0.12) 0%, transparent 70%)' }} />
+                <div className="relative px-6 py-6">
+                  <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+                    style={{ color: 'var(--text-tertiary)' }}>
+                    total spent
+                  </div>
+                  <div
+                    className="font-medium whitespace-nowrap leading-none"
+                    style={{
+                      fontSize: scaledFontSize(stats?.currentmonth ?? 0, 42, 24, 8) + 'px',
+                      letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    {loading
+                      ? <span className="skeleton inline-block align-middle h-9 w-44" />
+                      : <><CountUp value={stats?.currentmonth ?? 0} format={fmtShort} /> ₽</>}
+                  </div>
+                  {delta !== null && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <span
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: delta > 0 ? 'rgba(255,107,107,0.14)' : 'rgba(74,222,128,0.14)',
+                          color: delta > 0 ? '#ff8585' : '#5ee89a',
+                        }}
+                      >
+                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
+                      </span>
+                      <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                        vs last month
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {stats && !loading && (
+                <div className="grid grid-cols-2 gap-4 animate-fade-in delay-1">
+                  <StatCard label="Avg / day" value={stats.avgday} />
+                  <StatCard label="Max / day" value={maxDayAmount} />
+                  <StatCard label="Prev month" value={stats.prevmonth} />
+                  <StatCard
+                    label="vs prev"
+                    value={null}
+                    extra={delta !== null ? (
+                      <span className="text-[18px] font-medium"
+                        style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? '#ff8585' : '#5ee89a' }}>
+                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
+                      </span>
+                    ) : (
+                      <span className="text-[18px] font-medium"
+                        style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>—</span>
+                    )}
+                  />
+                </div>
+              )}
+
+              {stats && !loading && !isEmpty && (
+                <Panel title="Top expenses" className="animate-fade-in delay-2">
+                  <div className="px-6 pb-4 pt-1">
+                    {(!stats.topexp || stats.topexp.length === 0) && (
+                      <p className="text-[13px] pt-3" style={{ color: 'var(--text-tertiary)' }}>
+                        No expenses this month
+                      </p>
+                    )}
+                    {stats.topexp?.map((exp, i) => {
+                      const pct = stats.currentmonth > 0
+                        ? Math.round((exp.amount / stats.currentmonth) * 100)
+                        : 0
+                      return (
+                        <div key={exp.id} className="py-3"
+                          style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span
+                                className="text-[11px] font-semibold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+                              >
+                                {i + 1}
+                              </span>
+                              <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
+                                {exp.title || '—'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 pl-3 flex-shrink-0">
+                              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{pct}%</span>
+                              <span className="text-[15px] font-medium whitespace-nowrap"
+                                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}>
+                                <CountUp value={exp.amount} format={fmtShort} /> ₽
+                              </span>
+                            </div>
+                          </div>
+                          <ProgressBar pct={pct} index={i} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Panel>
+              )}
+            </div>
+
+            {/* ── Main: the plots ── */}
+            <div className="min-[1100px]:col-span-2 flex flex-col gap-5 min-w-0">
+              {loading && <DesktopChartSkeleton />}
+
+              {isEmpty && !loading && (
+                <Panel>
+                  <EmptyState
+                    isCurrentMonth={isCurrentMonth}
+                    monthName={MONTHS_FULL[month - 1]}
+                    onAddExpense={onAddExpense}
+                  />
+                </Panel>
+              )}
+
+              {stats && !loading && !isEmpty && (
+                <>
+                  <Panel
+                    className="animate-fade-in"
+                    title={view === 'bars' ? 'Daily spending' : `This year · ${year}`}
+                    action={
+                      <div className="flex items-center gap-3">
+                        {view === 'bars' ? (
+                          activeAmount > 0 ? (
+                            <ValuePill
+                              onClick={() => setDetailDay(activeDay)}
+                              label={`${activeDay} ${monthShort}`}
+                              amount={activeAmount}
+                              aria={`View expenses for ${activeDay} ${monthShort}`}
+                            />
+                          ) : <Hint>hover a bar</Hint>
+                        ) : (
+                          yearActive ? (
+                            <ValuePill
+                              onClick={() => goToDate(yearActive.year, yearActive.month, yearActive.day)}
+                              label={`${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                              amount={yearActive.amount}
+                              aria={`View expenses for ${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                            />
+                          ) : <Hint>hover a day</Hint>
+                        )}
+                        <div className="flex p-0.5 gap-0.5"
+                          style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                          <ViewBtn active={view === 'bars'} onClick={() => changeView('bars')} label="Bar chart view">
+                            <BarsIcon />
+                          </ViewBtn>
+                          <ViewBtn active={view === 'year'} onClick={() => changeView('year')} label="Yearly heatmap view">
+                            <GridIcon />
+                          </ViewBtn>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <div className="px-6 py-6">
+                      {view === 'bars' ? (
+                        <BarChart
+                          data={dailyDataFull}
+                          maxAmount={maxAmount}
+                          active={activeDay}
+                          onSelect={toggleSel}
+                          onHover={setChartHover}
+                          plotW={900}
+                          barH={200}
+                          maxBar={24}
+                          maxGap={9}
+                          labelSize={11}
+                          scrollable={false}
+                        />
+                      ) : (
+                        <YearHeatmap
+                          transactions={transactions}
+                          year={year}
+                          active={yearActive}
+                          onSelect={toggleYearSel}
+                          onHoverDate={setYearHover}
+                          cellSize={15}
+                        />
+                      )}
+                    </div>
+                  </Panel>
+
+                  <Panel
+                    className="animate-fade-in delay-2"
+                    title="Last 6 months"
+                    action={
+                      trendItem && trendItem.amount > 0 ? (
+                        <ValuePill
+                          onClick={() => goToMonth(trendItem.year, trendItem.month)}
+                          label={`${trendItem.label} ${trendItem.year}`}
+                          amount={trendItem.amount}
+                          aria={`Go to ${trendItem.label} ${trendItem.year}`}
+                        />
+                      ) : <Hint>hover a month</Hint>
+                    }
+                  >
+                    <div className="px-6 py-6">
+                      <MonthlyTrend
+                        data={trendData}
+                        max={trendMax}
+                        active={trendActive}
+                        onSelect={toggleTrendSel}
+                        onHover={setTrendHover}
+                        trackHeight={132}
+                        barMax={56}
+                      />
+                    </div>
+                  </Panel>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {dayDetail}
+      </div>
+    )
+  }
+
+  /* ── Mobile ───────────────────────────────────────────────── */
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
     <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
@@ -440,18 +737,86 @@ export default function Stats({ onAddExpense, transactions = [], onEdit }) {
       )}
     </PullToRefresh>
 
-    {detailDay != null && (
-      <DayDetail
-        day={detailDay}
-        month={month}
-        year={year}
-        monthName={MONTHS_FULL[month - 1]}
-        transactions={transactions}
-        onEdit={onEdit}
-        onAddHere={onAddExpense}
-        onClose={() => setDetailDay(null)}
-      />
-    )}
+    {dayDetail}
+    </div>
+  )
+}
+
+/* ────────────────────────── desktop building blocks ────────────────────────── */
+
+/** Titled card. `action` sits opposite the title in the header strip. */
+function Panel({ title, action, className = '', children }) {
+  return (
+    <section
+      className={className}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-lg)',
+      }}
+    >
+      {(title || action) && (
+        <div
+          className="flex items-center justify-between gap-4 px-6 py-3.5"
+          style={{ borderBottom: '1px solid var(--border-subtle)' }}
+        >
+          <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+            {title}
+          </h2>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  )
+}
+
+function ViewBtn({ active, onClick, label, children }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="w-7 h-7 flex items-center justify-center rounded-md transition-all"
+      style={{
+        background: active ? 'var(--accent-soft)' : 'transparent',
+        color: active ? 'var(--accent)' : 'var(--text-tertiary)',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** The accent "27 Aug · 4 200 ₽ ›" chip that drills into a day or month. */
+function ValuePill({ onClick, label, amount, aria }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={aria}
+      className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-2 py-1 transition-colors"
+      style={{ background: 'var(--accent-soft)' }}
+    >
+      <span style={{ color: 'var(--accent)' }}>{label} · </span>
+      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+        {fmtShort(amount)} ₽
+      </span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+        stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  )
+}
+
+function Hint({ children }) {
+  return <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>{children}</span>
+}
+
+function DesktopChartSkeleton() {
+  return (
+    <div className="animate-fade-in flex flex-col gap-5">
+      <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-lg)' }} />
+      <div className="skeleton" style={{ height: 220, borderRadius: 'var(--radius-lg)' }} />
     </div>
   )
 }
@@ -541,14 +906,23 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
   )
 }
 
-function BarChart({ data, maxAmount, active, onSelect, onHover }) {
+/**
+ * Daily bars. `plotW` is the width the bar geometry is fitted to (the svg then
+ * scales to its container via the viewBox); `maxBar` / `maxGap` cap how fat the
+ * bars may get, which is the only thing that differs between the two layouts.
+ */
+function BarChart({
+  data, maxAmount, active, onSelect, onHover,
+  plotW = 280, barH = 72, maxBar = 12, maxGap = 3, labelSize = 8, scrollable = true,
+}) {
   const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
-  const BAR_H = 72
-  const barWidth = Math.max(4, Math.min(12, Math.floor(280 / Math.max(data.length, 1)) - 2))
-  const gap = Math.max(1, Math.min(3, Math.floor(280 / Math.max(data.length, 1)) - barWidth))
+  const BAR_H = barH
+  const slot = Math.floor(plotW / Math.max(data.length, 1))
+  const barWidth = Math.max(4, Math.min(maxBar, slot - 2))
+  const gap = Math.max(1, Math.min(maxGap, slot - barWidth))
   const totalW = data.length * (barWidth + gap) - gap
-  const svgW = Math.max(totalW, 280)
+  const svgW = Math.max(totalW, plotW)
   const gradId = 'bar-grad'
 
   useEffect(() => {
@@ -560,11 +934,14 @@ function BarChart({ data, maxAmount, active, onSelect, onHover }) {
 
   return (
     <div>
-      <div style={{ overflowX: 'auto' }}>
+      {/* The phone keeps a horizontal scroll so bars stay tappable at a fixed
+          minimum width; the desktop panel is wide enough to let the viewBox
+          simply scale the whole month down to fit. */}
+      <div style={{ overflowX: scrollable ? 'auto' : 'visible' }}>
       <svg
-        viewBox={`0 0 ${svgW} ${BAR_H + 18}`}
+        viewBox={`0 0 ${svgW} ${BAR_H + labelSize * 2.25}`}
         width="100%"
-        style={{ display: 'block', minWidth: Math.min(totalW, 280), overflow: 'visible' }}
+        style={{ display: 'block', minWidth: scrollable ? Math.min(totalW, plotW) : 0, overflow: 'visible' }}
         role="img"
         aria-label={`Daily spending chart, highest day ${fmtShort(maxAmount)} ₽`}
       >
@@ -622,9 +999,9 @@ function BarChart({ data, maxAmount, active, onSelect, onHover }) {
               {(d.day === 1 || d.day % 5 === 0 || isActive) && (
                 <text
                   x={x + barWidth / 2}
-                  y={BAR_H + 14}
+                  y={BAR_H + labelSize * 1.75}
                   textAnchor="middle"
-                  fontSize="8"
+                  fontSize={labelSize}
                   fontWeight={isActive ? 600 : 400}
                   fill={isActive ? 'var(--accent)' : 'rgba(255,255,255,0.5)'}
                 >

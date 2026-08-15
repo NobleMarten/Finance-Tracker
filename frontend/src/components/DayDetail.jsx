@@ -1,6 +1,7 @@
 import { fmtTime, fmtShort, fmtFull, scaledFontSize } from '../utils/format'
 import { toDateInput, todayInput } from '../utils/date'
 import CountUp from './CountUp'
+import DesktopModal from './DesktopModal'
 
 function avatarColor(s) {
   if (!s || s === '—') return { bg: 'var(--bg-elevated)', fg: 'var(--text-tertiary)' }
@@ -23,8 +24,12 @@ function avatarColor(s) {
  *
  * `onAddHere` jumps to the add screen with this day pre-selected — the natural
  * place to record something you forgot, since you are already looking at it.
+ *
+ * On desktop the very same markup is dropped into a centred dialog instead of
+ * covering the whole window — a full-screen takeover for one day's rows would
+ * throw away the context the user clicked from.
  */
-export default function DayDetail({ day, month, year, monthName, transactions, onEdit, onAddHere, onClose }) {
+export default function DayDetail({ day, month, year, monthName, transactions, onEdit, onAddHere, onClose, desktop = false }) {
   const dateInput = toDateInput(new Date(year, month - 1, day))
   const canAdd = Boolean(onAddHere) && dateInput <= todayInput()
 
@@ -38,9 +43,11 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
 
   const total = dayTx.reduce((s, t) => s + t.amount, 0)
 
-  return (
+  const body = (
     <div
-      className="absolute inset-0 z-40 flex flex-col animate-fade-in-up"
+      className={desktop
+        ? 'absolute inset-0 flex flex-col'
+        : 'absolute inset-0 z-40 flex flex-col animate-fade-in-up'}
       style={{ background: 'var(--bg-base)' }}
     >
       {/* Header */}
@@ -101,7 +108,7 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
       <div className="mx-5 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Expense list */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-28">
+      <div className={`flex-1 min-h-0 overflow-y-auto px-5 ${desktop ? 'pb-5' : 'pb-28'}`}>
         {dayTx.length === 0 ? (
           <p className="text-[13px] pt-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
             No expenses this day
@@ -147,5 +154,13 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
         )}
       </div>
     </div>
+  )
+
+  if (!desktop) return body
+
+  return (
+    <DesktopModal onClose={onClose} width={520} height="min(660px, 82vh)">
+      {body}
+    </DesktopModal>
   )
 }

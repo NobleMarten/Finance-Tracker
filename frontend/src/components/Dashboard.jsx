@@ -47,7 +47,13 @@ function avatarColor(s) {
   }
 }
 
-export default function Dashboard({ transactions, onEdit, onRefresh }) {
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function fmtWeekDay(date) {
+  return WEEKDAYS[new Date(date).getDay()]
+}
+
+export default function Dashboard({ transactions, onEdit, onRefresh, desktop = false }) {
   const [rate, setRate] = useState(null)
   const [weekExpanded, setWeekExpanded] = useState(false)
 
@@ -74,18 +80,31 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
       : null
 
   const animatedMonthVal = useCountUp(monthVal)
-  const recent = [...transactions].sort((a, b) => b.ts - a.ts).slice(0, 6)
+  const sorted = [...transactions].sort((a, b) => b.ts - a.ts)
 
-  // Week transactions for mini-history (last 5)
-  const weekTx = [...transactions]
-    .filter(t => t.ts >= w0)
-    .sort((a, b) => b.ts - a.ts)
-    .slice(0, 5)
+  // The wide layout has a full column to give the recent list, so it shows more.
+  const recent = sorted.slice(0, desktop ? 12 : 6)
 
-  const fmtWeekDay = (date) => {
-    const d = new Date(date)
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return days[d.getDay()]
+  // Week transactions for mini-history
+  const weekTx = sorted.filter(t => t.ts >= w0).slice(0, desktop ? 8 : 5)
+
+  const heroAmount = animatedMonthVal === monthVal ? fmtFull(monthVal) : fmtShort(animatedMonthVal)
+
+  if (desktop) {
+    return (
+      <DesktopDashboard
+        heroAmount={heroAmount}
+        monthVal={monthVal}
+        weekVal={weekVal}
+        dayVal={dayVal}
+        toUSD={toUSD}
+        transactions={transactions}
+        monthStart={m0}
+        recent={recent}
+        weekTx={weekTx}
+        onEdit={onEdit}
+      />
+    )
   }
 
   return (
@@ -146,7 +165,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
               fontFamily: 'var(--font-mono)',
             }}
           >
-            {animatedMonthVal === monthVal ? fmtFull(monthVal) : fmtShort(animatedMonthVal)}
+            {heroAmount}
           </div>
           {toUSD(monthVal) && (
             <div className="flex items-center gap-2 mt-2">
@@ -274,13 +293,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
               className="w-11 h-11 rounded-full flex items-center justify-center mb-3"
               style={{ background: 'var(--accent-soft)' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                <polyline points="14 3 14 8 19 8" />
-                <line x1="8" y1="13" x2="15" y2="13" />
-                <line x1="8" y1="17" x2="13" y2="17" />
-              </svg>
+              <EmptyDocIcon />
             </div>
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
               No expenses yet
@@ -341,7 +354,278 @@ export default function Dashboard({ transactions, onEdit, onRefresh }) {
   )
 }
 
-function MonthSparkline({ transactions, monthStart }) {
+/* ────────────────────────── desktop ────────────────────────── */
+
+/**
+ * Wide layout. The same numbers as the phone, but laid out as a real dashboard:
+ * the month hero and the recent feed take the main column, the short-horizon
+ * figures (week / today) and the week feed run down a narrower side column —
+ * so nothing has to be tapped open to be read.
+ */
+function DesktopDashboard({
+  heroAmount, monthVal, weekVal, dayVal, toUSD,
+  transactions, monthStart, recent, weekTx, onEdit,
+}) {
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[1480px] px-10 pt-8 pb-12">
+        {/* Page header */}
+        <div className="flex items-baseline justify-between mb-6 animate-fade-in">
+          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Overview
+          </h1>
+          <span className="text-[13px] font-light" style={{ color: 'var(--text-secondary)' }}>
+            {greeting()}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-5 items-start">
+          {/* ── Main column ── */}
+          <div className="min-[1100px]:col-span-2 flex flex-col gap-5 min-w-0">
+            {/* Hero */}
+            <div
+              className="relative overflow-hidden animate-fade-in"
+              style={{
+                background: 'linear-gradient(150deg, rgba(108,140,255,0.10) 0%, rgba(20,20,22,0.85) 55%)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.28)',
+              }}
+            >
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  top: -80, right: -60, width: 320, height: 320, borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(108,140,255,0.12) 0%, transparent 70%)',
+                }}
+              />
+              <div className="relative px-8 pt-7">
+                <div className="flex items-center justify-between mb-5">
+                  <span
+                    className="text-[11px] uppercase tracking-[0.18em] font-medium"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    {currentMonth()} · this month
+                  </span>
+                  {toUSD(monthVal) && (
+                    <span
+                      className="text-[12px] px-2.5 py-1"
+                      style={{
+                        color: 'var(--text-secondary)',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-full)',
+                      }}
+                    >
+                      ≈ {toUSD(monthVal)}
+                    </span>
+                  )}
+                </div>
+                <div
+                  className="leading-none whitespace-nowrap font-medium"
+                  style={{
+                    fontSize: scaledFontSize(monthVal, 68, 40, 8) + 'px',
+                    letterSpacing: '-0.03em',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {heroAmount}
+                </div>
+              </div>
+              {/* Full-bleed to the card edge — the cumulative curve is the card's
+                  floor, not a widget floating inside it. */}
+              <div className="relative">
+                <MonthSparkline transactions={transactions} monthStart={monthStart} height={96} />
+              </div>
+            </div>
+
+            {/* Recent feed */}
+            <section
+              className="animate-fade-in delay-2"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <div
+                className="px-6 py-4 flex items-baseline justify-between"
+                style={{ borderBottom: '1px solid var(--border-subtle)' }}
+              >
+                <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  Recent
+                </h2>
+                <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>
+                  click a row to edit
+                </span>
+              </div>
+
+              <div className="px-3 py-2">
+                {recent.length === 0 ? (
+                  <div className="flex flex-col items-center text-center py-14 animate-fade-in">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                      style={{ background: 'var(--accent-soft)' }}
+                    >
+                      <EmptyDocIcon />
+                    </div>
+                    <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                      No expenses yet
+                    </p>
+                    <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                      Use “Add expense” to record your first one
+                    </p>
+                  </div>
+                ) : recent.map((t, i) => {
+                  const c = avatarColor(t.description)
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => onEdit?.(t)}
+                      className="group flex items-center gap-4 px-3 py-2.5 rounded-xl cursor-pointer animate-fade-in transition-colors duration-150 hover:bg-[var(--bg-elevated)]"
+                      style={{ animationDelay: `${0.18 + i * 0.03}s` }}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-medium flex-shrink-0"
+                        style={{ background: c.bg, color: c.fg }}
+                      >
+                        {(t.description || '—')[0].toUpperCase()}
+                      </div>
+                      <span
+                        className="text-[14px] font-light truncate flex-1 min-w-0"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {t.description || '—'}
+                      </span>
+                      <span
+                        className="text-[12px] w-[86px] text-right flex-shrink-0"
+                        style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
+                      >
+                        {fmtWeekDay(t.ts)} {fmtTime(t.ts)}
+                      </span>
+                      <span
+                        className="text-[15px] font-medium whitespace-nowrap w-[118px] text-right flex-shrink-0"
+                        style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', fontFamily: 'var(--font-mono)' }}
+                      >
+                        {fmtShort(t.amount)} ₽
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </div>
+
+          {/* ── Side column ── */}
+          <div className="flex flex-col gap-5 min-w-0">
+            <div className="grid grid-cols-2 min-[1100px]:grid-cols-1 gap-5">
+              <BigStat label="This week" value={weekVal} usd={toUSD(weekVal)} accent delay="delay-1" />
+              <BigStat label="Today" value={dayVal} usd={toUSD(dayVal)} delay="delay-2" />
+            </div>
+
+            <section
+              className="animate-fade-in delay-3"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  This week
+                </h2>
+              </div>
+              <div className="px-2.5 py-2">
+                {weekTx.length === 0 ? (
+                  <p className="text-[12px] px-2.5 py-6 text-center" style={{ color: 'var(--text-ghost)' }}>
+                    no expenses this week
+                  </p>
+                ) : weekTx.map(t => (
+                  <div
+                    key={t.id}
+                    onClick={() => onEdit?.(t)}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors duration-150 hover:bg-[var(--bg-elevated)]"
+                  >
+                    <span
+                      className="text-[10px] w-7 flex-shrink-0 uppercase tracking-wider"
+                      style={{ color: 'var(--text-ghost)' }}
+                    >
+                      {fmtWeekDay(t.ts)}
+                    </span>
+                    <span
+                      className="text-[13px] font-light truncate flex-1 min-w-0"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {t.description || '—'}
+                    </span>
+                    <span
+                      className="text-[13px] font-medium whitespace-nowrap"
+                      style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
+                    >
+                      {fmtShort(t.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Side-column figure: the phone's StatCard, sized for a desktop column. */
+function BigStat({ label, value, usd, accent = false, delay = '' }) {
+  return (
+    <div
+      className={`p-5 animate-fade-in ${delay}`}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
+        borderLeft: accent ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-lg)',
+      }}
+    >
+      <div
+        className="text-[11px] uppercase tracking-[0.14em] font-medium mb-3"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        {label}
+      </div>
+      <div
+        className="whitespace-nowrap font-medium leading-none"
+        style={{
+          fontSize: scaledFontSize(value, 32, 20, 7) + 'px',
+          letterSpacing: '-0.02em',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-mono)',
+        }}
+      >
+        {fmtShort(value)} ₽
+      </div>
+      <div className="text-[11px] mt-2 h-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+        {usd ?? ''}
+      </div>
+    </div>
+  )
+}
+
+function EmptyDocIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <polyline points="14 3 14 8 19 8" />
+      <line x1="8" y1="13" x2="15" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </svg>
+  )
+}
+
+function MonthSparkline({ transactions, monthStart, height = 36 }) {
   const now = new Date()
   const todayDay = now.getDate()
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
@@ -361,7 +645,7 @@ function MonthSparkline({ transactions, monthStart }) {
   if (cumulative.length < 2 || max === 0) return null
 
   const W = 320
-  const H = 36
+  const H = height
   const PAD = 2
   const denom = Math.max(1, daysInMonth - 1)
 
