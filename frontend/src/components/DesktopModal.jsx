@@ -28,9 +28,11 @@ export default function DesktopModal({ onClose, width = 560, height = 'min(760px
     >
       <div
         className="relative flex flex-col overflow-hidden animate-scale-in"
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         style={{
           width,
-          maxWidth: '100%',
           height,
           background: 'var(--bg-base)',
           border: '1px solid var(--border-subtle)',
