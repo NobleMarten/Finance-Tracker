@@ -73,6 +73,10 @@ export default function App() {
     // Экран редактирования мог быть открыт на этой же трате — закрываем,
     // иначе он останется висеть над списком, где её уже нет.
     setEditingExpense(cur => (cur && cur.id === id ? null : cur))
+    // EditExpense различает успех и отказ по возвращённому значению, а не по
+    // брошенному исключению. Без явного true его ветка успеха недостижима,
+    // и подтверждающая вибрация после удаления не срабатывает.
+    return true
   }
 
   // The two shells share every handler above and every screen below; they differ
