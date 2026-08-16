@@ -5,7 +5,7 @@
 export const NETWORK_ERROR_MESSAGE = 'Нет связи с сервером'
 
 /** Соединение установилось, но ответа не дождались. */
-export const TIMEOUT_ERROR_MESSAGE = 'Сервер не ответил за 20 секунд'
+export const TIMEOUT_ERROR_MESSAGE = 'Сервер не ответил вовремя'
 
 /**
  * Прокси на пути к API (nginx, Cloudflare) отвечают на 502/504 HTML-страницей.
