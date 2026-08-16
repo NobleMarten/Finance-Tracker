@@ -81,14 +81,26 @@ function notifyUnauthorized() {
  */
 const REQUEST_TIMEOUT_MS = 20_000
 
-async function fetchWithDeadline(url, options) {
+async function fetchWithDeadline(url, options = {}) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  const hasAbortAny = typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function'
+  const signal = options.signal
+    ? (hasAbortAny ? AbortSignal.any([options.signal, controller.signal]) : controller.signal)
+    : controller.signal
+
+  if (options.signal && !hasAbortAny) {
+    options.signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+
   try {
-    return await fetch(url, { ...options, signal: controller.signal })
+    return await fetch(url, { ...options, signal })
   } catch (e) {
     // Сетевой сбой и дедлайн — не ошибки API, у них нет тела с кодом.
-    throw new Error(formatFetchFailure(e))
+    const err = new Error(formatFetchFailure(e))
+    err.cause = e
+    throw err
   } finally {
     clearTimeout(timer)
   }
