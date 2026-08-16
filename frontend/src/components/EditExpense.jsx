@@ -88,16 +88,23 @@ export default function EditExpense({ expense, onUpdate, onDelete, onCancel, des
       return
     }
     setBusy(true)
+
+    let ok = false
     try {
-      await onDelete(expense.id)
-      navigator.vibrate?.(30)
+      ok = await onDelete(expense.id)
     } catch (e) {
       console.error('delete failed:', e)
-      setConfirmDelete(false)
-      setBusy(false)
     }
-    // При успехе экран закрывается родителем, поэтому busy не снимаем —
-    // иначе кнопки на мгновение оживут на уже удалённой трате.
+
+    if (ok) {
+      navigator.vibrate?.(30)
+      // При успехе экран закрывается родителем, поэтому busy не снимаем —
+      // иначе кнопки на мгновение оживут на уже удалённой трате.
+      return
+    }
+
+    setConfirmDelete(false)
+    setBusy(false)
   }
 
   const hiddenInput = (
