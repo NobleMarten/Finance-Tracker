@@ -1,4 +1,4 @@
-import { formatApiError, formatAuthApiError } from '../utils/apiError'
+import { formatApiError, formatAuthApiError, formatFetchFailure } from '../utils/apiError'
 
 /**
  * По умолчанию API живёт на том же origin, что и фронт: запросы уходят
@@ -66,9 +66,49 @@ function notifyUnauthorized() {
   window.dispatchEvent(new Event('auth:unauthorized'))
 }
 
+/**
+ * Свой дедлайн на запрос.
+ *
+ * Без него запрос висит на таймауте самого Chrome — это до полутора минут, и
+ * заканчивается `TypeError: Failed to fetch`, который раньше уходил в тост как
+ * есть. Двадцать секунд с внятным текстом лучше: типичный ответ приходит за
+ * 65 мс, так что порог не мешает даже медленной мобильной сети.
+ *
+ * Важная оговорка про POST/PATCH: обрыв по дедлайну не означает, что сервер
+ * запрос не выполнил — ответ мог потеряться уже на обратном пути. Так же ведёт
+ * себя и таймаут браузера, поэтому хуже не стало, но повторять мутацию после
+ * такой ошибки всё равно небезопасно.
+ */
+const REQUEST_TIMEOUT_MS = 20_000
+
+async function fetchWithDeadline(url, options = {}) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  const hasAbortAny = typeof AbortSignal !== 'undefined' && typeof AbortSignal.any === 'function'
+  const signal = options.signal
+    ? (hasAbortAny ? AbortSignal.any([options.signal, controller.signal]) : controller.signal)
+    : controller.signal
+
+  if (options.signal && !hasAbortAny) {
+    options.signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+
+  try {
+    return await fetch(url, { ...options, signal })
+  } catch (e) {
+    // Сетевой сбой и дедлайн — не ошибки API, у них нет тела с кодом.
+    const err = new Error(formatFetchFailure(e))
+    err.cause = e
+    throw err
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function req(path, options = {}) {
   const method = options.method ?? 'GET'
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchWithDeadline(`${BASE}${path}`, {
     ...options,
     credentials: 'include',
     headers: {
@@ -96,7 +136,7 @@ async function ensureOk(res) {
 
 export const authApi = {
   login: async (email, password) => {
-    const res = await fetch(`${BASE}/api/login`, {
+    const res = await fetchWithDeadline(`${BASE}/api/login`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -106,7 +146,7 @@ export const authApi = {
   },
 
   register: async (login, email, password) => {
-    const res = await fetch(`${BASE}/api/register`, {
+    const res = await fetchWithDeadline(`${BASE}/api/register`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -119,7 +159,7 @@ export const authApi = {
     // /api/logout is public and CSRF-exempt, but include the header anyway in
     // case it ever moves behind the protected group. credentials so the server
     // sees which session to clear.
-    await fetch(`${BASE}/api/logout`, {
+    await fetchWithDeadline(`${BASE}/api/logout`, {
       method: 'POST',
       credentials: 'include',
       headers: { ...csrfHeaders('POST') },
@@ -128,7 +168,7 @@ export const authApi = {
 
   /** Заготовка: позже здесь будет отправка ссылки сброса, а не пароля. */
   requestPasswordReset: async (email) => {
-    const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+    const res = await fetchWithDeadline(`${BASE}/api/auth/forgot-password`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

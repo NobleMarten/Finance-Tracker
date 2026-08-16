@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { toDateInput } from '../utils/date'
 import DateChip from './DateChip'
+import Numpad from './Numpad'
+import DesktopModal from './DesktopModal'
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '←']
-
-export default function EditExpense({ expense, onUpdate, onDelete, onCancel }) {
+export default function EditExpense({ expense, onUpdate, onDelete, onCancel, desktop = false }) {
   const originalDate = toDateInput(expense.ts)
   const [amt, setAmt] = useState(String(expense.amount))
   const [desc, setDesc] = useState(expense.description || '')
@@ -80,32 +80,167 @@ export default function EditExpense({ expense, onUpdate, onDelete, onCancel }) {
     }
   }
 
-const remove = async () => {
-  if (busy) return
-  if (!confirmDelete) {
-    setConfirmDelete(true)
-    navigator.vibrate?.(10)
-    return
-  }
-  setBusy(true)
+  const remove = async () => {
+    if (busy) return
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      navigator.vibrate?.(10)
+      return
+    }
+    setBusy(true)
 
-  let ok = false
-  try {
-    ok = await onDelete(expense.id)
-  } catch (e) {
-    console.error('delete failed:', e)
+    let ok = false
+    try {
+      ok = await onDelete(expense.id)
+    } catch (e) {
+      console.error('delete failed:', e)
+    }
+
+    if (ok) {
+      navigator.vibrate?.(30)
+      // При успехе экран закрывается родителем, поэтому busy не снимаем —
+      // иначе кнопки на мгновение оживут на уже удалённой трате.
+      return
+    }
+
+    setConfirmDelete(false)
+    setBusy(false)
   }
 
-  if (ok) {
-    navigator.vibrate?.(30)
-    // При успехе экран закрывается родителем, поэтому busy не снимаем —
-    // иначе кнопки на мгновение оживут на уже удалённой трате.
-    return
-  }
+  const hiddenInput = (
+    <input
+      ref={hiddenRef}
+      onKeyDown={onKeyDown}
+      readOnly
+      className="absolute opacity-0 w-0 h-0 pointer-events-none"
+      aria-hidden="true"
+    />
+  )
 
-  setConfirmDelete(false)
-  setBusy(false)
-}
+  const header = (
+    <div className={`flex justify-between items-center flex-shrink-0 ${desktop ? '' : 'mb-5 animate-fade-in'}`}>
+      <div className={`${desktop ? 'text-[18px]' : 'text-[22px]'} font-semibold tracking-tight`}
+        style={{ color: 'var(--text-primary)' }}>
+        Edit expense
+      </div>
+      <div className="flex items-center gap-4">
+        {onDelete && (
+          <button
+            onClick={remove}
+            disabled={busy}
+            aria-label={confirmDelete ? 'Confirm delete' : 'Delete expense'}
+            className="text-[14px] font-medium transition-colors"
+            style={{
+              color: confirmDelete ? '#FF6F91' : 'var(--text-tertiary)',
+              cursor: busy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {confirmDelete ? 'sure?' : 'Delete'}
+          </button>
+        )}
+        <button
+          onClick={onCancel}
+          className="text-[14px] font-medium transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+
+  const descInput = (className) => (
+    <input
+      value={desc}
+      onChange={e => setDesc(e.target.value)}
+      placeholder="what for? (optional)"
+      className={className}
+      style={{
+        color: 'var(--text-secondary)',
+        borderBottom: '1px solid var(--border-subtle)',
+        caretColor: 'var(--accent)',
+      }}
+    />
+  )
+
+  const dateChip = (
+    <DateChip
+      value={date}
+      onChange={setDate}
+      changed={dateChanged}
+      onReset={() => setDate(originalDate)}
+      resetLabel="undo"
+      onAfterClose={() => hiddenRef.current?.focus()}
+    />
+  )
+
+  const saveButton = (className, glow) => (
+    <button
+      onClick={submit}
+      disabled={!ready || busy}
+      className={className}
+      style={{
+        borderRadius: 'var(--radius-md)',
+        background: ready ? 'var(--accent)' : 'var(--bg-surface)',
+        color: ready ? '#fff' : 'var(--text-ghost)',
+        border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
+        cursor: ready ? 'pointer' : 'not-allowed',
+        boxShadow: ready ? glow : 'none',
+        opacity: busy ? 0.7 : 1,
+      }}
+    >
+      {busy ? <span className="animate-spin-btn" /> : 'save changes'}
+    </button>
+  )
+
+  if (desktop) {
+    return (
+      <DesktopModal onClose={onCancel} width={780} height="auto">
+        {hiddenInput}
+        <div className="p-7">
+          {header}
+
+          <div className="grid grid-cols-[1fr_auto] gap-9 mt-6">
+            {/* Form column */}
+            <div className="min-w-0 flex flex-col">
+              <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+                style={{ color: 'var(--text-tertiary)' }}>
+                amount · RUB
+              </div>
+              <div
+                className="overflow-hidden whitespace-nowrap leading-none font-medium transition-all duration-150"
+                style={{
+                  fontSize: numSize + 'px',
+                  letterSpacing: '-0.02em',
+                  color: amt === '0' ? 'var(--text-ghost)' : 'var(--text-primary)',
+                  fontFamily: 'var(--font-mono)',
+                }}
+              >
+                {amt}
+              </div>
+
+              <div className="my-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+              {descInput('w-full bg-transparent text-[15px] font-light outline-none pb-3')}
+
+              {dateChip}
+
+              <div className="flex-1 min-h-[16px]" />
+
+              {saveButton(
+                'w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-6 transition-all duration-200 flex items-center justify-center gap-2',
+                '0 4px 20px var(--accent-glow)',
+              )}
+            </div>
+
+            <Numpad onPress={press} size={64} gap="gap-3" />
+          </div>
+        </div>
+      </DesktopModal>
+    )
+  }
 
   return (
     <div
@@ -117,45 +252,10 @@ const remove = async () => {
       }}
     >
       {/* header */}
-      <div className="flex justify-between items-center mb-5 flex-shrink-0 animate-fade-in">
-        <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Edit expense
-        </div>
-        <div className="flex items-center gap-4">
-          {onDelete && (
-            <button
-              onClick={remove}
-              disabled={busy}
-              aria-label={confirmDelete ? 'Confirm delete' : 'Delete expense'}
-              className="text-[14px] font-medium transition-colors"
-              style={{
-                color: confirmDelete ? '#FF6F91' : 'var(--text-tertiary)',
-                cursor: busy ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {confirmDelete ? 'sure?' : 'Delete'}
-            </button>
-          )}
-          <button
-            onClick={onCancel}
-            className="text-[14px] font-medium transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+      {header}
 
       {/* hidden input to capture physical keyboard */}
-      <input
-        ref={hiddenRef}
-        onKeyDown={onKeyDown}
-        readOnly
-        className="absolute opacity-0 w-0 h-0 pointer-events-none"
-        aria-hidden="true"
-      />
+      {hiddenInput}
 
       {/* Amount display */}
       <div className="flex-shrink-0 animate-fade-in delay-1">
@@ -181,69 +281,21 @@ const remove = async () => {
       <div className="my-4 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
       {/* Description input */}
-      <input
-        value={desc}
-        onChange={e => setDesc(e.target.value)}
-        placeholder="what for? (optional)"
-        className="w-full bg-transparent text-[14px] font-light outline-none pb-4 flex-shrink-0 animate-fade-in delay-2"
-        style={{
-          color: 'var(--text-secondary)',
-          borderBottom: '1px solid var(--border-subtle)',
-          caretColor: 'var(--accent)',
-        }}
-      />
+      {descInput('w-full bg-transparent text-[14px] font-light outline-none pb-4 flex-shrink-0 animate-fade-in delay-2')}
 
-      <DateChip
-        value={date}
-        onChange={setDate}
-        changed={dateChanged}
-        onReset={() => setDate(originalDate)}
-        resetLabel="undo"
-        onAfterClose={() => hiddenRef.current?.focus()}
-      />
+      {dateChip}
 
       {/* Submit button */}
-      <button
-        onClick={submit}
-        disabled={!ready || busy}
-        className="w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-200 animate-fade-in delay-3 flex items-center justify-center gap-2"
-        style={{
-          borderRadius: 'var(--radius-md)',
-          background: ready ? 'var(--accent)' : 'var(--bg-surface)',
-          color: ready ? '#fff' : 'var(--text-ghost)',
-          border: ready ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
-          cursor: ready ? 'pointer' : 'not-allowed',
-          boxShadow: ready ? '0 0 20px var(--accent-glow)' : 'none',
-          opacity: busy ? 0.7 : 1,
-        }}
-      >
-        {busy ? <span className="animate-spin-btn" /> : 'save changes'}
-      </button>
+      {saveButton(
+        'w-full py-3.5 text-[11px] uppercase tracking-[0.18em] font-medium mt-4 mb-4 flex-shrink-0 transition-all duration-200 animate-fade-in delay-3 flex items-center justify-center gap-2',
+        '0 0 20px var(--accent-glow)',
+      )}
 
       {/* Numpad */}
-      <div className="grid grid-cols-3 gap-3 flex-1 content-start justify-items-center pb-8 animate-fade-in-up delay-4">
-        {KEYS.map((k, i) => {
-          const isSym = k === '.' || k === '←'
-          return (
-            <button
-              key={i}
-              onClick={() => press(k)}
-              className="w-16 h-16 flex items-center justify-center transition-colors duration-150 active:scale-90 bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)]"
-              style={{
-                border: '1px solid var(--border-muted)',
-                borderRadius: 'var(--radius-full)',
-                color: isSym ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                fontSize: isSym ? '16px' : '20px',
-                fontWeight: isSym ? 400 : 500,
-                fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
-                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
-              }}
-            >
-              {k}
-            </button>
-          )
-        })}
-      </div>
+      <Numpad
+        onPress={press}
+        className="flex-1 content-start pb-8 animate-fade-in-up delay-4"
+      />
     </div>
   )
 }

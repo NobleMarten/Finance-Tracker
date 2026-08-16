@@ -2,9 +2,7 @@ import { useRef, useEffect } from 'react'
 import { heatColor } from '../utils/heatmap'
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const CELL = 11
 const GAP = 3
-const STEP = CELL + GAP
 const LABEL_H = 14
 const DAY_MS = 86400000
 
@@ -14,8 +12,13 @@ const DAY_MS = 86400000
  * all transactions. Horizontally scrollable. Tapping a day with spending calls
  * `onSelect({ year, month, day, amount })` (1-based month) to pin it; hovering
  * calls `onHoverDate(cell | null)`. `active` is the currently highlighted cell.
+ *
+ * `cellSize` scales the grid: 11px keeps a full year swipeable on a phone, the
+ * desktop layout has the room to run it larger and fit the whole year at once.
  */
-export default function YearHeatmap({ transactions, year, active, onSelect, onHoverDate }) {
+export default function YearHeatmap({ transactions, year, active, onSelect, onHoverDate, cellSize = 11 }) {
+  const CELL = cellSize
+  const STEP = CELL + GAP
   const scrollRef = useRef(null)
   // Aggregate spend per calendar day of `year`.
   const byKey = new Map()

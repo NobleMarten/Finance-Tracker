@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
 
-const TRACK_H = 72
-
 /**
  * Compact monthly-total trend (last N months). Pure plot — the section header and
  * the value pill live in the parent (Stats). Reports selection/hover by index:
  * `onSelect(i)` pins a month, `onHover(i|null)` for desktop hover. `active` is the
  * highlighted index. Written on the new design-token utilities.
+ *
+ * `trackHeight` / `barMax` let the desktop layout run the same plot larger in the
+ * space it has, without a second copy of it.
  */
-export default function MonthlyTrend({ data, max, active, onSelect, onHover }) {
+export default function MonthlyTrend({ data, max, active, onSelect, onHover, trackHeight = 72, barMax = 26 }) {
+  const TRACK_H = trackHeight
   const reduced = usePrefersReducedMotion()
   const [animated, setAnimated] = useState(false)
 
@@ -40,7 +42,7 @@ export default function MonthlyTrend({ data, max, active, onSelect, onHover }) {
               <div
                 className="w-full rounded-[4px]"
                 style={{
-                  maxWidth: 26,
+                  maxWidth: barMax,
                   height: animated ? h : 0,
                   background: !hasData
                     ? 'var(--bg-elevated)'
