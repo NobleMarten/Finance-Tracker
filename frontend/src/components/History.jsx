@@ -83,10 +83,16 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
 
   const touchStart = useRef(0)
   const swiping = useRef(false)
+  // Строки теперь открывают редактирование по клику, а `touch-action: pan-y`
+  // означает, что горизонтальный жест для браузера не прокрутка — по touchend
+  // он дошлёт click на ту строку, с которой начался свайп. Раньше жест забирал
+  // себе SwipeRow, теперь глотать этот click приходится явно.
+  const suppressClick = useRef(false)
 
   const onTouchStart = useCallback((e) => {
     touchStart.current = e.touches[0].clientX
     swiping.current = false
+    suppressClick.current = false
   }, [])
 
   const onTouchMove = useCallback((e) => {
@@ -104,7 +110,17 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
     } else if (dx < -THRESHOLD) {
       setOffset(o => Math.max(0, o - 1)) // swipe left → go forward in time
     }
+    // Даже недотянутый до порога свайп не должен открывать трату: намерение
+    // было листать, а не редактировать.
+    suppressClick.current = true
     swiping.current = false
+  }, [])
+
+  const onClickCapture = useCallback((e) => {
+    if (!suppressClick.current) return
+    suppressClick.current = false
+    e.stopPropagation()
+    e.preventDefault()
   }, [])
 
   // Arrow keys walk through periods — the desktop equivalent of the swipe below.
@@ -142,6 +158,7 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onClickCapture={onClickCapture}
       style={{ touchAction: 'pan-y' }}
     >
       {/* Header */}
@@ -266,7 +283,7 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
                 </span>
               </div>
               {week.items.map((t, i) => (
-                <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} onEdit={() => onEdit?.(t)} index={i}>
+                <Row key={t.id} onEdit={() => onEdit?.(t)} index={i}>
                   <span className="text-[11px] w-11 flex-shrink-0 font-medium" style={{ color: 'var(--text-tertiary)' }}>
                     {fmtDateShort(t.ts)}
                   </span>
@@ -276,14 +293,14 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
                   <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                     {fmtShort(t.amount)}
                   </span>
-                </SwipeRow>
+                </Row>
               ))}
             </div>
           ))
         ) : (
           // Day / Year view — flat list
           filtered.map((t, i) => (
-            <SwipeRow key={t.id} onDelete={() => onDelete?.(t.id)} onEdit={() => onEdit?.(t)} index={i}>
+            <Row key={t.id} onEdit={() => onEdit?.(t)} index={i}>
               <span
                 className={`text-[11px] ${seg === 0 ? 'w-10' : 'w-11'} flex-shrink-0 font-medium`}
                 style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
@@ -296,7 +313,7 @@ export default function History({ transactions, loading, onDelete, onEdit, onRef
               <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                 {fmtShort(t.amount)}
               </span>
-            </SwipeRow>
+            </Row>
           ))
         )}
       </PullToRefresh>
@@ -585,101 +602,25 @@ function ListSkeleton() {
   )
 }
 
-function SwipeRow({ children, onDelete, onEdit, index }) {
-  const startX = useRef(0)
-  const currentX = useRef(0)
-  const rowRef = useRef(null)
-  const [swiped, setSwiped] = useState(false)
-
-  const onTouchStart = (e) => {
-    startX.current = e.touches[0].clientX
-    currentX.current = 0
-  }
-
-  const onTouchMove = (e) => {
-    const dx = e.touches[0].clientX - startX.current
-    if (dx > 0) return // only swipe left
-    currentX.current = dx
-    const clamped = Math.max(dx, -80)
-    if (rowRef.current) {
-      rowRef.current.style.transform = `translateX(${clamped}px)`
-      rowRef.current.style.transition = 'none'
-    }
-  }
-
-  const onTouchEnd = () => {
-    if (rowRef.current) {
-      rowRef.current.style.transition = 'transform 0.25s ease-out'
-      if (currentX.current < -50) {
-        rowRef.current.style.transform = 'translateX(-72px)'
-        setSwiped(true)
-      } else {
-        rowRef.current.style.transform = 'translateX(0)'
-        setSwiped(false)
-      }
-    }
-  }
-
-  const resetSwipe = () => {
-    if (rowRef.current) {
-      rowRef.current.style.transition = 'transform 0.25s ease-out'
-      rowRef.current.style.transform = 'translateX(0)'
-    }
-    setSwiped(false)
-  }
-
-  const handleDelete = () => {
-    if (rowRef.current) {
-      rowRef.current.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in'
-      rowRef.current.style.transform = 'translateX(-100%)'
-      rowRef.current.style.opacity = '0'
-    }
-    setTimeout(() => onDelete?.(), 300)
-  }
-
+/**
+ * Строка списка: тап открывает экран редактирования, где и живёт удаление.
+ *
+ * Раньше здесь был свайп влево с корзиной под строкой. Он забирал себе
+ * горизонтальные жесты почти на всей площади экрана и мешал главному — свайпу
+ * по контейнеру, который переключает период. Двух конкурирующих горизонтальных
+ * жестов на одном экране быть не должно, и смена даты нужнее.
+ */
+function Row({ children, onEdit, index }) {
   return (
     <div
-      className="relative overflow-hidden animate-fade-in"
+      onClick={onEdit}
+      className="flex items-center py-3 cursor-pointer animate-fade-in transition-colors duration-150 active:bg-[var(--bg-elevated)]"
       style={{
         borderTop: '1px solid var(--border-muted)',
         animationDelay: `${index * 0.03}s`,
       }}
     >
-      {/* Delete button behind */}
-      <div
-        className="absolute right-0 top-0 bottom-0 w-[72px] flex items-center justify-center transition-opacity duration-200"
-        style={{
-          background: '#FF453A',
-          borderRadius: '0 4px 4px 0',
-          opacity: swiped ? 1 : 0,
-        }}
-      >
-        <button
-          onClick={handleDelete}
-          className="w-full h-full flex items-center justify-center"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Row content */}
-      <div
-        ref={rowRef}
-        className="flex items-center py-3 relative"
-        style={{ background: 'var(--bg-base)', zIndex: 1 }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onClick={() => {
-          if (swiped) resetSwipe()
-          else onEdit?.()
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   )
 }
