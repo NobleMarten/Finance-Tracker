@@ -4,12 +4,14 @@ import (
 	"FinanceTracker/internal/model"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
+	"time"
 )
 
 type ExchangeService struct {
-	client  http.Client //
+	client  *http.Client
 	baseURL string
 	apikey  string
 }
@@ -20,7 +22,7 @@ type Convert struct {
 
 func NewExchangeService(baseURL string) *ExchangeService {
 	return &ExchangeService{
-		client:  http.Client{},
+		client:  &http.Client{Timeout: 10 * time.Second},
 		baseURL: baseURL,
 		apikey:  os.Getenv("RateKey"),
 	}
@@ -31,9 +33,13 @@ func (c *ExchangeService) GetRate(ctx context.Context, from, to string) (float64
 		return 0, model.ErrEmptyAPIKey
 	}
 	url := c.baseURL + c.apikey + "/latest/" + from
-	resp, err := c.client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return 0, model.ErrInvalidAPIURL
+		return 0, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("get response %w: %w", model.ErrRateUnavailable, err)
 	}
 	defer resp.Body.Close()
 

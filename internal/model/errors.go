@@ -32,4 +32,5 @@ var (
 	ErrQuickAddDecimal     = errors.New("decimal amount")
 	ErrQuickAddNoAmount    = errors.New("no amount")
 	ErrTokenAuthNotAllowed = errors.New("token auth is not allowed for this operation")
+	ErrRateUnavailable     = errors.New("rate is unavailable")
 )
