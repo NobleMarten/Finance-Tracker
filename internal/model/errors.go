@@ -12,7 +12,6 @@ var (
 	ErrEmptyDBURL          = errors.New("DB_URL is empty")
 	ErrNotFound            = errors.New("not found")
 	ErrInvalidCurrency     = errors.New("invalid currency")
-	ErrInvalidAPIURL       = errors.New("invalid API URL")
 	ErrEmptyAPIKey         = errors.New("API Key is empty")
 	ErrZeroAmount          = errors.New("zero amount")
 	ErrUserExists          = errors.New("user already exists")
@@ -32,4 +31,5 @@ var (
 	ErrQuickAddDecimal     = errors.New("decimal amount")
 	ErrQuickAddNoAmount    = errors.New("no amount")
 	ErrTokenAuthNotAllowed = errors.New("token auth is not allowed for this operation")
+	ErrRateUnavailable     = errors.New("rate is unavailable")
 )

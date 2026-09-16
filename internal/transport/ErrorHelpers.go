@@ -104,6 +104,12 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "EMPTY_JWT_SECRET",
 			Message: err.Error(),
 		}
+	case errors.Is(err, model.ErrRateUnavailable):
+		status = http.StatusServiceUnavailable
+		res = ErrorResponse{
+			Code:    "RATE_UNAVAILABLE",
+			Message: "exchange rate service is temporarily unavailable",
+		}
 	default:
 		status = http.StatusInternalServerError
 		res = ErrorResponse{
