@@ -34,7 +34,7 @@ func TestExchangeRate(t *testing.T) {
 
 func TestExchangeRateCtxCancel(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(5 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}))
 	defer srv.Close()
 
@@ -43,7 +43,7 @@ func TestExchangeRateCtxCancel(t *testing.T) {
 	defer timer.Stop()
 
 	svc := &ExchangeService{
-		client:  &http.Client{Timeout: 5 * time.Second},
+		client:  &http.Client{Timeout: 500 * time.Millisecond},
 		baseURL: srv.URL + "/",
 		apikey:  "testkey",
 	}
@@ -53,6 +53,6 @@ func TestExchangeRateCtxCancel(t *testing.T) {
 		t.Fatalf("expected error, got nil")
 	}
 	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("expected context.DeadlineExceeded, got %v", err)
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
