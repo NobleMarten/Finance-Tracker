@@ -23,7 +23,7 @@ func TestExchangeRate(t *testing.T) {
 		apikey:  "testkey",
 	}
 
-	_, err := svc.GetRate(context.Background(), "USD", "RUB")
+	_, err := svc.FetchRates(context.Background(), "USD")
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -48,7 +48,7 @@ func TestExchangeRateCtxCancel(t *testing.T) {
 		apikey:  "testkey",
 	}
 
-	_, err := svc.GetRate(ctx, "USD", "RUB")
+	_, err := svc.FetchRates(ctx, "USD")
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
