@@ -213,11 +213,17 @@ html {
      which overflowed the Stats hero card on some devices. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* The canvas behind everything — what iOS shows under the home indicator.
+     A plain colour, matching the bottom nav's fade, so that strip is seamless.
+     (The gradient used to live here: body has zero height because the whole
+     app is position: fixed, and the gradient got sized to that, leaving an
+     off-colour band below the toolbar.) */
+  background: var(--bg-base);
+  height: 100%;
 }
 
 body {
-  background: var(--app-bg);
-  background-attachment: fixed;
+  min-height: 100%;
   color: var(--text-primary);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
