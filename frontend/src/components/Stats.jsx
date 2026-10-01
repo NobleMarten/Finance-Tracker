@@ -7,6 +7,7 @@ import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
 import YearHeatmap from './YearHeatmap'
 import MonthlyTrend from './MonthlyTrend'
+import { useSwipeNav } from '../hooks/useSwipeNav'
 
 const MONTHS_FULL = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -67,6 +68,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     if (month === 12) { setMonth(1); setYear(y => y + 1) }
     else setMonth(m => m + 1)
   }
+
+  const swipe = useSwipeNav({ onPrev: prevMonth, onNext: isCurrentMonth ? null : nextMonth })
 
   function changeView(v) { setView(v); clearChartSel() }
 
@@ -433,10 +436,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     <div className="relative flex flex-col flex-1 min-h-0">
     <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
 
-      {/* Hero summary card */}
+      {/* Hero summary card — swipe left/right here to change month */}
       <div
+        {...swipe}
         className="hero mx-4 mt-5 animate-fade-in relative"
         style={{
+          ...swipe.style,
           background: 'var(--hero-bg)',
           border: '1px solid var(--hero-border)',
           borderRadius: 'var(--radius-lg)',
