@@ -247,23 +247,6 @@ body::before {
   z-index: 1;
 }
 
-/* ─── Mobile shell ─── */
-.app-shell {
-  position: fixed;
-  inset: 0;
-}
-
-/* Installed PWA: `bottom: 0` stops short of the screen edge on iOS, leaving the
-   bottom nav floating over an empty strip. Size from the top with the large
-   viewport instead. Standalone only — in the browser 100lvh would push the nav
-   under Safari's toolbar. */
-@media (display-mode: standalone) {
-  .app-shell {
-    bottom: auto;
-    height: 100lvh;
-  }
-}
-
 input, button, select, textarea {
   font-family: inherit;
 }
