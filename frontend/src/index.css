@@ -4,6 +4,8 @@
 
 /* ─── Design tokens ─── */
 :root {
+  color-scheme: dark;
+
   --bg-base: #0A0A0B;
   --bg-surface: #141416;
   --bg-elevated: #1A1A1E;
@@ -18,8 +20,40 @@
   --text-ghost: rgba(255, 255, 255, 0.15);
 
   --accent: #6C8CFF;
+  /* Raw channels so components can mix their own alpha: rgba(var(--accent-rgb), .1) */
+  --accent-rgb: 108, 140, 255;
   --accent-soft: rgba(108, 140, 255, 0.12);
   --accent-glow: rgba(108, 140, 255, 0.25);
+  --on-accent: #fff;
+
+  --danger: #ff8585;
+  --danger-soft: rgba(255, 107, 107, 0.14);
+  --danger-border: rgba(255, 111, 145, 0.3);
+  --success: #5ee89a;
+  --success-soft: rgba(74, 222, 128, 0.14);
+  --warning: #ffb066;
+  --warning-soft: rgba(255, 160, 80, 0.10);
+  --warning-border: rgba(255, 160, 80, 0.3);
+
+  /* Translucent tint for icon buttons sitting on any surface. */
+  --overlay: rgba(255, 255, 255, 0.05);
+  /* Frosted card fill used by the hero panels. */
+  --glass: rgba(20, 20, 22, 0.8);
+  --sidebar-tint: rgba(20, 20, 22, 0.6);
+  --highlight: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(6, 6, 8, 0.62);
+
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-menu-up: 0 -8px 32px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-modal: 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* Description avatars: hue comes from the text, lightness from the theme. */
+  --avatar-fg-l: 72%;
+  --avatar-bg-a: 0.14;
+
+  --noise-opacity: 0.03;
 
   --radius-sm: 10px;
   --radius-md: 14px;
@@ -28,6 +62,57 @@
 
   --font-ui: 'Manrope', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ─── Light theme ─── */
+/* Only colours are overridden; geometry and type stay in :root. The attribute is
+   set on <html> by the inline script in index.html before first paint. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base: #F3F4F7;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F0F2F6;
+  --bg-hover: #E7EAF0;
+
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-muted: rgba(15, 23, 42, 0.05);
+
+  --text-primary: rgba(12, 15, 26, 0.92);
+  --text-secondary: rgba(12, 15, 26, 0.62);
+  --text-tertiary: rgba(12, 15, 26, 0.42);
+  --text-ghost: rgba(12, 15, 26, 0.22);
+
+  --accent: #4C6EF5;
+  --accent-rgb: 76, 110, 245;
+  --accent-soft: rgba(76, 110, 245, 0.10);
+  --accent-glow: rgba(76, 110, 245, 0.22);
+
+  --danger: #D9363E;
+  --danger-soft: rgba(217, 54, 62, 0.10);
+  --danger-border: rgba(217, 54, 62, 0.28);
+  --success: #18874A;
+  --success-soft: rgba(24, 135, 74, 0.10);
+  --warning: #B4580B;
+  --warning-soft: rgba(230, 130, 30, 0.10);
+  --warning-border: rgba(230, 130, 30, 0.3);
+
+  --overlay: rgba(15, 23, 42, 0.04);
+  --glass: rgba(255, 255, 255, 0.9);
+  --sidebar-tint: rgba(255, 255, 255, 0.7);
+  --highlight: rgba(255, 255, 255, 0.7);
+  --scrim: rgba(15, 23, 42, 0.32);
+
+  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 28px rgba(15, 23, 42, 0.06);
+  --shadow-pop: 0 16px 48px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --shadow-menu-up: 0 -8px 32px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 32px 80px rgba(15, 23, 42, 0.2);
+
+  --avatar-fg-l: 40%;
+  --avatar-bg-a: 0.12;
+
+  --noise-opacity: 0;
 }
 
 /* ─── Monetary figures ─── */
@@ -74,7 +159,7 @@ body::before {
   z-index: 0;
   /* No mix-blend-mode: on iOS a blended full-screen fixed layer is recomposited
      every frame and janks scrolling. Plain low-opacity noise keeps the texture cheap. */
-  opacity: 0.03;
+  opacity: var(--noise-opacity);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-size: 240px 240px;
 }
@@ -97,7 +182,7 @@ input, button, select, textarea {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border-subtle);
     border-radius: var(--radius-full);
   }
 }
@@ -183,19 +268,19 @@ input, button, select, textarea {
 
 @keyframes subtlePulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(108, 140, 255, 0.3);
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.3);
   }
   50% {
-    box-shadow: 0 0 16px 4px rgba(108, 140, 255, 0.15);
+    box-shadow: 0 0 16px 4px rgba(var(--accent-rgb), 0.15);
   }
 }
 
 @keyframes textPulseGlow {
   0%, 100% {
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-primary);
   }
   50% {
-    color: rgba(140, 170, 255, 0.95);
+    color: var(--accent);
   }
 }
 
@@ -274,7 +359,7 @@ input, button, select, textarea {
 }
 
 .auth-card {
-  background: rgba(26, 26, 30, 0.8);
+  background: var(--glass);
   border: 1px solid var(--border-subtle);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

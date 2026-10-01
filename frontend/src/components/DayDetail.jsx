@@ -2,20 +2,7 @@ import { fmtTime, fmtShort, fmtFull, scaledFontSize } from '../utils/format'
 import { toDateInput, todayInput } from '../utils/date'
 import CountUp from './CountUp'
 import DesktopModal from './DesktopModal'
-
-function avatarColor(s) {
-  if (!s || s === '—') return { bg: 'var(--bg-elevated)', fg: 'var(--text-tertiary)' }
-  let hash = 0
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash * 31 + s.charCodeAt(i)) | 0
-  }
-  let hue = Math.abs(hash) % 320
-  if (hue >= 40) hue += 40
-  return {
-    bg: `hsla(${hue}, 55%, 55%, 0.14)`,
-    fg: `hsl(${hue}, 65%, 72%)`,
-  }
-}
+import { avatarColor } from '../utils/avatar'
 
 /**
  * Full-screen drill-down over the Stats area listing every expense recorded on a
@@ -56,7 +43,7 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
           onClick={onClose}
           aria-label="Back to stats"
           className="w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}
+          style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -22,6 +22,12 @@ export default function App() {
   const [editingExpense, setEditingExpense] = useState(null)
   // Pre-selected day for the add screen, set when you jump there from a day view.
   const [addDate, setAddDate] = useState(null)
+  // Where a successful add lands. Adding from History's day view should put you
+  // back on that day to see the new row, not bounce you to the dashboard.
+  const [addReturn, setAddReturn] = useState(0)
+  // Lifted out of History so the selected period survives the trip to AddExpense
+  // and back (History unmounts while another screen is shown).
+  const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
   const isDesktop = useIsDesktop()
 
@@ -30,14 +36,18 @@ export default function App() {
     setTimeout(() => setToast(msg), 10)
   }
 
-  /** `date` is `YYYY-MM-DD`; omitted means today. */
-  const goToAdd = (date = null) => {
+  /** `date` is `YYYY-MM-DD`; omitted means today. `from` is the screen to return to. */
+  const goToAdd = (date = null, from = 0) => {
     setAddDate(date)
+    setAddReturn(from)
     setScreen(2)
   }
 
   const navigate = (next) => {
-    if (next === 2) setAddDate(null)
+    if (next === 2) {
+      setAddDate(null)
+      setAddReturn(0)
+    }
     setScreen(next)
   }
 
@@ -53,7 +63,7 @@ export default function App() {
     const when = data.date && data.date !== todayInput() ? ` · ${dayLabel(data.date)}` : ''
     showToast(`+ ${fmtShort(data.amount)} ₽ added${when}`)
     setAddDate(null)
-    setScreen(0)
+    setScreen(addReturn)
   }
 
   const handleUpdate = async (id, data) => {
@@ -98,6 +108,9 @@ export default function App() {
           onDelete={handleDelete}
           onEdit={setEditingExpense}
           onRefresh={refresh}
+          onAddExpense={(date) => goToAdd(date, 1)}
+          view={historyView}
+          onViewChange={setHistoryView}
           desktop={isDesktop}
         />
       )}

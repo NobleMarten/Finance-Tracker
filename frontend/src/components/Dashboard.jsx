@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
 import { api } from '../api/api'
 import PullToRefresh from './PullToRefresh'
+import { avatarColor } from '../utils/avatar'
 
 function useCountUp(target, duration = 700) {
   const [display, setDisplay] = useState(0)
@@ -32,20 +33,6 @@ function useCountUp(target, duration = 700) {
   return display
 }
 
-function avatarColor(s) {
-  if (!s || s === '—') return { bg: 'var(--bg-elevated)', fg: 'var(--text-tertiary)' }
-  let hash = 0
-  for (let i = 0; i < s.length; i++) {
-    hash = (hash * 31 + s.charCodeAt(i)) | 0
-  }
-  // Skip yellow band (40°–80°) — push hues in that range past it
-  let hue = Math.abs(hash) % 320
-  if (hue >= 40) hue += 40
-  return {
-    bg: `hsla(${hue}, 55%, 55%, 0.14)`,
-    fg: `hsl(${hue}, 65%, 72%)`,
-  }
-}
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -113,12 +100,12 @@ export default function Dashboard({ transactions, onEdit, onRefresh, desktop = f
       <div
         className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, rgba(108,140,255,0.07) 0%, rgba(20,20,22,0.75) 55%)',
+          background: 'linear-gradient(160deg, rgba(var(--accent-rgb),0.07) 0%, var(--glass) 55%)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.25)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         {/* Ambient glow top-right */}
@@ -128,7 +115,7 @@ export default function Dashboard({ transactions, onEdit, onRefresh, desktop = f
             top: -40, right: -40,
             width: 140, height: 140,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(108,140,255,0.10) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, transparent 70%)',
           }}
         />
 
@@ -386,17 +373,17 @@ function DesktopDashboard({
             <div
               className="relative overflow-hidden animate-fade-in"
               style={{
-                background: 'linear-gradient(150deg, rgba(108,140,255,0.10) 0%, rgba(20,20,22,0.85) 55%)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'linear-gradient(150deg, rgba(var(--accent-rgb),0.10) 0%, var(--glass) 55%)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.28)',
+                boxShadow: 'var(--shadow-card)',
               }}
             >
               <div
                 className="absolute pointer-events-none"
                 style={{
                   top: -80, right: -60, width: 320, height: 320, borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(108,140,255,0.12) 0%, transparent 70%)',
+                  background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.12) 0%, transparent 70%)',
                 }}
               />
               <div className="relative px-8 pt-7">
@@ -412,7 +399,7 @@ function DesktopDashboard({
                       className="text-[12px] px-2.5 py-1"
                       style={{
                         color: 'var(--text-secondary)',
-                        background: 'rgba(255,255,255,0.04)',
+                        background: 'var(--overlay)',
                         border: '1px solid var(--border-subtle)',
                         borderRadius: 'var(--radius-full)',
                       }}

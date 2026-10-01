@@ -23,7 +23,7 @@ export default function DesktopModal({ onClose, width = 560, height = 'min(760px
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-8 animate-fade-in"
-      style={{ background: 'rgba(6,6,8,0.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+      style={{ background: 'var(--scrim)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
       <div
@@ -37,7 +37,7 @@ export default function DesktopModal({ onClose, width = 560, height = 'min(760px
           background: 'var(--bg-base)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: 'var(--shadow-modal)',
         }}
       >
         {children}

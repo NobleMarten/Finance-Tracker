@@ -131,7 +131,7 @@ export default function EditExpense({ expense, onUpdate, onDelete, onCancel, des
             aria-label={confirmDelete ? 'Confirm delete' : 'Delete expense'}
             className="text-[14px] font-medium transition-colors"
             style={{
-              color: confirmDelete ? '#FF6F91' : 'var(--text-tertiary)',
+              color: confirmDelete ? 'var(--danger)' : 'var(--text-tertiary)',
               cursor: busy ? 'not-allowed' : 'pointer',
             }}
           >

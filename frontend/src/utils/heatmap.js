@@ -1,7 +1,7 @@
-// Sequential single-hue heatmap ramp on the app accent (rgb 108,140,255).
-// Dark theme only — validated against the dark surface. NOT a rainbow: one hue,
-// increasing opacity ≈ increasing lightness/saturation over the dark background.
-const ACCENT = '108, 140, 255'
+// Sequential single-hue heatmap ramp on the app accent. NOT a rainbow: one hue,
+// increasing opacity. Channels come from the theme token, so the ramp follows
+// light/dark automatically.
+const ACCENT = 'var(--accent-rgb)'
 
 // Opacity per level: index 0 is the "no spend" slot (handled separately).
 const LEVEL_ALPHA = [0, 0.22, 0.42, 0.62, 0.9]

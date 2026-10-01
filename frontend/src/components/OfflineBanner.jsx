@@ -17,13 +17,13 @@ export default function OfflineBanner({ message, onRetry, desktop = false }) {
       }`}
       role="status"
       style={{
-        background: 'rgba(255,160,80,0.10)',
-        border: '1px solid rgba(255,160,80,0.28)',
+        background: 'var(--warning-soft)',
+        border: '1px solid var(--warning-border)',
         borderRadius: 'var(--radius-md)',
       }}
     >
       <svg
-        width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffb066"
+        width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)"
         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
         className="flex-shrink-0"
       >
@@ -33,7 +33,7 @@ export default function OfflineBanner({ message, onRetry, desktop = false }) {
       </svg>
 
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-medium" style={{ color: '#ffb066' }}>
+        <div className="text-[12px] font-medium" style={{ color: 'var(--warning)' }}>
           {message}
         </div>
         <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
@@ -47,8 +47,8 @@ export default function OfflineBanner({ message, onRetry, desktop = false }) {
           className="text-[11px] uppercase tracking-[0.12em] font-medium px-2.5 py-1.5 flex-shrink-0 transition-colors active:scale-95"
           style={{
             borderRadius: 'var(--radius-sm)',
-            border: '1px solid rgba(255,160,80,0.35)',
-            color: '#ffb066',
+            border: '1px solid var(--warning-border)',
+            color: 'var(--warning)',
           }}
         >
           Ещё раз
