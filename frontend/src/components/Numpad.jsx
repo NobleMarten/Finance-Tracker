@@ -26,7 +26,7 @@ export default function Numpad({ onPress, size = 64, gap = 'gap-3', className = 
               fontSize: isSym ? Math.round(size * 0.25) + 'px' : Math.round(size * 0.3125) + 'px',
               fontWeight: isSym ? 400 : 500,
               fontFamily: isSym ? 'var(--font-ui)' : 'var(--font-mono)',
-              boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)',
+              boxShadow: 'var(--shadow-key)',
             }}
           >
             {k}

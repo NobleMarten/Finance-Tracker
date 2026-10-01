@@ -16,7 +16,7 @@ export default function Toast({ message, onClose, desktop = false }) {
           : 'fixed bottom-[88px] left-1/2 -translate-x-1/2 z-50 animate-toast-in'
       }
       style={{
-        background: 'var(--bg-elevated)',
+        background: 'var(--bg-popover)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
         padding: '10px 20px',

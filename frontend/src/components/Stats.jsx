@@ -169,6 +169,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-surface)',
               }}
             >
               <button onClick={prevMonth} aria-label="Previous month"
@@ -199,11 +200,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
             {/* ── Left rail: the figures ── */}
             <div className="flex flex-col gap-5 min-w-0">
               <div
-                className="relative overflow-hidden animate-fade-in"
+                className="hero relative overflow-hidden animate-fade-in"
                 style={{
-                  background: 'linear-gradient(150deg, rgba(var(--accent-rgb),0.10) 0%, var(--bg-surface) 55%)',
-                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--hero-bg)',
+                  border: '1px solid var(--hero-border)',
                   borderRadius: 'var(--radius-lg)',
+                  boxShadow: 'var(--hero-shadow)',
                 }}
               >
                 <div className="absolute pointer-events-none"
@@ -433,11 +435,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
       {/* Hero summary card */}
       <div
-        className="mx-4 mt-5 animate-fade-in relative"
+        className="hero mx-4 mt-5 animate-fade-in relative"
         style={{
-          background: 'linear-gradient(160deg, rgba(var(--accent-rgb),0.08) 0%, var(--bg-surface) 55%)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--hero-bg)',
+          border: '1px solid var(--hero-border)',
           borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--hero-shadow)',
         }}
       >
         {/* Glow lives in its own clip layer so the card never clips the content */}
@@ -753,6 +756,7 @@ function Panel({ title, action, className = '', children }) {
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-surface)',
       }}
     >
       {(title || action) && (
@@ -1025,6 +1029,7 @@ function StatCard({ label, value, extra }) {
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-surface)',
       }}
     >
       <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>

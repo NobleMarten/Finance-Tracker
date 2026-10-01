@@ -137,6 +137,7 @@ export default function ApiTokens({ onClose }) {
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-surface)',
           }}
         >
           <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
