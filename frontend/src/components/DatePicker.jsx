@@ -106,7 +106,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
         onClick={e => e.stopPropagation()}
         className="w-full max-w-[300px] p-4 outline-none animate-scale-in"
         style={{
-          background: 'var(--bg-elevated)',
+          background: 'var(--bg-popover)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-pop)',

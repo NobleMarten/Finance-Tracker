@@ -52,7 +52,7 @@ export default function UserMenu() {
         <div
           className="absolute right-0 top-11 z-[300] min-w-[220px] overflow-hidden animate-scale-in"
           style={{
-            background: 'var(--bg-elevated)',
+            background: 'var(--bg-popover)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-pop)',

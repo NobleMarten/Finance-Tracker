@@ -159,7 +159,7 @@ export default function App() {
 
   if (isDesktop) {
     return (
-      <div className="fixed inset-0 flex overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      <div className="fixed inset-0 flex overflow-hidden" style={{ background: 'var(--app-bg)' }}>
         <Sidebar screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
 
         <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
@@ -180,11 +180,10 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--app-bg)' }}>
       <div
         className="w-full h-full max-w-sm flex flex-col relative overflow-hidden"
         style={{
-          background: 'var(--bg-base)',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}

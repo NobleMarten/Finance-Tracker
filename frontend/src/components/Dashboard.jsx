@@ -98,14 +98,12 @@ export default function Dashboard({ transactions, onEdit, onRefresh, desktop = f
     <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto">
       {/* Hero glass card */}
       <div
-        className="mx-4 mt-5 animate-fade-in relative overflow-hidden"
+        className="hero mx-4 mt-5 animate-fade-in relative overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, rgba(var(--accent-rgb),0.07) 0%, var(--glass) 55%)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: '1px solid var(--border-subtle)',
+          background: 'var(--hero-bg)',
+          border: '1px solid var(--hero-border)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-card)',
+          boxShadow: 'var(--hero-shadow)',
         }}
       >
         {/* Ambient glow top-right */}
@@ -371,12 +369,12 @@ function DesktopDashboard({
           <div className="min-[1100px]:col-span-2 flex flex-col gap-5 min-w-0">
             {/* Hero */}
             <div
-              className="relative overflow-hidden animate-fade-in"
+              className="hero relative overflow-hidden animate-fade-in"
               style={{
-                background: 'linear-gradient(150deg, rgba(var(--accent-rgb),0.10) 0%, var(--glass) 55%)',
-                border: '1px solid var(--border-subtle)',
+                background: 'var(--hero-bg)',
+                border: '1px solid var(--hero-border)',
                 borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-card)',
+                boxShadow: 'var(--hero-shadow)',
               }}
             >
               <div
@@ -434,6 +432,7 @@ function DesktopDashboard({
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-surface)',
               }}
             >
               <div
@@ -517,6 +516,7 @@ function DesktopDashboard({
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-surface)',
               }}
             >
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -574,6 +574,7 @@ function BigStat({ label, value, usd, accent = false, delay = '' }) {
         border: '1px solid var(--border-subtle)',
         borderLeft: accent ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-surface)',
       }}
     >
       <div

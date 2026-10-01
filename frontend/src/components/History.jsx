@@ -290,6 +290,7 @@ function Segments({ seg, onSeg, desktop = false }) {
         background: 'var(--bg-surface)',
         borderRadius: desktop ? 'var(--radius-md)' : 'var(--radius-sm)',
         border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-surface)',
       }}
     >
       {/* Sliding thumb — one element that moves reads calmer than three that blink. */}
@@ -329,12 +330,12 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, desktop = false }) {
 
   return (
     <div
-      className="relative overflow-hidden animate-fade-in"
+      className="hero relative overflow-hidden animate-fade-in"
       style={{
-        background: 'linear-gradient(160deg, rgba(var(--accent-rgb),0.09) 0%, var(--glass) 58%)',
-        border: '1px solid var(--border-subtle)',
+        background: 'var(--hero-bg)',
+        border: '1px solid var(--hero-border)',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-card)',
+        boxShadow: 'var(--hero-shadow)',
       }}
     >
       <div
@@ -389,7 +390,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, desktop = false }) {
               <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
                 {count} {count === 1 ? 'expense' : 'expenses'}
               </span>
-              {delta !== null && <DeltaPill delta={delta} label={deltaLabel} />}
+              {delta !== null && total > 0 && <DeltaPill delta={delta} label={deltaLabel} />}
             </div>
           </div>
 
@@ -544,6 +545,7 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
           background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-surface)',
         }}
       >
         {children}
@@ -676,7 +678,7 @@ function ListSkeleton() {
   return (
     <div
       className="animate-fade-in overflow-hidden"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}
+      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-surface)' }}
     >
       {[0, 1, 2, 3, 4].map(i => (
         <div key={i} className="flex items-center gap-3 px-3.5 py-3">
@@ -727,6 +729,7 @@ function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, o
               background: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-surface)',
             }}
           >
             <div
