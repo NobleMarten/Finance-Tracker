@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { HomeIcon, HistoryIcon, StatsIcon, PlusIcon } from './icons'
+import { HomeIcon, HistoryIcon, StatsIcon, PlusIcon, ThemeIcon } from './icons'
+import { useTheme } from '../hooks/useTheme'
 
 function UserAvatar({ onOpenTokens }) {
   const { user, logout } = useAuth()
+  const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -42,7 +44,7 @@ function UserAvatar({ onOpenTokens }) {
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.04)',
+            boxShadow: 'var(--shadow-menu-up)',
             transformOrigin: 'bottom left',
           }}
         >
@@ -57,6 +59,14 @@ function UserAvatar({ onOpenTokens }) {
             </div>
           </div>
           <div className="p-1.5">
+            <button
+              onClick={toggle}
+              className="w-full rounded-lg px-3 py-2 flex items-center justify-between text-left text-[13px] transition-colors duration-150 hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {theme === 'light' ? 'Dark theme' : 'Light theme'}
+              <ThemeIcon theme={theme} />
+            </button>
             <button
               onClick={() => { setOpen(false); onOpenTokens?.() }}
               className="w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors duration-150 hover:bg-[var(--bg-hover)]"

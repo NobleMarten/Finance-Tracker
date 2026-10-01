@@ -33,11 +33,11 @@ export default function Register() {
 
   return (
     <div className="auth-page min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(108,140,255,0.12),transparent)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(var(--accent-rgb),0.12),transparent)]" />
 
       <div
         className="auth-card relative w-full max-w-[400px] rounded-2xl p-8"
-        style={{ boxShadow: '0 24px 80px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04) inset' }}
+        style={{ boxShadow: 'var(--shadow-modal)' }}
       >
         <div className="mb-8 text-center">
           <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>

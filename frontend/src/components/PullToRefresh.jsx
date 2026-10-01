@@ -77,7 +77,7 @@ export default function PullToRefresh({ onRefresh, className = '', style, childr
       >
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}
         >
           <Spinner spinning={refreshing} progress={progress} />
         </div>

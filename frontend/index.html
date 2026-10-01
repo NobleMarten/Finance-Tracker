@@ -7,7 +7,25 @@
   <meta name="description" content="Finance Tracker — minimal expense tracking app" />
   <title>Finance Tracker</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0A0A0B" />
+  <!-- Theme before first paint: saved choice, else the OS preference. Mirrors
+       src/hooks/useTheme.js. iOS reads the status-bar style at launch, so a
+       switch inside the app fully applies to the status bar on the next start. -->
+  <script>
+    (function () {
+      var t
+      try { t = localStorage.getItem('theme') } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+      }
+      document.documentElement.dataset.theme = t
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#F3F4F7' : '#0A0A0B')
+      var m = document.createElement('meta')
+      m.name = 'apple-mobile-web-app-status-bar-style'
+      m.content = t === 'light' ? 'default' : 'black-translucent'
+      document.head.appendChild(m)
+    })()
+  </script>
   <meta name="apple-mobile-web-app-title" content="Finance" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/png" href="/pic.png?v=2">

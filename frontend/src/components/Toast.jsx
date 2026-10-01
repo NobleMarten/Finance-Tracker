@@ -21,7 +21,7 @@ export default function Toast({ message, onClose, desktop = false }) {
         borderRadius: 'var(--radius-md)',
         padding: '10px 20px',
         maxWidth: desktop ? '360px' : '280px',
-        boxShadow: desktop ? '0 12px 32px rgba(0,0,0,0.45)' : undefined,
+        boxShadow: desktop ? 'var(--shadow-pop)' : undefined,
       }}
     >
       {/* Раньше здесь был whitespace-nowrap: короткие «+ 350 ₽ added» помещались,

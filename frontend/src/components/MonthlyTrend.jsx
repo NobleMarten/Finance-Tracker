@@ -48,7 +48,7 @@ export default function MonthlyTrend({ data, max, active, onSelect, onHover, tra
                     ? 'var(--bg-elevated)'
                     : isActive
                       ? 'var(--accent)'
-                      : 'linear-gradient(180deg, rgba(108,140,255,0.85) 0%, rgba(108,140,255,0.25) 100%)',
+                      : 'linear-gradient(180deg, rgba(var(--accent-rgb),0.85) 0%, rgba(var(--accent-rgb),0.25) 100%)',
                   transition: reduced
                     ? 'background 0.12s'
                     : `height 0.45s cubic-bezier(0.34,1.2,0.64,1) ${i * 0.03}s, background 0.12s`,
