@@ -114,6 +114,7 @@ export default function AddExpense({ onAdd, initialDate, desktop = false }) {
               background: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-surface)',
             }}
           >
             {/* Form column */}

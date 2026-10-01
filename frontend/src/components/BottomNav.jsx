@@ -41,7 +41,7 @@ function UserAvatar({ onOpenTokens }) {
         <div
           className="absolute left-0 bottom-12 z-50 min-w-[200px] overflow-hidden animate-scale-in"
           style={{
-            background: 'var(--bg-elevated)',
+            background: 'var(--bg-popover)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-menu-up)',
@@ -109,6 +109,7 @@ export default function BottomNav({ screen, onNavigate, onOpenTokens }) {
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-float)',
         }}
       >
         <NavBtn active={screen === 0} onClick={() => onNavigate(0)}>

@@ -55,6 +55,29 @@
 
   --noise-opacity: 0.03;
 
+  /* Page backdrop — a separate token from --bg-base because in light mode it is
+     a gradient, and --bg-base must stay a plain colour (it is used inside other
+     gradients and as a solid fill). */
+  --app-bg: #0A0A0B;
+  /* Menus, toasts, pickers: anything that floats above the page. */
+  --bg-popover: #1A1A1E;
+
+  /* Resting cards. Dark relies on borders for separation, so no shadow. */
+  --shadow-surface: none;
+  /* Floating chrome (bottom nav pill). */
+  --shadow-float: none;
+  /* Numpad keys. */
+  --shadow-key: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+
+  /* Hero cards (period totals). Resolved here, at :root, so the token overrides
+     inside .hero below do not feed back into the card's own background. */
+  --hero-bg: linear-gradient(155deg, rgba(108, 140, 255, 0.09) 0%, var(--glass) 58%);
+  --hero-border: rgba(255, 255, 255, 0.06);
+  --hero-shadow: var(--shadow-card);
+
+  --skeleton-a: #141416;
+  --skeleton-b: #1A1A1E;
+
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
@@ -70,18 +93,18 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg-base: #F3F4F7;
+  --bg-base: #F4F5FA;
   --bg-surface: #FFFFFF;
-  --bg-elevated: #F0F2F6;
-  --bg-hover: #E7EAF0;
+  --bg-elevated: #EFF1F6;
+  --bg-hover: #EDEFF5;
 
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-muted: rgba(15, 23, 42, 0.05);
+  --border-subtle: rgba(16, 24, 40, 0.07);
+  --border-muted: rgba(16, 24, 40, 0.05);
 
-  --text-primary: rgba(12, 15, 26, 0.92);
-  --text-secondary: rgba(12, 15, 26, 0.62);
-  --text-tertiary: rgba(12, 15, 26, 0.42);
-  --text-ghost: rgba(12, 15, 26, 0.22);
+  --text-primary: #0F1222;
+  --text-secondary: rgba(15, 18, 34, 0.62);
+  --text-tertiary: rgba(15, 18, 34, 0.44);
+  --text-ghost: rgba(15, 18, 34, 0.22);
 
   --accent: #4C6EF5;
   --accent-rgb: 76, 110, 245;
@@ -103,16 +126,67 @@
   --highlight: rgba(255, 255, 255, 0.7);
   --scrim: rgba(15, 23, 42, 0.32);
 
-  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 28px rgba(15, 23, 42, 0.06);
-  --shadow-pop: 0 16px 48px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(15, 23, 42, 0.04);
-  --shadow-menu-up: 0 -8px 32px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
-  --shadow-modal: 0 32px 80px rgba(15, 23, 42, 0.2);
+  /* Layered shadows: a tight contact shadow plus a wide, soft ambient one.
+     Tinted toward navy rather than pure black so they read as depth, not dirt. */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 28px -6px rgba(16, 24, 40, 0.08);
+  --shadow-surface: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px -8px rgba(16, 24, 40, 0.10);
+  --shadow-float: 0 1px 2px rgba(16, 24, 40, 0.06), 0 12px 32px -8px rgba(16, 24, 40, 0.18);
+  --shadow-key: 0 1px 2px rgba(16, 24, 40, 0.06), 0 0 0 1px rgba(16, 24, 40, 0.04);
+  --shadow-pop: 0 0 0 1px rgba(16, 24, 40, 0.05), 0 4px 8px rgba(16, 24, 40, 0.04), 0 24px 48px -12px rgba(16, 24, 40, 0.20);
+  --shadow-menu-up: 0 0 0 1px rgba(16, 24, 40, 0.05), 0 -12px 40px -8px rgba(16, 24, 40, 0.18);
+  --shadow-modal: 0 0 0 1px rgba(16, 24, 40, 0.05), 0 40px 80px -20px rgba(16, 24, 40, 0.30);
+
+  --app-bg:
+    radial-gradient(900px 520px at 0% -10%, rgba(76, 110, 245, 0.10), transparent 60%),
+    radial-gradient(700px 480px at 100% 0%, rgba(139, 92, 246, 0.08), transparent 60%),
+    #F4F5FA;
+  --bg-popover: #FFFFFF;
+
+  --hero-bg:
+    radial-gradient(120% 130% at 100% 0%, rgba(167, 139, 250, 0.60) 0%, transparent 52%),
+    radial-gradient(110% 120% at 0% 100%, rgba(56, 189, 248, 0.28) 0%, transparent 55%),
+    linear-gradient(135deg, #3B5BFA 0%, #4C6EF5 48%, #5F55EE 100%);
+  --hero-border: rgba(255, 255, 255, 0.14);
+  --hero-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 10px -2px rgba(59, 91, 250, 0.25),
+    0 16px 28px -14px rgba(59, 91, 250, 0.65);
+
+  --skeleton-a: #ECEEF4;
+  --skeleton-b: #F7F8FB;
 
   --avatar-fg-l: 40%;
   --avatar-bg-a: 0.12;
 
   --noise-opacity: 0;
+}
+
+/* Inside a light-mode hero the card is saturated blue, so the palette flips to
+   white-on-colour. Children keep using the normal tokens and just work. */
+:root[data-theme="light"] .hero {
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.80);
+  --text-tertiary: rgba(255, 255, 255, 0.64);
+  --text-ghost: rgba(255, 255, 255, 0.38);
+
+  --accent: #FFFFFF;
+  --accent-rgb: 255, 255, 255;
+  --accent-soft: rgba(255, 255, 255, 0.18);
+  --accent-glow: rgba(20, 30, 90, 0.30);
+  --on-accent: #3B5BFA;
+
+  --border-subtle: rgba(255, 255, 255, 0.18);
+  --border-muted: rgba(255, 255, 255, 0.12);
+  --overlay: rgba(255, 255, 255, 0.14);
+  --bg-hover: rgba(255, 255, 255, 0.20);
+  --bg-elevated: rgba(255, 255, 255, 0.12);
+
+  /* Tinted fills turn muddy on blue; plain frosted white with a hued glyph reads cleaner. */
+  --danger: #FFD0D5;
+  --danger-soft: rgba(255, 255, 255, 0.16);
+  --success: #C6F6DA;
+  --success-soft: rgba(255, 255, 255, 0.16);
 }
 
 /* ─── Monetary figures ─── */
@@ -142,7 +216,8 @@ html {
 }
 
 body {
-  background: var(--bg-base);
+  background: var(--app-bg);
+  background-attachment: fixed;
   color: var(--text-primary);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
@@ -345,17 +420,18 @@ input, button, select, textarea {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-surface);
 }
 
 .surface-elevated {
-  background: var(--bg-elevated);
+  background: var(--bg-popover);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
 
 /* ─── Auth pages ─── */
 .auth-page {
-  background: var(--bg-base);
+  background: var(--app-bg);
 }
 
 .auth-card {
@@ -396,9 +472,9 @@ input, button, select, textarea {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--bg-surface) 25%,
-    var(--bg-elevated) 50%,
-    var(--bg-surface) 75%
+    var(--skeleton-a) 25%,
+    var(--skeleton-b) 50%,
+    var(--skeleton-a) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;

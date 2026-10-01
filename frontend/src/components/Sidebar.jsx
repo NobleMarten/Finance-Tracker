@@ -192,7 +192,7 @@ function AccountBlock({ onOpenTokens }) {
         <div
           className="absolute left-3 right-3 bottom-[calc(100%-4px)] z-50 overflow-hidden animate-scale-in"
           style={{
-            background: 'var(--bg-elevated)',
+            background: 'var(--bg-popover)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-menu-up)',
