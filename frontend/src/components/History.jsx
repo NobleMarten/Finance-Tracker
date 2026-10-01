@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { fmtFull, fmtShort, fmtTime, scaledFontSize } from '../utils/format'
 import { toDateInput } from '../utils/date'
 import { avatarColor } from '../utils/avatar'
+import { useSwipeNav } from '../hooks/useSwipeNav'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
 
@@ -162,47 +163,12 @@ export default function History({
   // Adding is offered only in the day view: there the target day is unambiguous.
   const onAdd = seg === 0 && onAddExpense ? () => onAddExpense(toDateInput(data.range.start)) : null
 
-  const touchStart = useRef(0)
-  const swiping = useRef(false)
-  // Строки теперь открывают редактирование по клику, а `touch-action: pan-y`
-  // означает, что горизонтальный жест для браузера не прокрутка — по touchend
-  // он дошлёт click на ту строку, с которой начался свайп. Раньше жест забирал
-  // себе SwipeRow, теперь глотать этот click приходится явно.
-  const suppressClick = useRef(false)
-
-  const onTouchStart = useCallback((e) => {
-    touchStart.current = e.touches[0].clientX
-    swiping.current = false
-    suppressClick.current = false
-  }, [])
-
-  const onTouchMove = useCallback((e) => {
-    if (!swiping.current && Math.abs(e.touches[0].clientX - touchStart.current) > 10) {
-      swiping.current = true
-    }
-  }, [])
-
-  const onTouchEnd = useCallback((e) => {
-    if (!swiping.current) return
-    const dx = e.changedTouches[0].clientX - touchStart.current
-    const THRESHOLD = 50
-    if (dx > THRESHOLD) {
-      setOffset(o => o + 1) // swipe right → go back in time
-    } else if (dx < -THRESHOLD) {
-      setOffset(o => Math.max(0, o - 1)) // swipe left → go forward in time
-    }
-    // Даже недотянутый до порога свайп не должен открывать трату: намерение
-    // было листать, а не редактировать.
-    suppressClick.current = true
-    swiping.current = false
-  }, [setOffset])
-
-  const onClickCapture = useCallback((e) => {
-    if (!suppressClick.current) return
-    suppressClick.current = false
-    e.stopPropagation()
-    e.preventDefault()
-  }, [])
+  // Swipe only on the hero card: on the whole screen, brushing the list while
+  // scrolling kept flipping the period.
+  const swipe = useSwipeNav({
+    onPrev: () => setOffset(o => o + 1),
+    onNext: offset > 0 ? () => setOffset(o => Math.max(0, o - 1)) : null,
+  })
 
   // Arrow keys walk through periods — the desktop equivalent of the swipe.
   useEffect(() => {
@@ -235,14 +201,7 @@ export default function History({
   }
 
   return (
-    <div
-      className="flex flex-col flex-1 min-h-0"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onClickCapture={onClickCapture}
-      style={{ touchAction: 'pan-y' }}
-    >
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex-shrink-0 flex items-center justify-between gap-4 animate-fade-in">
         <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
@@ -258,6 +217,7 @@ export default function History({
           setOffset={setOffset}
           data={data}
           onAdd={onAdd}
+          swipe={swipe}
         />
 
         <div className="mt-5">
@@ -324,14 +284,16 @@ function Segments({ seg, onSeg, desktop = false }) {
  * The period card: navigation, the total, a comparison with the previous
  * period and — in the day view — the week strip and the add button.
  */
-function PeriodHero({ seg, offset, setOffset, data, onAdd, desktop = false }) {
+function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = false }) {
   const { range, total, filtered, delta, deltaLabel, week } = data
   const count = filtered.length
 
   return (
     <div
+      {...swipe}
       className="hero relative overflow-hidden animate-fade-in"
       style={{
+        ...swipe?.style,
         background: 'var(--hero-bg)',
         border: '1px solid var(--hero-border)',
         borderRadius: 'var(--radius-lg)',
