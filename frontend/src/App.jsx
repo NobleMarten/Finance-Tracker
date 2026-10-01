@@ -180,7 +180,7 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--app-bg)' }}>
+    <div className="app-shell flex justify-center overflow-hidden" style={{ background: 'var(--app-bg)' }}>
       <div
         className="w-full h-full max-w-sm flex flex-col relative overflow-hidden"
         style={{

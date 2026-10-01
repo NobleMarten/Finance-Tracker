@@ -213,17 +213,14 @@ html {
      which overflowed the Stats hero card on some devices. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* The canvas behind everything — what iOS shows under the home indicator.
-     A plain colour, matching the bottom nav's fade, so that strip is seamless.
-     (The gradient used to live here: body has zero height because the whole
-     app is position: fixed, and the gradient got sized to that, leaving an
-     off-colour band below the toolbar.) */
+  /* The canvas behind everything. A plain colour: a gradient here gets sized
+     to the zero-height body (the whole app is position: fixed) and paints an
+     off-colour band. No explicit height on html/body either — a full-height
+     document lets iOS rubber-band the whole app, toolbar included. */
   background: var(--bg-base);
-  height: 100%;
 }
 
 body {
-  min-height: 100%;
   color: var(--text-primary);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
@@ -248,6 +245,23 @@ body::before {
 #root {
   position: relative;
   z-index: 1;
+}
+
+/* ─── Mobile shell ─── */
+.app-shell {
+  position: fixed;
+  inset: 0;
+}
+
+/* Installed PWA: `bottom: 0` stops short of the screen edge on iOS, leaving the
+   bottom nav floating over an empty strip. Size from the top with the large
+   viewport instead. Standalone only — in the browser 100lvh would push the nav
+   under Safari's toolbar. */
+@media (display-mode: standalone) {
+  .app-shell {
+    bottom: auto;
+    height: 100lvh;
+  }
 }
 
 input, button, select, textarea {
