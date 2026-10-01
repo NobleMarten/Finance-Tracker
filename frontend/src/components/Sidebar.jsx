@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { HomeIcon, HistoryIcon, StatsIcon, PlusIcon } from './icons'
+import { HomeIcon, HistoryIcon, StatsIcon, PlusIcon, ThemeIcon } from './icons'
+import { useTheme } from '../hooks/useTheme'
 
 const NAV = [
   { screen: 0, label: 'Overview', Icon: HomeIcon },
@@ -20,7 +21,7 @@ export default function Sidebar({ screen, onNavigate, onOpenTokens }) {
       className="w-[248px] flex-shrink-0 flex flex-col"
       style={{
         borderRight: '1px solid var(--border-subtle)',
-        background: 'linear-gradient(180deg, rgba(20,20,22,0.6) 0%, rgba(10,10,11,0) 60%)',
+        background: 'linear-gradient(180deg, var(--sidebar-tint) 0%, transparent 60%)',
       }}
     >
       {/* Brand */}
@@ -31,7 +32,7 @@ export default function Sidebar({ screen, onNavigate, onOpenTokens }) {
             borderRadius: '10px',
             background: 'var(--accent-soft)',
             border: '1px solid var(--accent-glow)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+            boxShadow: 'inset 0 1px 0 var(--highlight)',
           }}
         >
           <span
@@ -128,6 +129,7 @@ function NavItem({ active, label, onClick, children }) {
 
 function AccountBlock({ onOpenTokens }) {
   const { user, logout } = useAuth()
+  const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
 
@@ -193,11 +195,17 @@ function AccountBlock({ onOpenTokens }) {
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.04)',
+            boxShadow: 'var(--shadow-menu-up)',
             transformOrigin: 'bottom center',
           }}
         >
           <div className="p-1.5">
+            <MenuItem onClick={toggle}>
+              <span className="flex items-center justify-between">
+                {theme === 'light' ? 'Dark theme' : 'Light theme'}
+                <ThemeIcon theme={theme} />
+              </span>
+            </MenuItem>
             <MenuItem onClick={() => { setOpen(false); onOpenTokens?.() }}>API tokens</MenuItem>
             <MenuItem onClick={() => { setOpen(false); logout() }}>Sign out</MenuItem>
           </div>

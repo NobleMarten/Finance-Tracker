@@ -55,7 +55,7 @@ export default function UserMenu() {
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-md)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset',
+            boxShadow: 'var(--shadow-pop)',
           }}
           role="menu"
         >

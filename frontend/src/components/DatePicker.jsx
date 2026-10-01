@@ -92,7 +92,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
       style={{
         // Inline so no build step can drop it, and above the toast layer.
         zIndex: 400,
-        background: 'rgba(0, 0, 0, 0.6)',
+        background: 'var(--scrim)',
         backdropFilter: 'blur(2px)',
       }}
       onClick={onClose}
@@ -109,7 +109,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
           background: 'var(--bg-elevated)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.55)',
+          boxShadow: 'var(--shadow-pop)',
         }}
       >
         {/* Month navigation */}

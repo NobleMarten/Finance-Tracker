@@ -190,7 +190,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl text-[13px]"
-              style={{ background: 'rgba(255,80,80,0.10)', color: '#ff8585' }}>
+              style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
               {error}
             </div>
           )}
@@ -201,14 +201,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               <div
                 className="relative overflow-hidden animate-fade-in"
                 style={{
-                  background: 'linear-gradient(150deg, rgba(108,140,255,0.10) 0%, var(--bg-surface) 55%)',
+                  background: 'linear-gradient(150deg, rgba(var(--accent-rgb),0.10) 0%, var(--bg-surface) 55%)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-lg)',
                 }}
               >
                 <div className="absolute pointer-events-none"
                   style={{ top: -60, right: -50, width: 220, height: 220, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(108,140,255,0.12) 0%, transparent 70%)' }} />
+                    background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.12) 0%, transparent 70%)' }} />
                 <div className="relative px-6 py-6">
                   <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
                     style={{ color: 'var(--text-tertiary)' }}>
@@ -230,8 +230,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       <span
                         className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                         style={{
-                          background: delta > 0 ? 'rgba(255,107,107,0.14)' : 'rgba(74,222,128,0.14)',
-                          color: delta > 0 ? '#ff8585' : '#5ee89a',
+                          background: delta > 0 ? 'var(--danger-soft)' : 'var(--success-soft)',
+                          color: delta > 0 ? 'var(--danger)' : 'var(--success)',
                         }}
                       >
                         {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
@@ -254,7 +254,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                     value={null}
                     extra={delta !== null ? (
                       <span className="text-[18px] font-medium"
-                        style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? '#ff8585' : '#5ee89a' }}>
+                        style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? 'var(--danger)' : 'var(--success)' }}>
                         {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
                       </span>
                     ) : (
@@ -435,7 +435,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       <div
         className="mx-4 mt-5 animate-fade-in relative"
         style={{
-          background: 'linear-gradient(160deg, rgba(108,140,255,0.08) 0%, var(--bg-surface) 55%)',
+          background: 'linear-gradient(160deg, rgba(var(--accent-rgb),0.08) 0%, var(--bg-surface) 55%)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
         }}
@@ -444,14 +444,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
         <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ borderRadius: 'inherit' }}>
           <div className="absolute"
             style={{ top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(108,140,255,0.10) 0%, transparent 70%)' }} />
+              background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, transparent 70%)' }} />
         </div>
 
         {/* Month selector inside card */}
         <div className="relative flex items-center justify-between px-5 pt-5">
           <button onClick={prevMonth} aria-label="Previous month"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
+            style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
             <ChevronLeft />
           </button>
           <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -459,7 +459,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           </div>
           <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-20 disabled:active:scale-100"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>
+            style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
             <ChevronRight />
           </button>
         </div>
@@ -485,8 +485,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{
-                  background: delta > 0 ? 'rgba(255,107,107,0.14)' : 'rgba(74,222,128,0.14)',
-                  color: delta > 0 ? '#ff8585' : '#5ee89a',
+                  background: delta > 0 ? 'var(--danger-soft)' : 'var(--success-soft)',
+                  color: delta > 0 ? 'var(--danger)' : 'var(--success)',
                 }}
               >
                 {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
@@ -503,7 +503,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
       {error && (
         <div className="mx-5 mt-3 px-4 py-3 rounded-xl text-[13px]"
-          style={{ background: 'rgba(255,80,80,0.10)', color: '#ff8585' }}>
+          style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
           {error}
         </div>
       )}
@@ -635,7 +635,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               extra={delta !== null ? (
                 <span
                   className="text-[18px] font-medium"
-                  style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? '#ff8585' : '#5ee89a' }}
+                  style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? 'var(--danger)' : 'var(--success)' }}
                 >
                   {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
                 </span>
@@ -1003,7 +1003,7 @@ function BarChart({
                   textAnchor="middle"
                   fontSize={labelSize}
                   fontWeight={isActive ? 600 : 400}
-                  fill={isActive ? 'var(--accent)' : 'rgba(255,255,255,0.5)'}
+                  fill={isActive ? 'var(--accent)' : 'var(--text-secondary)'}
                 >
                   {d.day}
                 </text>
@@ -1066,7 +1066,7 @@ function ProgressBar({ pct, index }) {
         className="h-full rounded-full"
         style={{
           width: `${width}%`,
-          background: 'linear-gradient(90deg, rgba(108,140,255,0.5) 0%, var(--accent) 100%)',
+          background: 'linear-gradient(90deg, rgba(var(--accent-rgb),0.5) 0%, var(--accent) 100%)',
           transition: reduced ? 'none' : 'width 0.6s cubic-bezier(0.34,1.1,0.64,1)',
         }}
       />

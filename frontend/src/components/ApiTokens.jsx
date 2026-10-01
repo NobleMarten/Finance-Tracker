@@ -112,7 +112,7 @@ export default function ApiTokens({ onClose }) {
           onClick={onClose}
           aria-label="Back"
           className="w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}
+          style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -237,9 +237,9 @@ export default function ApiTokens({ onClose }) {
         {error && (
           <div className="text-[13px] mb-4 px-3 py-2.5"
             style={{
-              color: '#F3C3CF',
-              background: 'rgba(255,111,145,.1)',
-              border: '1px solid rgba(255,111,145,.3)',
+              color: 'var(--danger)',
+              background: 'var(--danger-soft)',
+              border: '1px solid var(--danger-border)',
               borderRadius: 'var(--radius-sm)',
             }}>
             {error}
@@ -285,9 +285,9 @@ export default function ApiTokens({ onClose }) {
                         className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 flex-shrink-0"
                         style={{
                           borderRadius: 'var(--radius-full)',
-                          background: 'rgba(255,111,145,.12)',
-                          color: '#FF6F91',
-                          border: '1px solid rgba(255,111,145,.3)',
+                          background: 'var(--danger-soft)',
+                          color: 'var(--danger)',
+                          border: '1px solid var(--danger-border)',
                         }}
                       >
                         revoked
@@ -311,8 +311,8 @@ export default function ApiTokens({ onClose }) {
                       cursor: 'pointer',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.color = '#FF6F91'
-                      e.currentTarget.style.borderColor = 'rgba(255,111,145,.4)'
+                      e.currentTarget.style.color = 'var(--danger)'
+                      e.currentTarget.style.borderColor = 'var(--danger-border)'
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.color = 'var(--text-tertiary)'
