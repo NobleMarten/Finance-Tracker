@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -11,9 +10,10 @@ import (
 
 func TestRateCacheRefreshThenGet(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"conversion_rates":{"USD":0.0115,"EUR":0.0106}}`)
+		if _, err := w.Write([]byte(`{"conversion_rates":{"USD":0.0115,"EUR":0.0106}}`)); err != nil {
+			t.Errorf("failed to write test response: %v", err)
+		}
 	}))
-	defer srv.Close()
 
 	svc := &RateCache{
 		rate: &ExchangeService{
@@ -47,7 +47,9 @@ func TestRateCacheRefreshThenGet(t *testing.T) {
 
 func TestRateCacheRace(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"conversion_rates":{"USD":0.0115,"EUR":0.0106}}`)
+		if _, err := w.Write([]byte(`{"conversion_rates":{"USD":0.0115,"EUR":0.0106}}`)); err != nil {
+			t.Errorf("failed to write test response: %v", err)
+		}
 	}))
 	defer srv.Close()
 
