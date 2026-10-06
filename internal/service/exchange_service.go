@@ -16,16 +16,16 @@ type ExchangeService struct {
 	apikey  string
 }
 
-type Convert struct {
-	СonversionRates map[string]float64 `json:"conversion_rates"`
-}
-
 func NewExchangeService(baseURL string) *ExchangeService {
 	return &ExchangeService{
 		client:  &http.Client{Timeout: 10 * time.Second},
 		baseURL: baseURL,
 		apikey:  os.Getenv("RateKey"),
 	}
+}
+
+type Convert struct {
+	ConversionRates map[string]float64 `json:"conversion_rates"`
 }
 
 func (c *ExchangeService) FetchRates(ctx context.Context, base string) (map[string]float64, error) {
@@ -43,16 +43,11 @@ func (c *ExchangeService) FetchRates(ctx context.Context, base string) (map[stri
 	}
 	defer resp.Body.Close()
 
-	var data map[string]float64
+	var data Convert
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
 
-	// rate, ok := data.СonversionRates[to]
-	// if !ok {
-	// 	return nil, model.ErrInvalidCurrency
-	// }
-
-	return data, nil
+	return data.ConversionRates, nil
 }

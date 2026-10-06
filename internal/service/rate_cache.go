@@ -1,6 +1,7 @@
 package service
 
 import (
+	"FinanceTracker/internal/model"
 	"context"
 	"sync"
 	"time"
@@ -8,7 +9,6 @@ import (
 
 type RateCache struct {
 	mu              sync.RWMutex
-	exchange        sync.RWMutex
 	rate            *ExchangeService
 	base            string
 	conversionRates map[string]float64
@@ -16,9 +16,9 @@ type RateCache struct {
 }
 
 func (r *RateCache) Refresh(ctx context.Context) error {
-	data, err := r.rate.FetchRates(ctx, "RUB")
+	data, err := r.rate.FetchRates(ctx, r.base)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	r.mu.Lock()
@@ -27,4 +27,24 @@ func (r *RateCache) Refresh(ctx context.Context) error {
 	r.conversionRates = data
 	r.updatedAt = time.Now()
 	return nil
+}
+
+func (r *RateCache) GetRate(ctx context.Context, from, to string) (float64, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.updatedAt.IsZero() {
+		return 0, model.ErrRateUnavailable
+	}
+
+	if from != r.base {
+		return 0, model.ErrInvalidCurrency
+	}
+
+	rate, ok := r.conversionRates[to]
+	if !ok {
+		return 0, model.ErrInvalidCurrency
+	}
+
+	return rate, nil
 }
