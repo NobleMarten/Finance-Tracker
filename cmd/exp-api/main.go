@@ -25,6 +25,9 @@ func main() {
 		_ = godotenv.Load(".env")
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	base := os.Getenv("RateURL")
 
 	conf, err := config.NewConfig()
@@ -54,6 +57,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	repoUser, err := storage.NewPostgresUserRepo(DB)
 	if err != nil {
 		panic(err)
@@ -64,9 +68,11 @@ func main() {
 	tsv := service.NewTokenService(repo)
 
 	exsvc := service.NewExchangeService(base)
+	cache := service.NewRateCache(exsvc, "RUB")
+	go cache.Run(ctx)
 	uh := transport.NewUserHandler(usvc)
 
-	h := transport.NewHandler(svc, exsvc)
+	h := transport.NewHandler(svc, cache)
 	th := transport.NewTokenHandler(tsv)
 
 	r := chi.NewRouter()
@@ -82,9 +88,6 @@ func main() {
 		Handler: r,
 	}
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM) // SIGINT - Ctrl+C, SIGTERM - kill
-
 	go func() {
 		slog.Info("Server is running on ", "host", conf.Host)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -92,11 +95,11 @@ func main() {
 		}
 	}()
 
-	<-ch
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("Server shutdown error: ", "error", err)
 	}
 	slog.Info("Server stopped)")

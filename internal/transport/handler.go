@@ -2,7 +2,6 @@ package transport
 
 import (
 	"FinanceTracker/internal/model"
-	"FinanceTracker/internal/service"
 	"context"
 	"encoding/json"
 	"log"
@@ -84,8 +83,8 @@ type RateExpense struct {
 	Rate float64 `json:"rate"`
 }
 
-func NewHandler(svc ItemService, exsvc *service.ExchangeService) *Handler {
-	return &Handler{svc: svc, exchangeService: exsvc}
+func NewHandler(svc ItemService, cache ExchangeService) *Handler {
+	return &Handler{svc: svc, exchangeService: cache}
 }
 
 func (h *Handler) RegisterRouteres(r *chi.Mux, secret []byte, tokens TokenValidator) { //*chi.Mux

@@ -16,10 +16,6 @@ type ExchangeService struct {
 	apikey  string
 }
 
-type Convert struct {
-	СonversionRates map[string]float64 `json:"conversion_rates"`
-}
-
 func NewExchangeService(baseURL string) *ExchangeService {
 	return &ExchangeService{
 		client:  &http.Client{Timeout: 10 * time.Second},
@@ -28,31 +24,30 @@ func NewExchangeService(baseURL string) *ExchangeService {
 	}
 }
 
-func (c *ExchangeService) GetRate(ctx context.Context, from, to string) (float64, error) {
+type Convert struct {
+	ConversionRates map[string]float64 `json:"conversion_rates"`
+}
+
+func (c *ExchangeService) FetchRates(ctx context.Context, base string) (map[string]float64, error) {
 	if c.apikey == "" {
-		return 0, model.ErrEmptyAPIKey
+		return nil, model.ErrEmptyAPIKey
 	}
-	url := c.baseURL + c.apikey + "/latest/" + from
+	url := c.baseURL + c.apikey + "/latest/" + base
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("get response %w: %w", model.ErrRateUnavailable, err)
+		return nil, fmt.Errorf("get response %w: %w", model.ErrRateUnavailable, err)
 	}
 	defer resp.Body.Close()
 
 	var data Convert
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	rate, ok := data.СonversionRates[to]
-	if !ok {
-		return 0, model.ErrInvalidCurrency
-	}
-
-	return rate, nil
+	return data.ConversionRates, nil
 }

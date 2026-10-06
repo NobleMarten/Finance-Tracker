@@ -110,6 +110,12 @@ func WriteError(w http.ResponseWriter, err error) {
 			Code:    "RATE_UNAVAILABLE",
 			Message: "exchange rate service is temporarily unavailable",
 		}
+	case errors.Is(err, model.ErrInvalidCurrency):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_CURRENCY",
+			Message: err.Error(),
+		}
 	default:
 		status = http.StatusInternalServerError
 		res = ErrorResponse{
