@@ -7,6 +7,7 @@ import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
 import YearHeatmap from './YearHeatmap'
 import MonthlyTrend from './MonthlyTrend'
+import { monthInsights } from '../utils/monthInsights'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 
 const MONTHS_FULL = [
@@ -129,7 +130,17 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     const b = trendData.find(m => m.year === t.ts.getFullYear() && m.month === t.ts.getMonth() + 1)
     if (b) b.amount += t.amount
   }
-  const trendMax = Math.max(...trendData.map(m => m.amount), 1)
+  // The last trend bar is always the month in progress: project it, and keep it
+  // out of the average so a half-month doesn't drag the reference line down.
+  const trendPartial = TREND_N - 1
+  const trendForecast = Math.round(
+    (trendData[trendPartial].amount / now.getDate()) * getDaysInMonth(now.getMonth() + 1, now.getFullYear()),
+  )
+  const fullMonths = trendData.filter((m, i) => i !== trendPartial && m.amount > 0)
+  const trendAvg = fullMonths.length
+    ? Math.round(fullMonths.reduce((s, m) => s + m.amount, 0) / fullMonths.length)
+    : null
+  const trendMax = Math.max(...trendData.map(m => m.amount), trendForecast, 1)
   const trendActive = trendHover ?? trendSel
   const trendItem = trendActive != null ? trendData[trendActive] : null
   const toggleTrendSel = (i) => setTrendSel(p => (p === i ? null : i))
@@ -140,6 +151,49 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       : null
 
   const isEmpty = stats && !loading && stats.currentmonth === 0
+
+  // Two honest averages: per calendar day (what the forecast extrapolates) and
+  // per spending day (what the backend's `avgday` is).
+  const total = stats?.currentmonth ?? 0
+  const daysInMonth = getDaysInMonth(month, year)
+  const avgCalendar = maxDay > 0 ? Math.round(total / maxDay) : 0
+  const forecast = isCurrentMonth && maxDay > 0 ? Math.round((total / maxDay) * daysInMonth) : null
+
+  const insights = monthInsights({
+    transactions,
+    month,
+    year,
+    dailyAmounts: dailyData.map(d => d.amount),
+    completedDays: isCurrentMonth ? now.getDate() - 1 : daysInMonth,
+  })
+
+  const statCards = stats && (
+    <>
+      <StatCard
+        label="Avg / day"
+        value={avgCalendar}
+        sub={<><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtShort(stats.avgday)} ₽</span> / spending day</>}
+        subTitle="Average over days that had at least one expense"
+      />
+      <StatCard label="Max / day" value={maxDayAmount} />
+      <StatCard label="Prev month" value={stats.prevmonth} />
+      {forecast !== null ? (
+        <StatCard
+          label="Forecast"
+          value={forecast}
+          accent
+          sub={`by ${daysInMonth} ${monthShort} at this pace`}
+        />
+      ) : (
+        <StatCard
+          label="Operations"
+          value={insights.count}
+          unit=""
+          sub={<>avg check <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtShort(insights.avgCheck)} ₽</span></>}
+        />
+      )}
+    </>
+  )
 
   const dayDetail = detailDay != null && (
     <DayDetail
@@ -251,24 +305,10 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
               {stats && !loading && (
                 <div className="grid grid-cols-2 gap-4 animate-fade-in delay-1">
-                  <StatCard label="Avg / day" value={stats.avgday} />
-                  <StatCard label="Max / day" value={maxDayAmount} />
-                  <StatCard label="Prev month" value={stats.prevmonth} />
-                  <StatCard
-                    label="vs prev"
-                    value={null}
-                    extra={delta !== null ? (
-                      <span className="text-[18px] font-medium"
-                        style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                        {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
-                      </span>
-                    ) : (
-                      <span className="text-[18px] font-medium"
-                        style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>—</span>
-                    )}
-                  />
+                  {statCards}
                 </div>
               )}
+
 
               {stats && !loading && !isEmpty && (
                 <Panel title="Top expenses" className="animate-fade-in delay-2">
@@ -312,6 +352,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   </div>
                 </Panel>
               )}
+
             </div>
 
             {/* ── Main: the plots ── */}
@@ -371,6 +412,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                         <BarChart
                           data={dailyDataFull}
                           maxAmount={maxAmount}
+                          avg={avgCalendar}
                           active={activeDay}
                           onSelect={toggleSel}
                           onHover={setChartHover}
@@ -401,7 +443,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       trendItem && trendItem.amount > 0 ? (
                         <ValuePill
                           onClick={() => goToMonth(trendItem.year, trendItem.month)}
-                          label={`${trendItem.label} ${trendItem.year}`}
+                          label={`${trendItem.label} ${trendItem.year}${trendActive === trendPartial ? ' · so far' : ''}`}
                           amount={trendItem.amount}
                           aria={`Go to ${trendItem.label} ${trendItem.year}`}
                         />
@@ -411,6 +453,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                     <div className="px-6 py-6">
                       <MonthlyTrend
                         data={trendData}
+                        avg={trendAvg}
+                        partialIndex={trendPartial}
+                        forecast={trendForecast}
                         max={trendMax}
                         active={trendActive}
                         onSelect={toggleTrendSel}
@@ -420,6 +465,19 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       />
                     </div>
                   </Panel>
+
+                  <div className="grid grid-cols-1 min-[1300px]:grid-cols-2 gap-5 items-start">
+                    <Panel title="Month in numbers" className="animate-fade-in delay-3">
+                      <MonthNumbers insights={insights} showCount={forecast !== null} desktop />
+                    </Panel>
+                    {insights.frequent.length > 0 && (
+                      <Panel title="Most frequent" className="animate-fade-in delay-3">
+                        <div className="px-6 pb-3 pt-1">
+                          <FrequentList items={insights.frequent} />
+                        </div>
+                      </Panel>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -588,6 +646,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 <BarChart
                   data={dailyData}
                   maxAmount={maxAmount}
+                  avg={avgCalendar}
                   active={activeDay}
                   onSelect={toggleSel}
                   onHover={setChartHover}
@@ -634,23 +693,17 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
           {/* Stat cards 2×2 grid */}
           <div className="mx-4 mt-4 grid grid-cols-2 gap-3 mb-5">
-            <StatCard label="Avg / day" value={stats.avgday} />
-            <StatCard label="Max / day" value={maxDayAmount} />
-            <StatCard label="Prev month" value={stats.prevmonth} />
-            <StatCard
-              label="vs prev"
-              value={null}
-              extra={delta !== null ? (
-                <span
-                  className="text-[18px] font-medium"
-                  style={{ fontFamily: 'var(--font-mono)', color: delta > 0 ? 'var(--danger)' : 'var(--success)' }}
-                >
-                  {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
-                </span>
-              ) : (
-                <span className="text-[18px] font-medium" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>—</span>
-              )}
-            />
+            {statCards}
+          </div>
+
+          <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+
+          {/* Month in numbers */}
+          <div className="px-5 pt-4 pb-2">
+            <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+              Month in numbers
+            </div>
+            <MonthNumbers insights={insights} showCount={forecast !== null} />
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
@@ -705,6 +758,18 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
             })}
           </div>
 
+          {insights.frequent.length > 0 && (
+            <>
+              <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+              <div className="px-5 pt-4 pb-1">
+                <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  Most frequent
+                </div>
+                <FrequentList items={insights.frequent} />
+              </div>
+            </>
+          )}
+
           <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
           {/* Monthly trend — last 6 months */}
@@ -720,7 +785,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   style={{ background: 'var(--accent-soft)' }}
                   aria-label={`Go to ${trendItem.label} ${trendItem.year}`}
                 >
-                  <span style={{ color: 'var(--accent)' }}>{trendItem.label} · </span>
+                  <span style={{ color: 'var(--accent)' }}>{trendItem.label}{trendActive === trendPartial ? ' so far' : ''} · </span>
                   <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                     {fmtShort(trendItem.amount)} ₽
                   </span>
@@ -735,6 +800,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
             </div>
             <MonthlyTrend
               data={trendData}
+              avg={trendAvg}
+              partialIndex={trendPartial}
+              forecast={trendForecast}
               max={trendMax}
               active={trendActive}
               onSelect={toggleTrendSel}
@@ -921,7 +989,7 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
  * bars may get, which is the only thing that differs between the two layouts.
  */
 function BarChart({
-  data, maxAmount, active, onSelect, onHover,
+  data, maxAmount, active, onSelect, onHover, avg = 0,
   plotW = 280, barH = 72, maxBar = 12, maxGap = 3, labelSize = 8, scrollable = true,
 }) {
   const reduced = usePrefersReducedMotion()
@@ -1020,41 +1088,145 @@ function BarChart({
             </g>
           )
         })}
+
+        {/* Average per calendar day — dashed reference over the bars */}
+        {avg > 0 && avg <= maxAmount && (() => {
+          const y = BAR_H - (avg / maxAmount) * BAR_H
+          return (
+            <g pointerEvents="none">
+              <line
+                x1={0} y1={y} x2={svgW} y2={y}
+                stroke="var(--text-tertiary)" strokeWidth={labelSize > 8 ? 1 : 0.6}
+                strokeDasharray={labelSize > 8 ? '5 4' : '3 2.5'} opacity={0.8}
+              />
+              <text
+                x={svgW} y={y - labelSize * 0.45}
+                textAnchor="end" fontSize={labelSize}
+                fill="var(--text-tertiary)" style={{ fontFamily: 'var(--font-mono)' }}
+              >
+                avg {fmtShort(avg)}
+              </text>
+            </g>
+          )
+        })()}
       </svg>
       </div>
     </div>
   )
 }
 
-function StatCard({ label, value, extra }) {
+function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false }) {
   return (
     <div
-      className="p-4"
+      className="p-4 flex flex-col"
       style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-subtle)',
+        background: accent ? 'linear-gradient(160deg, var(--accent-soft) 0%, var(--bg-surface) 70%)' : 'var(--bg-surface)',
+        border: accent ? '1px solid rgba(var(--accent-rgb),0.25)' : '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-surface)',
       }}
     >
-      <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+      <div className="text-[12px] font-medium mb-2 flex items-center gap-1.5"
+        style={{ color: accent ? 'var(--accent)' : 'var(--text-secondary)' }}>
+        {accent && <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />}
         {label}
       </div>
-      {value !== null ? (
-        <div
-          className="font-medium whitespace-nowrap"
-          style={{
-            fontSize: scaledFontSize(value, 18, 13, 6) + 'px',
-            lineHeight: 1.2,
-            color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em',
-          }}
-        >
-          <CountUp value={value} format={fmtShort} /> ₽
+      <div
+        className="font-medium whitespace-nowrap"
+        style={{
+          fontSize: scaledFontSize(value, 18, 13, 6) + 'px',
+          lineHeight: 1.2,
+          color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em',
+        }}
+      >
+        <CountUp value={value} format={fmtShort} />{unit && ` ${unit}`}
+      </div>
+      {sub && (
+        <div className="text-[11px] mt-1.5 leading-snug whitespace-nowrap overflow-hidden text-ellipsis"
+          style={{ color: 'var(--text-tertiary)' }} title={subTitle}>
+          {sub}
         </div>
-      ) : null}
-      {extra && <div className="mt-1">{extra}</div>}
+      )}
     </div>
   )
+}
+
+/** Label — value rows: operation-level and day-level figures for the month. */
+function MonthNumbers({ insights, showCount, desktop = false }) {
+  const { count, avgCheck, median, noSpend, completedDays, longestStreak, large } = insights
+  const days = (n) => `${n} ${n === 1 ? 'day' : 'days'}`
+  const rows = [
+    showCount && { label: 'Operations', value: count },
+    { label: 'Average check', value: `${fmtShort(avgCheck)} ₽`, mono: true },
+    { label: 'Median check', value: `${fmtShort(median)} ₽`, mono: true, hint: 'half of purchases cost less' },
+    completedDays > 0 && {
+      label: 'No-spend days',
+      value: <>{noSpend}<span style={{ color: 'var(--text-tertiary)' }}> / {completedDays}</span></>,
+    },
+    completedDays > 0 && {
+      label: 'Longest no-spend streak',
+      value: longestStreak > 0 ? days(longestStreak) : '—',
+    },
+    large && {
+      label: 'Large expenses',
+      hint: `≥ ${fmtShort(large.threshold)} ₽ · 3× median`,
+      value: large.count > 0
+        ? <>{large.count}<span className="text-[12px] font-normal" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)' }}> · {large.share}% of total</span></>
+        : '—',
+    },
+  ].filter(Boolean)
+
+  return (
+    <div className={desktop ? 'px-6 py-1' : ''}>
+      {rows.map((r, i) => (
+        <div
+          key={r.label}
+          className="flex items-center justify-between gap-3 py-2.5"
+          style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
+        >
+          <div className="min-w-0">
+            <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
+            {r.hint && (
+              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{r.hint}</div>
+            )}
+          </div>
+          <div
+            className="text-[14px] font-medium whitespace-nowrap"
+            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+          >
+            {r.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Repeated purchases this month: title, how many times, how much in total. */
+function FrequentList({ items }) {
+  return items.map((g, i) => (
+    <div
+      key={g.title}
+      className="flex items-center justify-between gap-3 py-2.5"
+      style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span
+          className="text-[11px] font-semibold px-1.5 h-5 min-w-[28px] rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}
+        >
+          ×{g.count}
+        </span>
+        <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{g.title}</span>
+      </div>
+      <span
+        className="text-[14px] font-medium whitespace-nowrap"
+        style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+      >
+        {fmtShort(g.sum)} ₽
+      </span>
+    </div>
+  ))
 }
 
 function ProgressBar({ pct, index }) {
