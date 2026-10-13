@@ -6,6 +6,9 @@
 const LARGE_FACTOR = 3 // an expense is "large" at ≥ 3× the month's median
 const FREQUENT_N = 3
 
+/** Grouping key for "same expense": case- and surrounding-space-insensitive title. */
+export const titleKey = (t) => (t.description || '').trim().toLowerCase()
+
 function median(sorted) {
   if (sorted.length === 0) return 0
   const mid = Math.floor(sorted.length / 2)
@@ -26,19 +29,10 @@ export function monthInsights({ transactions, month, year, dailyAmounts, complet
   const count = amounts.length
   const med = median(amounts)
 
-  // No-spend days and the longest run of them, over finished days only —
-  // an empty "today" isn't a no-spend day yet.
+  // No-spend days, over finished days only — an empty "today" isn't one yet.
   let noSpend = 0
-  let streak = 0
-  let longest = 0
   for (let i = 0; i < completedDays; i++) {
-    if ((dailyAmounts[i] ?? 0) === 0) {
-      noSpend++
-      streak++
-      if (streak > longest) longest = streak
-    } else {
-      streak = 0
-    }
+    if ((dailyAmounts[i] ?? 0) === 0) noSpend++
   }
 
   // Large expenses — needs a few operations for "median" to mean anything.
@@ -49,6 +43,7 @@ export function monthInsights({ transactions, month, year, dailyAmounts, complet
     const bigSum = big.reduce((s, a) => s + a, 0)
     large = {
       threshold,
+      sum: bigSum,
       count: big.length,
       share: total > 0 ? Math.round((bigSum / total) * 100) : 0,
     }
@@ -59,8 +54,8 @@ export function monthInsights({ transactions, month, year, dailyAmounts, complet
   for (const t of ops) {
     const title = (t.description || '').trim()
     if (!title) continue
-    const key = title.toLowerCase()
-    const g = groups.get(key) ?? { title, count: 0, sum: 0 }
+    const key = titleKey(t)
+    const g = groups.get(key) ?? { key, title, count: 0, sum: 0 }
     g.count++
     g.sum += t.amount
     groups.set(key, g)
@@ -71,12 +66,13 @@ export function monthInsights({ transactions, month, year, dailyAmounts, complet
     .slice(0, FREQUENT_N)
 
   return {
+    ops,
+    total,
     count,
     avgCheck: count > 0 ? Math.round(total / count) : 0,
     median: med,
     noSpend,
     completedDays,
-    longestStreak: longest,
     large,
     frequent,
   }
