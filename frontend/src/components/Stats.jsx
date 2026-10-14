@@ -7,7 +7,8 @@ import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
 import YearHeatmap from './YearHeatmap'
 import MonthlyTrend from './MonthlyTrend'
-import { monthInsights } from '../utils/monthInsights'
+import { monthInsights, titleKey } from '../utils/monthInsights'
+import ExpenseListDetail from './ExpenseListDetail'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 
 const MONTHS_FULL = [
@@ -27,6 +28,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [detailDay, setDetailDay] = useState(null) // drill-down: selected day number
+  const [drill, setDrill] = useState(null) // drill-down: { kind: 'group', key } | { kind: 'large' }
   const [view, setView] = useState('bars') // 'bars' (default) | 'year' (contribution grid)
   const [chartSel, setChartSel] = useState(null) // pinned day number (bars)
   const [chartHover, setChartHover] = useState(null) // hovered day number (bars)
@@ -58,14 +60,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     setYearSel(p => (p && p.month === cell.month && p.day === cell.day ? null : cell))
 
   function prevMonth() {
-    setDetailDay(null); clearChartSel()
+    setDetailDay(null); setDrill(null); clearChartSel()
     if (month === 1) { setMonth(12); setYear(y => y - 1) }
     else setMonth(m => m - 1)
   }
 
   function nextMonth() {
     if (isCurrentMonth) return
-    setDetailDay(null); clearChartSel()
+    setDetailDay(null); setDrill(null); clearChartSel()
     if (month === 12) { setMonth(1); setYear(y => y + 1) }
     else setMonth(m => m + 1)
   }
@@ -76,13 +78,13 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
   // Jump from the year strip to a specific date's day detail.
   function goToDate(y, m, d) {
-    clearChartSel()
+    clearChartSel(); setDrill(null)
     setYear(y); setMonth(m); setDetailDay(d)
   }
 
   // Jump from the monthly trend to a whole month.
   function goToMonth(y, m) {
-    clearChartSel()
+    clearChartSel(); setDrill(null)
     setYear(y); setMonth(m)
   }
 
@@ -208,6 +210,56 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       desktop={desktop}
     />
   )
+
+  // Drill-down lists are rebuilt from the month's operations on every render,
+  // so an edit made from inside the list shows up in it straight away.
+  const monthLabel = `${MONTHS_FULL[month - 1]} ${year}`
+  let drillDetail = null
+  if (drill?.kind === 'group') {
+    const items = insights.ops.filter(t => titleKey(t) === drill.key)
+    const sum = items.reduce((a, t) => a + t.amount, 0)
+    const days = new Set(items.map(t => t.ts.getDate())).size
+    drillDetail = (
+      <ExpenseListDetail
+        title={items[0]?.description.trim() || drill.title}
+        subtitle={monthLabel}
+        items={items}
+        figures={[
+          { label: 'Times', value: `×${items.length}` },
+          { label: 'Avg each', value: `${fmtShort(items.length ? Math.round(sum / items.length) : 0)} ₽` },
+          { label: 'Of month', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
+        ]}
+        note={days < items.length
+          ? `On ${days} different days — sometimes more than once a day.`
+          : `On ${days} different days.`}
+        strip={{ daysInMonth, today: isCurrentMonth ? now.getDate() : null }}
+        onEdit={onEdit}
+        onClose={() => setDrill(null)}
+        desktop={desktop}
+      />
+    )
+  } else if (drill?.kind === 'large' && insights.large) {
+    const { threshold } = insights.large
+    const items = insights.ops.filter(t => t.amount >= threshold)
+    const sum = items.reduce((a, t) => a + t.amount, 0)
+    drillDetail = (
+      <ExpenseListDetail
+        title="Large expenses"
+        subtitle={monthLabel}
+        items={items}
+        sortBy="amount"
+        shareOf={total}
+        figures={[
+          { label: 'Share of month', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
+          { label: 'Without them', value: `${fmtShort(total - sum)} ₽` },
+        ]}
+        note={`Purchases of ${fmtShort(threshold)} ₽ or more — 3× your typical purchase (${fmtShort(insights.median)} ₽).`}
+        onEdit={onEdit}
+        onClose={() => setDrill(null)}
+        desktop={desktop}
+      />
+    )
+  }
 
   /* ── Desktop ──────────────────────────────────────────────── */
   if (desktop) {
@@ -468,12 +520,13 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
                   <div className="grid grid-cols-1 min-[1300px]:grid-cols-2 gap-5 items-start">
                     <Panel title="Month in numbers" className="animate-fade-in delay-3">
-                      <MonthNumbers insights={insights} showCount={forecast !== null} desktop />
+                      <MonthNumbers insights={insights} showCount={forecast !== null} desktop
+                        onOpenLarge={() => setDrill({ kind: 'large' })} />
                     </Panel>
                     {insights.frequent.length > 0 && (
                       <Panel title="Most frequent" className="animate-fade-in delay-3">
                         <div className="px-6 pb-3 pt-1">
-                          <FrequentList items={insights.frequent} />
+                          <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
                         </div>
                       </Panel>
                     )}
@@ -485,6 +538,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
         </div>
 
         {dayDetail}
+        {drillDetail}
       </div>
     )
   }
@@ -703,7 +757,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
             <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
               Month in numbers
             </div>
-            <MonthNumbers insights={insights} showCount={forecast !== null} />
+            <MonthNumbers insights={insights} showCount={forecast !== null}
+              onOpenLarge={() => setDrill({ kind: 'large' })} />
           </div>
 
           <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
@@ -765,7 +820,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
                   Most frequent
                 </div>
-                <FrequentList items={insights.frequent} />
+                <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
               </div>
             </>
           )}
@@ -814,6 +869,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     </PullToRefresh>
 
     {dayDetail}
+    {drillDetail}
     </div>
   )
 }
@@ -1152,24 +1208,20 @@ function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false })
 }
 
 /** Label — value rows: operation-level and day-level figures for the month. */
-function MonthNumbers({ insights, showCount, desktop = false }) {
-  const { count, avgCheck, median, noSpend, completedDays, longestStreak, large } = insights
-  const days = (n) => `${n} ${n === 1 ? 'day' : 'days'}`
+function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
+  const { count, avgCheck, median, noSpend, completedDays, large } = insights
   const rows = [
     showCount && { label: 'Operations', value: count },
-    { label: 'Average check', value: `${fmtShort(avgCheck)} ₽`, mono: true },
-    { label: 'Median check', value: `${fmtShort(median)} ₽`, mono: true, hint: 'half of purchases cost less' },
+    { label: 'Average purchase', value: `${fmtShort(avgCheck)} ₽` },
+    { label: 'Typical purchase', value: `${fmtShort(median)} ₽`, hint: 'median: half cost less, half more' },
     completedDays > 0 && {
       label: 'No-spend days',
       value: <>{noSpend}<span style={{ color: 'var(--text-tertiary)' }}> / {completedDays}</span></>,
     },
-    completedDays > 0 && {
-      label: 'Longest no-spend streak',
-      value: longestStreak > 0 ? days(longestStreak) : '—',
-    },
     large && {
       label: 'Large expenses',
-      hint: `≥ ${fmtShort(large.threshold)} ₽ · 3× median`,
+      hint: `${fmtShort(large.threshold)} ₽ and up · 3× typical`,
+      onClick: large.count > 0 ? onOpenLarge : null,
       value: large.count > 0
         ? <>{large.count}<span className="text-[12px] font-normal" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)' }}> · {large.share}% of total</span></>
         : '—',
@@ -1178,37 +1230,59 @@ function MonthNumbers({ insights, showCount, desktop = false }) {
 
   return (
     <div className={desktop ? 'px-6 py-1' : ''}>
-      {rows.map((r, i) => (
-        <div
-          key={r.label}
-          className="flex items-center justify-between gap-3 py-2.5"
-          style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
-        >
-          <div className="min-w-0">
-            <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
-            {r.hint && (
-              <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{r.hint}</div>
-            )}
-          </div>
-          <div
-            className="text-[14px] font-medium whitespace-nowrap"
-            style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+      {rows.map((r, i) => {
+        const Row = r.onClick ? 'button' : 'div'
+        return (
+          <Row
+            key={r.label}
+            {...(r.onClick ? { type: 'button', onClick: r.onClick, 'aria-label': `Show ${r.label.toLowerCase()}` } : {})}
+            className={`w-full text-left flex items-center justify-between gap-3 py-2.5 ${r.onClick ? 'group rounded-lg transition-colors active:scale-[0.99] hover:bg-[var(--bg-elevated)] -mx-2 px-2' : ''}`}
+            style={{
+              borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
+              width: r.onClick ? 'calc(100% + 16px)' : undefined,
+            }}
           >
-            {r.value}
-          </div>
-        </div>
-      ))}
+            <div className="min-w-0">
+              <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
+              {r.hint && (
+                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{r.hint}</div>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div
+                className="text-[14px] font-medium whitespace-nowrap"
+                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+              >
+                {r.value}
+              </div>
+              {r.onClick && <RowChevron />}
+            </div>
+          </Row>
+        )
+      })}
     </div>
   )
 }
 
-/** Repeated purchases this month: title, how many times, how much in total. */
-function FrequentList({ items }) {
+function RowChevron() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0"
+      stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
+}
+
+/** Repeated purchases this month: title, how many times, how much in total. Tap → every one of them. */
+function FrequentList({ items, onOpen }) {
   return items.map((g, i) => (
-    <div
-      key={g.title}
-      className="flex items-center justify-between gap-3 py-2.5"
-      style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
+    <button
+      key={g.key}
+      type="button"
+      onClick={() => onOpen?.(g)}
+      aria-label={`Show all ${g.title} expenses`}
+      className="flex items-center justify-between gap-3 py-2.5 -mx-2 px-2 text-left rounded-lg transition-colors active:scale-[0.99] hover:bg-[var(--bg-elevated)]"
+      style={{ width: 'calc(100% + 16px)', borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
     >
       <div className="flex items-center gap-3 min-w-0">
         <span
@@ -1219,13 +1293,16 @@ function FrequentList({ items }) {
         </span>
         <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{g.title}</span>
       </div>
-      <span
-        className="text-[14px] font-medium whitespace-nowrap"
-        style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
-      >
-        {fmtShort(g.sum)} ₽
-      </span>
-    </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span
+          className="text-[14px] font-medium whitespace-nowrap"
+          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+        >
+          {fmtShort(g.sum)} ₽
+        </span>
+        <RowChevron />
+      </div>
+    </button>
   ))
 }
 
