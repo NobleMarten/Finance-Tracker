@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 export function NumberTicker({ value, format = (n) => String(n), className, delay = 0, ...props }) {
   const ref = useRef(null)
   const motionValue = useMotionValue(0)
-  const spring = useSpring(motionValue, { damping: 60, stiffness: 140 })
+  const spring = useSpring(motionValue, { damping: 38, stiffness: 320, restDelta: 0.5 })
   const inView = useInView(ref, { once: true, margin: '0px' })
   const formatRef = useRef(format)
   formatRef.current = format

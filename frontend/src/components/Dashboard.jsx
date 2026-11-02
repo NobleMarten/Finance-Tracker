@@ -179,7 +179,7 @@ function Hero({
       </div>
 
       {/* Period chips */}
-      <div className="no-scrollbar -mx-5 mt-5 flex gap-2 overflow-x-auto px-5" role="tablist" aria-label="Период">
+      <div className="no-scrollbar -mx-5 mt-5 flex gap-1.5 overflow-x-auto px-5" role="tablist" aria-label="Период">
         {PERIODS.map(({ key, label }) => {
           const active = period === key
           return (
@@ -191,7 +191,7 @@ function Hero({
               aria-expanded={key === 'week' && !desktop ? weekOpen : undefined}
               onClick={() => onSelect(key)}
               className={cn(
-                'flex h-8 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[12px] font-semibold transition-colors duration-200',
+                'flex h-8 flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 text-[12px] font-semibold transition-colors duration-200',
                 active ? 'border-white bg-white text-primary' : 'border-white/15 bg-white/10 text-white/80 hover:bg-white/15',
               )}
             >
@@ -265,7 +265,7 @@ function WeekList({ items, onEdit, onNavy = false }) {
       type="button"
       onClick={() => onEdit?.(t)}
       className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors',
+        'flex w-full items-center gap-3 px-1 py-2 text-left transition-colors',
         onNavy ? 'hover:bg-white/5' : 'hover:bg-muted',
         i > 0 && (onNavy ? 'border-t border-white/[0.07]' : 'border-t border-border/60'),
       )}
