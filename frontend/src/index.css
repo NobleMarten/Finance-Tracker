@@ -370,8 +370,8 @@ input, button, select, textarea {
 }
 
 .auth-input {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
   color: var(--text-primary);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -383,7 +383,8 @@ input, button, select, textarea {
 
 .auth-input:focus {
   border-color: transparent;
-  box-shadow: 0 0 0 2px var(--accent);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.35);
 }
 
 .auth-icon-btn {

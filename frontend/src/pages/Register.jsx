@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import AuthShell from '../components/AuthShell'
 
 export default function Register() {
   const { register, isAuthenticated } = useAuth()
@@ -32,15 +33,9 @@ export default function Register() {
   }
 
   return (
-    <div className="auth-page min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(var(--accent-rgb),0.12),transparent)]" />
-
-      <div
-        className="auth-card relative w-full max-w-[400px] rounded-2xl p-8"
-        style={{ boxShadow: 'var(--shadow-modal)' }}
-      >
-        <div className="mb-8 text-center">
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+    <AuthShell>
+        <div className="mb-7">
+          <h1 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Регистрация
           </h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -51,7 +46,7 @@ export default function Register() {
         <form onSubmit={onSubmit} className="space-y-5">
           {error && (
             <div
-              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+              className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
               role="alert"
             >
               {error}
@@ -59,7 +54,7 @@ export default function Register() {
           )}
 
           <div>
-            <label htmlFor="reg-login" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+            <label htmlFor="reg-login" className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>
               Логин
             </label>
             <input
@@ -70,13 +65,13 @@ export default function Register() {
               minLength={2}
               value={loginName}
               onChange={(e) => setLoginName(e.target.value)}
-              className="auth-input w-full rounded-xl px-4 py-3 text-sm"
-              placeholder="username"
+              className="auth-input w-full rounded-xl px-4 py-3.5 text-[15px]"
+              placeholder="Логин"
             />
           </div>
 
           <div>
-            <label htmlFor="reg-email" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+            <label htmlFor="reg-email" className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>
               Email
             </label>
             <input
@@ -86,13 +81,13 @@ export default function Register() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="auth-input w-full rounded-xl px-4 py-3 text-sm"
+              className="auth-input w-full rounded-xl px-4 py-3.5 text-[15px]"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="reg-password" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+            <label htmlFor="reg-password" className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>
               Пароль
             </label>
             <div className="relative">
@@ -104,7 +99,7 @@ export default function Register() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="auth-input w-full rounded-xl py-3 pl-4 pr-12 text-sm"
+                className="auth-input w-full rounded-xl py-3.5 pl-4 pr-12 text-[15px]"
                 placeholder="••••••••"
               />
               <button
@@ -130,10 +125,10 @@ export default function Register() {
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-xl py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-[52px] w-full rounded-2xl text-[15px] font-semibold text-white transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             style={{
               backgroundColor: 'var(--accent)',
-              boxShadow: '0 8px 24px -4px var(--accent-glow)',
+              boxShadow: '0 12px 24px -12px rgba(14,20,48,0.6)',
             }}
           >
             {pending ? 'Создание…' : 'Создать аккаунт'}
@@ -149,7 +144,6 @@ export default function Register() {
             Войти
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthShell>
   )
 }
