@@ -20,3 +20,7 @@ frontend/dist
 
 # Тикеты — рабочие заметки, живут в трекере, а не в репозитории.
 docs/FT-*.md
+# Playwright
+frontend/test-results
+frontend/playwright-report
+frontend/dev-dist
