@@ -14,15 +14,22 @@ export default function ResponsiveSheet({
 }) {
   const isDesktop = useIsDesktop()
 
+  // The calendar portals to <body>, i.e. "outside" this modal: clicks and
+  // Escape there belong to the calendar, not to us.
+  const inPicker = (e) => Boolean(
+    document.querySelector('[data-overlay="datepicker"]') ||
+    e?.target?.closest?.('[data-overlay="datepicker"]'),
+  )
+  const guardOutside = (e) => { if (!dismissible || inPicker(e)) e.preventDefault() }
+  const guardEscape = (e) => { if (!dismissible || inPicker(e)) e.preventDefault() }
+
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={cn(className, dialogClassName)}
-          onInteractOutside={(e) => { if (!dismissible) e.preventDefault() }}
-          onEscapeKeyDown={(e) => {
-            if (!dismissible || document.querySelector('[data-overlay="datepicker"]')) e.preventDefault()
-          }}
+          onInteractOutside={guardOutside}
+          onEscapeKeyDown={guardEscape}
         >
           <DialogTitle className="sr-only">{title}</DialogTitle>
           <DialogDescription className="sr-only">{description ?? title}</DialogDescription>
@@ -34,7 +41,7 @@ export default function ResponsiveSheet({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} dismissible={dismissible} repositionInputs={false}>
-      <DrawerContent className={cn(className, sheetClassName)}>
+      <DrawerContent className={cn(className, sheetClassName)} onInteractOutside={guardOutside} onEscapeKeyDown={guardEscape}>
         <DrawerTitle className="sr-only">{title}</DrawerTitle>
         <DrawerDescription className="sr-only">{description ?? title}</DrawerDescription>
         {children}

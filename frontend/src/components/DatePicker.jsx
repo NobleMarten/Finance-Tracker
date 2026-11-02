@@ -3,12 +3,12 @@ import { createPortal } from 'react-dom'
 import { toDateInput, todayInput } from '../utils/date'
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
 ]
 
 // Monday-first, matching how History already groups weeks.
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
 
 const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate()
 
@@ -92,6 +92,9 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
       style={{
         // Inline so no build step can drop it, and above the toast layer.
         zIndex: 400,
+        // A modal Radix dialog / vaul sheet underneath sets pointer-events:none
+        // on <body>; this layer lives outside it and must stay clickable.
+        pointerEvents: 'auto',
         background: 'var(--scrim)',
         backdropFilter: 'blur(2px)',
       }}
@@ -102,13 +105,13 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label="Choose date"
+        aria-label="Выбор даты"
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-[300px] p-4 outline-none animate-scale-in"
+        className="w-full max-w-[320px] p-4 outline-none animate-scale-in"
         style={{
           background: 'var(--bg-popover)',
           border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-lg)',
+          borderRadius: 24,
           boxShadow: 'var(--shadow-pop)',
         }}
       >
@@ -116,7 +119,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
         <div className="flex items-center justify-between mb-4">
           <NavButton dir="prev" disabled={prevBlocked} onClick={() => shiftMonth(-1)} />
           <div
-            className="text-[13px] font-medium tracking-tight"
+            className="text-[14px] font-bold tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             {MONTHS[view.m]} {view.y}
@@ -129,8 +132,8 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
           {WEEKDAYS.map(w => (
             <div
               key={w}
-              className="h-6 flex items-center justify-center text-[9px] uppercase tracking-[0.1em] font-medium"
-              style={{ color: 'var(--text-ghost)' }}
+              className="h-6 flex items-center justify-center text-[11px] font-semibold"
+              style={{ color: 'var(--text-tertiary)' }}
             >
               {w}
             </div>
@@ -154,11 +157,10 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
                 disabled={disabled}
                 onClick={() => pick(day)}
                 aria-current={selected ? 'date' : undefined}
-                className="h-9 flex items-center justify-center text-[12px] transition-colors duration-100"
+                className="h-9 flex items-center justify-center text-[13px] tabular-nums transition-colors duration-100 hover:bg-[var(--bg-hover)]"
                 style={{
                   borderRadius: 'var(--radius-full)',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: selected ? 600 : 400,
+                  fontWeight: selected || isToday ? 700 : 500,
                   background: selected ? 'var(--accent)' : 'transparent',
                   color: selected
                     ? '#fff'
@@ -170,7 +172,7 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
                   border: !selected && isToday
                     ? '1px solid var(--accent)'
                     : '1px solid transparent',
-                  boxShadow: selected ? '0 0 16px var(--accent-glow)' : 'none',
+                  boxShadow: 'none',
                   cursor: disabled ? 'default' : 'pointer',
                 }}
               >
@@ -185,8 +187,8 @@ export default function DatePicker({ value, min, max, onSelect, onClose }) {
           className="flex gap-2 mt-4 pt-3"
           style={{ borderTop: '1px solid var(--border-subtle)' }}
         >
-          <QuickButton label="today" onClick={() => quick(0)} />
-          <QuickButton label="yesterday" onClick={() => quick(1)} />
+          <QuickButton label="Сегодня" onClick={() => quick(0)} />
+          <QuickButton label="Вчера" onClick={() => quick(1)} />
         </div>
       </div>
     </div>,
@@ -200,7 +202,7 @@ function NavButton({ dir, disabled, onClick }) {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      aria-label={dir === 'prev' ? 'Previous month' : 'Next month'}
+      aria-label={dir === 'prev' ? 'Предыдущий месяц' : 'Следующий месяц'}
       className="w-8 h-8 flex items-center justify-center rounded-full transition-colors active:scale-90"
       style={{
         background: 'var(--bg-surface)',
@@ -222,12 +224,11 @@ function QuickButton({ label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 py-2 text-[11px] font-medium transition-colors"
+      className="flex-1 py-2.5 text-[12px] font-semibold transition-colors hover:bg-[var(--bg-hover)]"
       style={{
-        borderRadius: 'var(--radius-sm)',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-muted)',
-        color: 'var(--text-secondary)',
+        borderRadius: 12,
+        background: 'var(--bg-elevated)',
+        color: 'var(--text-primary)',
         cursor: 'pointer',
       }}
     >

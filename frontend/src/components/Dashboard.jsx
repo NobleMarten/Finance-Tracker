@@ -223,7 +223,8 @@ function Hero({
         className="grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out"
         style={{ gridTemplateRows: weekOpen ? '1fr' : '0fr', opacity: weekOpen ? 1 : 0, marginTop: weekOpen ? 16 : 0 }}
       >
-        <div className="overflow-hidden">
+        {/* inert while collapsed: hidden rows must not take focus or clicks. */}
+        <div className="overflow-hidden" {...(weekOpen ? {} : { inert: '' })}>
           <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-1.5">
             <WeekList items={weekTx} onEdit={onEdit} onNavy />
           </div>

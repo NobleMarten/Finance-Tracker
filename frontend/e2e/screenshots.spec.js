@@ -40,9 +40,18 @@ test('screens', async ({ page }, testInfo) => {
   await page.keyboard.press('Escape')
   await settle(page)
 
+  await page.getByRole('button', { name: /Кофе 09:12/ }).first().click()
+  await settle(page)
+  await shot(page, testInfo, '09-edit')
+  await page.keyboard.press('Escape')
+  await settle(page)
+
   await page.getByRole('button', { name: 'Профиль' }).first().click()
   await settle(page)
   await shot(page, testInfo, '06-profile')
+  await page.getByRole('button', { name: 'API-токены' }).click()
+  await page.waitForTimeout(1200)
+  await shot(page, testInfo, '10-tokens')
 })
 
 test('auth', async ({ page }, testInfo) => {

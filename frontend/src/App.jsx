@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTransactions } from './hooks/useTransactions'
 import { useIsDesktop } from './hooks/useMediaQuery'
 import Dashboard from './components/Dashboard'
@@ -9,7 +9,7 @@ import Stats from './components/Stats'
 import BottomNav from './components/BottomNav'
 import TopNav from './components/TopNav'
 import ProfileSheet from './components/ProfileSheet'
-import DesktopModal from './components/DesktopModal'
+import ResponsiveSheet from './components/ResponsiveSheet'
 import Toast from './components/Toast'
 import OfflineBanner from './components/OfflineBanner'
 import ApiTokens from './components/ApiTokens'
@@ -22,13 +22,19 @@ export default function App() {
   const { transactions, loading, error, add, update, remove, refresh } = useTransactions()
   const [toast, setToast] = useState(null)
   const [editingExpense, setEditingExpense] = useState(null)
-  // Pre-selected day for the add screen, set when you jump there from a day view.
+  // The add form is a sheet over whatever screen you are on, so a successful
+  // add leaves you exactly where you started (e.g. on History's day view).
+  const [addOpen, setAddOpen] = useState(false)
+  // Pre-selected day for the add form, set when you open it from a day view.
   const [addDate, setAddDate] = useState(null)
-  // Where a successful add lands. Adding from History's day view should put you
-  // back on that day to see the new row, not bounce you to the dashboard.
-  const [addReturn, setAddReturn] = useState(0)
-  // Lifted out of History so the selected period survives the trip to AddExpense
-  // and back (History unmounts while another screen is shown).
+  // Bumped on every open so the form starts clean each time.
+  const [addKey, setAddKey] = useState(0)
+  // The edit sheet animates out after editingExpense is cleared; keep the last
+  // expense around so its body has something to render during the exit.
+  const lastEdited = useRef(null)
+  if (editingExpense) lastEdited.current = editingExpense
+  // Lifted out of History so the selected period survives screen switches
+  // (History unmounts while another screen is shown).
   const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -39,20 +45,20 @@ export default function App() {
     setTimeout(() => setToast(msg), 10)
   }
 
-  /** `date` is `YYYY-MM-DD`; omitted means today. `from` is the screen to return to. */
-  const goToAdd = (date = null, from = 0) => {
-    setAddDate(date)
-    setAddReturn(from)
-    setScreen(2)
+  /** `date` is `YYYY-MM-DD`; omitted means today. */
+  const openAdd = (date = null) => {
+    setAddDate(typeof date === 'string' ? date : null)
+    setAddKey(k => k + 1)
+    setAddOpen(true)
   }
 
   const navigate = (next) => {
-    if (next === 2) {
-      setAddDate(null)
-      setAddReturn(0)
-    }
+    if (next === 2) { openAdd(); return }
     setScreen(next)
   }
+
+  // Let the profile sheet finish closing before the tokens sheet slides up.
+  const openTokens = () => setTimeout(() => setTokensOpen(true), 220)
 
   const handleAdd = async (data) => {
     try {
@@ -65,8 +71,7 @@ export default function App() {
     }
     const when = data.date && data.date !== todayInput() ? ` · ${dayLabel(data.date)}` : ''
     showToast(`+${fmtRub(data.amount)} добавлено${when}`)
-    setAddDate(null)
-    setScreen(addReturn)
+    setAddOpen(false)
   }
 
   const handleUpdate = async (id, data) => {
@@ -102,7 +107,7 @@ export default function App() {
           onEdit={setEditingExpense}
           onRefresh={refresh}
           onNavigate={navigate}
-          onAdd={() => navigate(2)}
+          onAdd={() => openAdd()}
           onOpenProfile={() => setProfileOpen(true)}
           desktop={isDesktop}
         />
@@ -114,23 +119,15 @@ export default function App() {
           onDelete={handleDelete}
           onEdit={setEditingExpense}
           onRefresh={refresh}
-          onAddExpense={(date) => goToAdd(date, 1)}
+          onAddExpense={(date) => openAdd(date)}
           view={historyView}
           onViewChange={setHistoryView}
           desktop={isDesktop}
         />
       )}
-      {screen === 2 && (
-        <AddExpense
-          key={addDate ?? 'today'}
-          onAdd={handleAdd}
-          initialDate={addDate}
-          desktop={isDesktop}
-        />
-      )}
       {screen === 3 && (
         <Stats
-          onAddExpense={goToAdd}
+          onAddExpense={openAdd}
           transactions={transactions}
           onEdit={setEditingExpense}
           desktop={isDesktop}
@@ -144,27 +141,43 @@ export default function App() {
       <ProfileSheet
         open={profileOpen}
         onOpenChange={setProfileOpen}
-        onOpenTokens={() => setTokensOpen(true)}
+        onOpenTokens={openTokens}
       />
-      {tokensOpen && (
-        isDesktop
-          ? (
-            <DesktopModal onClose={() => setTokensOpen(false)} width={620}>
-              <ApiTokens onClose={() => setTokensOpen(false)} />
-            </DesktopModal>
-          )
-          : <ApiTokens onClose={() => setTokensOpen(false)} />
-      )}
+      <ResponsiveSheet
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="Новый расход"
+        dialogClassName="max-w-[420px]"
+      >
+        <AddExpense key={addKey} onAdd={handleAdd} initialDate={addDate} desktop={isDesktop} />
+      </ResponsiveSheet>
 
-      {editingExpense && (
-        <EditExpense
-          expense={editingExpense}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onCancel={() => setEditingExpense(null)}
-          desktop={isDesktop}
-        />
-      )}
+      <ResponsiveSheet
+        open={Boolean(editingExpense)}
+        onOpenChange={(o) => { if (!o) setEditingExpense(null) }}
+        title="Изменить расход"
+        dialogClassName="max-w-[420px]"
+      >
+        {lastEdited.current && (
+          <EditExpense
+            key={lastEdited.current.id}
+            expense={lastEdited.current}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            desktop={isDesktop}
+          />
+        )}
+      </ResponsiveSheet>
+
+      <ResponsiveSheet
+        open={tokensOpen}
+        onOpenChange={setTokensOpen}
+        title="API-токены"
+        dialogClassName="max-w-[520px] h-[min(680px,86vh)]"
+        sheetClassName="h-[88dvh]"
+      >
+        <ApiTokens />
+      </ResponsiveSheet>
     </>
   )
 
@@ -174,7 +187,7 @@ export default function App() {
         <TopNav
           screen={screen}
           onNavigate={navigate}
-          onAdd={() => navigate(2)}
+          onAdd={() => openAdd()}
           onOpenProfile={() => setProfileOpen(true)}
         />
         <OfflineBanner message={error} onRetry={refresh} desktop />
@@ -215,7 +228,7 @@ export default function App() {
             </div>
           )}
         </div>
-        <BottomNav screen={screen} onNavigate={navigate} onAdd={() => navigate(2)} />
+        <BottomNav screen={screen} onNavigate={navigate} onAdd={() => openAdd()} />
 
         {overlays}
       </div>
