@@ -227,13 +227,8 @@ export default function App() {
     // page background — sits under the translucent status bar, so iOS keeps the
     // clock and icons white instead of flashing them black.
     <div
-      className="fixed inset-x-0 top-0 flex justify-center overflow-hidden"
-      style={{
-        // --app-h: real screen height in the iOS home-screen app (see
-        // utils/standaloneViewport.js); everywhere else plain 100%.
-        height: 'var(--app-h, 100%)',
-        background: 'linear-gradient(to bottom, #18234a 0%, #18234a 45%, var(--bg-base) 45%)',
-      }}
+      className="fixed inset-0 flex justify-center overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom, #18234a 0%, #18234a 45%, var(--bg-base) 45%)' }}
     >
       {/* No safe-area padding here: every screen's navy header runs under the
           status bar and every scroll area pads its own bottom, so nothing paints

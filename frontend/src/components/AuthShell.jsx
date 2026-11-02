@@ -5,7 +5,7 @@
  */
 export default function AuthShell({ children }) {
   return (
-    <div className="flex flex-col bg-background lg:items-center" style={{ minHeight: 'var(--app-h, 100dvh)' }}>
+    <div className="flex min-h-[100dvh] flex-col bg-background lg:items-center">
       <div
         className="on-navy px-6 pb-16 text-white lg:absolute lg:inset-x-0 lg:top-0 lg:h-[46vh] lg:pb-0"
         style={{ background: 'var(--navy-gradient)', paddingTop: 'calc(env(safe-area-inset-top) + 40px)' }}
