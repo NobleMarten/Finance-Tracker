@@ -149,7 +149,10 @@ export default function Dashboard({
     <PullToRefresh onRefresh={onRefresh} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {hero}
       {/* White sheet, tucked under the header's bottom edge. */}
-      <section className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pb-32 pt-6">
+      <section
+        className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
+      >
         <RecentHeader onAll={() => onNavigate?.(1)} />
         <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
       </section>

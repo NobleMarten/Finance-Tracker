@@ -4,7 +4,7 @@
   "start_url": ".",
   "display": "standalone",
   "background_color": "#F2F4F8",
-  "theme_color": "#F2F4F8",
+  "theme_color": "#1f2b4d",
   "description": "Учёт расходов",
   "icons": [
     {

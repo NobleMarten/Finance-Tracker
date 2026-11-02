@@ -542,66 +542,54 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   /* ── Mobile ───────────────────────────────────────────────── */
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
-    <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
+    <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto">
 
-      <div className="px-5 pt-6 pb-1 text-[22px] font-bold tracking-tight animate-fade-in" style={{ color: 'var(--text-primary)' }}>
-        Статистика
-      </div>
-
-      {/* Hero summary card — swipe left/right here to change month */}
-      <div
+      {/* Navy header runs under the translucent status bar, like the home screen.
+          Swipe left/right on it to change month. */}
+      <header
         {...swipe}
-        className="hero mx-4 mt-3 animate-fade-in relative"
+        className="hero on-navy relative flex-shrink-0 pb-12 text-white animate-fade-in"
         style={{
           ...swipe.style,
-          background: 'var(--hero-bg)',
-          border: '1px solid var(--hero-border)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--hero-shadow)',
+          background: 'var(--navy-gradient)',
+          paddingTop: 'calc(env(safe-area-inset-top) + 18px)',
         }}
       >
-        {/* Glow lives in its own clip layer so the card never clips the content */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ borderRadius: 'inherit' }}>
-          <div className="absolute"
-            style={{ top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, transparent 70%)' }} />
-        </div>
-
-        {/* Month selector inside card */}
-        <div className="relative flex items-center justify-between px-5 pt-5">
-          <button onClick={prevMonth} aria-label="Предыдущий месяц"
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
-            style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
-            <ChevronLeft />
-          </button>
-          <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-            {MONTHS_FULL[month - 1]} {year}
+        <div className="flex items-center justify-between px-5">
+          <div className="text-[22px] font-bold tracking-tight">Статистика</div>
+          <div className="flex items-center gap-1">
+            <button onClick={prevMonth} aria-label="Предыдущий месяц"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/15 bg-white/10 transition-all active:scale-90">
+              <ChevronLeft />
+            </button>
+            <div className="min-w-[112px] text-center text-[13px] font-semibold text-white/80">
+              {MONTHS_FULL[month - 1]} {year}
+            </div>
+            <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Следующий месяц"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/15 bg-white/10 transition-all active:scale-90 disabled:opacity-25 disabled:active:scale-100">
+              <ChevronRight />
+            </button>
           </div>
-          <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Следующий месяц"
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-20 disabled:active:scale-100"
-            style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
-            <ChevronRight />
-          </button>
         </div>
 
-        <div className="relative px-5 pt-4 pb-5">
-          <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+        <div className="px-5 pt-6">
+          <div className="text-[12px] font-medium mb-2 text-white/60">
             Потрачено за месяц
           </div>
           <div
-            className="font-medium whitespace-nowrap"
+            className="whitespace-nowrap"
             style={{
-              fontSize: scaledFontSize(stats?.currentmonth ?? 0, 38, 22, 7) + 'px',
-              lineHeight: 1.15,
-              letterSpacing: '-0.03em', color: 'var(--text-primary)', fontWeight: 600,
+              fontSize: scaledFontSize(stats?.currentmonth ?? 0, 40, 22, 7) + 'px',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em', fontWeight: 600,
             }}
           >
             {loading
-              ? <span className="skeleton inline-block align-middle h-8 w-40" />
+              ? <span className="inline-block align-middle h-9 w-40 rounded-xl bg-white/15" />
               : <><CountUp value={stats?.currentmonth ?? 0} format={fmtShort} /> ₽</>}
           </div>
           {delta !== null && (
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-2.5">
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{
@@ -611,14 +599,19 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               >
                 {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
               </span>
-              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-[12px] text-white/70">
                 к прошлому месяцу
               </span>
             </div>
           )}
         </div>
-      </div>
+      </header>
 
+      {/* Grey sheet tucked under the header; cards sit on it. */}
+      <section
+        className="relative -mt-7 flex-1 rounded-t-[28px] bg-background pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
+      >
       {loading && <StatsSkeleton />}
 
       {error && (
@@ -866,6 +859,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           </div>
         </>
       )}
+      </section>
     </PullToRefresh>
 
     {dayDetail}

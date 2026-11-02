@@ -206,16 +206,17 @@ export default function History({
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      {/* Header */}
-      <div className="px-5 pt-6 pb-4 flex-shrink-0 flex items-center justify-between gap-4 animate-fade-in">
-        <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          История
+    <PullToRefresh onRefresh={onRefresh} className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+      {/* Navy header under the translucent status bar: title, segments and the
+          period itself, flat — the same shape as the home screen. */}
+      <header
+        className="hero on-navy flex-shrink-0 pb-10 text-white animate-fade-in"
+        style={{ background: 'var(--navy-gradient)', paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}
+      >
+        <div className="px-5 flex items-center justify-between gap-4">
+          <div className="text-[22px] font-bold tracking-tight">История</div>
+          <Segments seg={seg} onSeg={handleSeg} onNavy />
         </div>
-        <Segments seg={seg} onSeg={handleSeg} />
-      </div>
-
-      <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto px-4 pb-28">
         <PeriodHero
           seg={seg}
           offset={offset}
@@ -223,35 +224,43 @@ export default function History({
           data={data}
           onAdd={onAdd}
           swipe={swipe}
+          flat
         />
+      </header>
 
-        <div className="mt-5">
-          {showSkeleton ? (
-            <ListSkeleton />
-          ) : data.filtered.length === 0 ? (
-            <EmptyState seg={seg} onAdd={onAdd} />
-          ) : (
-            data.groups.map((g, gi) => (
-              <Group key={g.key} group={g} periodTotal={data.total} index={gi}>
-                {g.items.map((t, i) => (
-                  <Row key={t.id} t={t} seg={seg} index={i} first={i === 0} onEdit={() => onEdit?.(t)} />
-                ))}
-              </Group>
-            ))
-          )}
-        </div>
-      </PullToRefresh>
-    </div>
+      <section
+        className="relative -mt-6 flex-1 rounded-t-[28px] bg-background px-4 pt-5"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
+      >
+        {showSkeleton ? (
+          <ListSkeleton />
+        ) : data.filtered.length === 0 ? (
+          <EmptyState seg={seg} onAdd={onAdd} />
+        ) : (
+          data.groups.map((g, gi) => (
+            <Group key={g.key} group={g} periodTotal={data.total} index={gi}>
+              {g.items.map((t, i) => (
+                <Row key={t.id} t={t} seg={seg} index={i} first={i === 0} onEdit={() => onEdit?.(t)} />
+              ))}
+            </Group>
+          ))
+        )}
+      </section>
+    </PullToRefresh>
   )
 }
 
 /* ────────────────────────── shared pieces ────────────────────────── */
 
-function Segments({ seg, onSeg, desktop = false }) {
+function Segments({ seg, onSeg, desktop = false, onNavy = false }) {
   return (
     <div
       className="relative flex p-1"
-      style={{
+      style={onNavy ? {
+        background: 'rgba(255,255,255,0.10)',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid rgba(255,255,255,0.15)',
+      } : {
         background: 'var(--bg-surface)',
         borderRadius: desktop ? 'var(--radius-md)' : 'var(--radius-sm)',
         border: '1px solid var(--border-subtle)',
@@ -267,7 +276,7 @@ function Segments({ seg, onSeg, desktop = false }) {
           width: `calc((100% - 8px) / ${SEGMENTS.length})`,
           transform: `translateX(${seg * 100}%)`,
           borderRadius: desktop ? 9 : 7,
-          background: 'var(--accent)',
+          background: onNavy ? '#fff' : 'var(--accent)',
           boxShadow: '0 4px 10px -4px rgba(14,20,48,0.5)',
         }}
       />
@@ -276,7 +285,7 @@ function Segments({ seg, onSeg, desktop = false }) {
           key={lbl}
           onClick={() => onSeg(i)}
           className={`relative ${desktop ? 'w-20 py-1.5 text-[12px]' : 'w-16 py-1.5 text-[12px]'} font-semibold tracking-wide transition-colors duration-200 active:scale-95`}
-          style={{ color: seg === i ? '#fff' : 'var(--text-tertiary)' }}
+          style={{ color: seg === i ? (onNavy ? '#1f2b4d' : '#fff') : (onNavy ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)') }}
         >
           {lbl}
         </button>
@@ -289,7 +298,7 @@ function Segments({ seg, onSeg, desktop = false }) {
  * The period card: navigation, the total, a comparison with the previous
  * period and — in the day view — the week strip and the add button.
  */
-function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = false }) {
+function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = false, flat = false }) {
   const { range, total, filtered, delta, deltaLabel, week } = data
   const count = filtered.length
 
@@ -297,7 +306,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
     <div
       {...swipe}
       className="hero relative overflow-hidden animate-fade-in"
-      style={{
+      style={flat ? swipe?.style : {
         ...swipe?.style,
         background: 'var(--hero-bg)',
         border: '1px solid var(--hero-border)',
@@ -305,7 +314,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
         boxShadow: 'var(--hero-shadow)',
       }}
     >
-      <div className="relative p-5">
+      <div className={flat ? 'relative px-5 pt-5' : 'relative p-5'}>
         {/* Period navigation */}
         <div className="flex items-center gap-2">
           <PeriodBtn onClick={() => setOffset(o => o + 1)} label="Предыдущий период">
