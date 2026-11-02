@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import AuthShell from '../components/AuthShell'
 import { authApi } from '../api/api'
 
 export default function ForgotPassword() {
@@ -23,15 +24,9 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="auth-page min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(var(--accent-rgb),0.12),transparent)]" />
-
-      <div
-        className="auth-card relative w-full max-w-[400px] rounded-2xl p-8"
-        style={{ boxShadow: 'var(--shadow-modal)' }}
-      >
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+    <AuthShell>
+        <div className="mb-6">
+          <h1 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Сброс пароля
           </h1>
           <p className="mt-3 text-left text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -43,7 +38,7 @@ export default function ForgotPassword() {
 
         {done ? (
           <div
-            className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm leading-relaxed text-emerald-100"
+            className="rounded-xl bg-success/10 px-4 py-3 text-sm leading-relaxed text-success"
             role="status"
           >
             Запрос принят. Когда почта будет подключена, на указанный email придёт письмо со ссылкой для
@@ -53,7 +48,7 @@ export default function ForgotPassword() {
           <form onSubmit={onSubmit} className="space-y-5">
             {error && (
               <div
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
                 role="alert"
               >
                 {error}
@@ -61,7 +56,7 @@ export default function ForgotPassword() {
             )}
 
             <div>
-              <label htmlFor="forgot-email" className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
+              <label htmlFor="forgot-email" className="mb-2 block text-[13px] font-semibold" style={{ color: 'var(--text-tertiary)' }}>
                 Email аккаунта
               </label>
               <input
@@ -71,7 +66,7 @@ export default function ForgotPassword() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="auth-input w-full rounded-xl px-4 py-3 text-sm"
+                className="auth-input w-full rounded-xl px-4 py-3.5 text-[15px]"
                 placeholder="you@example.com"
               />
             </div>
@@ -79,10 +74,10 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={pending}
-              className="w-full rounded-xl py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-[52px] w-full rounded-2xl text-[15px] font-semibold text-white transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
               style={{
                 backgroundColor: 'var(--accent)',
-                boxShadow: '0 8px 24px -4px var(--accent-glow)',
+                boxShadow: '0 12px 24px -12px rgba(14,20,48,0.6)',
               }}
             >
               {pending ? 'Отправка…' : 'Отправить ссылку (когда будет готово)'}
@@ -95,7 +90,6 @@ export default function ForgotPassword() {
             ← Назад ко входу
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthShell>
   )
 }

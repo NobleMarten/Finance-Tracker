@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Check, Copy, KeyRound } from 'lucide-react'
 import { tokensApi } from '../api/api'
+import { Button } from './ui/button'
+import { Skeleton } from './ui/skeleton'
 
-/** «2 hours ago» / «3 days ago» — точнее здесь не нужно и не бывает: сервер
+/** «2 ч назад» / «3 дн. назад» — точнее здесь не нужно и не бывает: сервер
  *  обновляет last_used_at не чаще раза в 10 минут. */
 function relative(iso) {
-  if (!iso) return 'never used'
+  if (!iso) return 'не использовался'
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.round(diff / 60000)
-  if (min < 2) return 'just now'
-  if (min < 60) return `${min} min ago`
+  if (min < 2) return 'только что'
+  if (min < 60) return `${min} мин назад`
   const hours = Math.round(min / 60)
-  if (hours < 24) return `${hours} h ago`
+  if (hours < 24) return `${hours} ч назад`
   const days = Math.round(hours / 24)
-  return days === 1 ? 'yesterday' : `${days} days ago`
+  return days === 1 ? 'вчера' : `${days} дн. назад`
 }
 
 function shortDate(iso) {
-  return new Date(iso).toLocaleDateString('en-GB', {
+  return new Date(iso).toLocaleDateString('ru-RU', {
     day: 'numeric', month: 'short', year: 'numeric',
   })
 }
@@ -24,10 +27,9 @@ function shortDate(iso) {
 /**
  * Управление персональными API-токенами.
  *
- * Полноэкранный слой поверх приложения, как DayDetail и EditExpense — открывается
- * из меню пользователя в нижней панели.
+ * Тело sheet / dialog, открывается из профиля.
  */
-export default function ApiTokens({ onClose }) {
+export default function ApiTokens() {
   const [tokens, setTokens] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -95,238 +97,123 @@ export default function ApiTokens({ onClose }) {
   }
 
   return (
-    <div
-      className="absolute inset-0 z-50 flex flex-col animate-fade-in-up"
-      style={{
-        background: 'var(--bg-base)',
-        // absolute inset-0 отсчитывается от padding-бокса контейнера, поэтому
-        // отступы под чёлку с него не наследуются — слой обязан задать их сам,
-        // иначе шапка уезжает под статус-бар. Так же сделано в EditExpense.
-        paddingTop: 'calc(env(safe-area-inset-top) + 20px)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pb-4 flex-shrink-0">
-        <button
-          onClick={onClose}
-          aria-label="Back"
-          className="w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
-          style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <div className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
-          API tokens
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="px-5 pb-3 pt-4 lg:pt-6">
+        <h2 className="text-[18px] font-bold tracking-tight">API-токены</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+          Для добавления трат из «Быстрых команд» iOS без входа. Токен действует от вашего
+          имени — отзовите его, если устройство потеряно.
+        </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-10">
-        <p className="text-[13px] font-light mb-5" style={{ color: 'var(--text-tertiary)' }}>
-          For adding expenses from iOS Shortcuts without signing in. Each token acts
-          on your behalf — revoke it if the device is lost.
-        </p>
-
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
         {/* Create */}
-        <div
-          className="p-4 mb-5"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-surface)',
-          }}
-        >
-          <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
-            style={{ color: 'var(--text-tertiary)' }}>
-            new token
-          </div>
+        <div className="mb-4 rounded-2xl bg-card p-4 shadow-soft">
+          <div className="mb-2 text-[12px] font-semibold text-muted-foreground">Новый токен</div>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') create() }}
-            placeholder="what device is it for?"
+            placeholder="Для какого устройства?"
+            aria-label="Название токена"
             maxLength={100}
-            className="w-full bg-transparent text-[14px] font-light outline-none pb-2 mb-4"
-            style={{
-              color: 'var(--text-secondary)',
-              borderBottom: '1px solid var(--border-subtle)',
-              caretColor: 'var(--accent)',
-            }}
+            className="mb-3 h-11 w-full rounded-xl bg-muted px-3.5 text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-foreground/35 focus:ring-2 focus:ring-primary/25"
           />
-          <button
-            onClick={create}
-            disabled={!name.trim() || creating}
-            className="w-full py-3 text-[11px] uppercase tracking-[0.18em] font-medium transition-all duration-200 flex items-center justify-center"
-            style={{
-              borderRadius: 'var(--radius-md)',
-              background: name.trim() ? 'var(--accent)' : 'var(--bg-elevated)',
-              color: name.trim() ? '#fff' : 'var(--text-ghost)',
-              border: `1px solid ${name.trim() ? 'var(--accent)' : 'var(--border-subtle)'}`,
-              cursor: name.trim() && !creating ? 'pointer' : 'not-allowed',
-              opacity: creating ? 0.7 : 1,
-            }}
-          >
-            {creating ? <span className="animate-spin-btn" /> : 'create token'}
-          </button>
+          <Button onClick={create} disabled={!name.trim() || creating} className="w-full">
+            {creating ? <span className="animate-spin-btn" /> : 'Создать токен'}
+          </Button>
         </div>
 
         {/* Plaintext — показывается ровно один раз */}
         {fresh && (
-          <div
-            className="p-4 mb-5 animate-scale-in"
-            style={{
-              background: 'var(--accent-glow)',
-              border: '1px solid var(--accent)',
-              borderRadius: 'var(--radius-md)',
-            }}
-          >
-            <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-2"
-              style={{ color: 'var(--accent)' }}>
-              copy it now
-            </div>
-            <p className="text-[12px] font-light mb-3" style={{ color: 'var(--text-secondary)' }}>
-              This is the only time the token is shown. It is stored hashed — nobody,
-              including the server, can read it again.
+          <div className="on-navy mb-4 rounded-2xl p-4 text-white animate-scale-in" style={{ background: 'var(--navy-gradient)' }}>
+            <div className="mb-1 text-[13px] font-bold">Скопируйте сейчас</div>
+            <p className="mb-3 text-[12px] text-white/65">
+              Токен показывается один раз. Он хранится в виде хеша — прочитать его снова
+              не сможет никто, включая сервер.
             </p>
-            <div
-              className="text-[12px] px-3 py-2.5 mb-3 break-all"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                background: 'var(--bg-base)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-primary)',
-              }}
-            >
+            <div className="mb-3 break-all rounded-xl bg-white/10 px-3 py-2.5 font-mono text-[12px]">
               {fresh.token}
             </div>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={copy}
-                className="flex-1 py-2.5 text-[11px] uppercase tracking-[0.16em] font-medium transition-colors"
-                style={{
-                  borderRadius: 'var(--radius-sm)',
-                  background: copied ? 'transparent' : 'var(--accent)',
-                  color: copied ? 'var(--accent)' : '#fff',
-                  border: '1px solid var(--accent)',
-                  cursor: 'pointer',
-                }}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-white text-[13px] font-semibold text-primary transition-transform active:scale-[0.98]"
               >
-                {copied ? 'copied' : 'copy'}
+                {copied ? <><Check className="h-4 w-4" /> Скопировано</> : <><Copy className="h-4 w-4" /> Копировать</>}
               </button>
               <button
+                type="button"
                 onClick={() => setFresh(null)}
-                className="px-4 py-2.5 text-[11px] uppercase tracking-[0.16em] font-medium transition-colors"
-                style={{
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'transparent',
-                  color: 'var(--text-tertiary)',
-                  border: '1px solid var(--border-subtle)',
-                  cursor: 'pointer',
-                }}
+                className="h-10 rounded-xl border border-white/20 px-4 text-[13px] font-semibold text-white/80 transition-colors hover:bg-white/10"
               >
-                done
+                Готово
               </button>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="text-[13px] mb-4 px-3 py-2.5"
-            style={{
-              color: 'var(--danger)',
-              background: 'var(--danger-soft)',
-              border: '1px solid var(--danger-border)',
-              borderRadius: 'var(--radius-sm)',
-            }}>
+          <div className="mb-4 rounded-xl bg-destructive/10 px-3 py-2.5 text-[13px] font-medium text-destructive">
             {error}
           </div>
         )}
 
         {/* List */}
-        <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
-          style={{ color: 'var(--text-tertiary)' }}>
-          your tokens
-        </div>
-
-        {loading ? (
-          <p className="text-[13px] py-4 text-center" style={{ color: 'var(--text-tertiary)' }}>
-            loading…
-          </p>
-        ) : tokens.length === 0 ? (
-          <p className="text-[13px] py-4 text-center" style={{ color: 'var(--text-tertiary)' }}>
-            No tokens yet
-          </p>
-        ) : (
-          tokens.map((t, i) => {
-            const revoked = Boolean(t.revoked_at)
-            return (
-              <div
-                key={t.token_id}
-                className="flex items-start justify-between gap-3 py-3.5"
-                style={{ borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-[14px] font-medium truncate"
-                      style={{
-                        color: revoked ? 'var(--text-ghost)' : 'var(--text-primary)',
-                        textDecoration: revoked ? 'line-through' : 'none',
-                      }}
-                    >
-                      {t.name}
-                    </span>
-                    {revoked && (
-                      <span
-                        className="text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 flex-shrink-0"
-                        style={{
-                          borderRadius: 'var(--radius-full)',
-                          background: 'var(--danger-soft)',
-                          color: 'var(--danger)',
-                          border: '1px solid var(--danger-border)',
-                        }}
-                      >
-                        revoked
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                    created {shortDate(t.created_at)} · {relative(t.last_used_at)}
-                  </div>
-                </div>
-
-                {!revoked && (
-                  <button
-                    onClick={() => revoke(t.token_id)}
-                    className="text-[11px] uppercase tracking-[0.14em] font-medium px-3 py-1.5 flex-shrink-0 transition-colors"
-                    style={{
-                      borderRadius: 'var(--radius-full)',
-                      background: 'transparent',
-                      color: 'var(--text-tertiary)',
-                      border: '1px solid var(--border-muted)',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.color = 'var(--danger)'
-                      e.currentTarget.style.borderColor = 'var(--danger-border)'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.color = 'var(--text-tertiary)'
-                      e.currentTarget.style.borderColor = 'var(--border-muted)'
-                    }}
-                  >
-                    revoke
-                  </button>
-                )}
+        <div className="mb-2 text-[12px] font-semibold text-muted-foreground">Ваши токены</div>
+        <div className="rounded-2xl bg-card px-4 shadow-soft">
+          {loading ? (
+            [0, 1].map(i => (
+              <div key={i} className="flex items-center gap-3 py-3.5">
+                <Skeleton className="h-9 w-9" />
+                <div className="flex-1"><Skeleton className="h-3.5 w-32" /><Skeleton className="mt-2 h-3 w-44" /></div>
               </div>
-            )
-          })
-        )}
+            ))
+          ) : tokens.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/[0.06] text-primary">
+                <KeyRound className="h-5 w-5" />
+              </span>
+              <p className="text-[14px] font-semibold">Токенов пока нет</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">Создайте первый выше</p>
+            </div>
+          ) : (
+            tokens.map((t, i) => {
+              const revoked = Boolean(t.revoked_at)
+              return (
+                <div
+                  key={t.token_id}
+                  className={`flex items-center gap-3 py-3.5 ${i > 0 ? 'border-t border-border/70' : ''}`}
+                >
+                  <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${revoked ? 'bg-muted text-foreground/30' : 'bg-primary/[0.07] text-primary'}`}>
+                    <KeyRound className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`truncate text-[14px] font-semibold ${revoked ? 'text-foreground/35 line-through' : ''}`}>
+                        {t.name}
+                      </span>
+                      {revoked && (
+                        <span className="flex-shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                          отозван
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-muted-foreground">
+                      создан {shortDate(t.created_at)} · {relative(t.last_used_at)}
+                    </div>
+                  </div>
+                  {!revoked && (
+                    <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[12px]" onClick={() => revoke(t.token_id)}>
+                      Отозвать
+                    </Button>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )

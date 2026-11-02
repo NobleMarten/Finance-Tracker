@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/api'
 import { fmtShort, scaledFontSize } from '../utils/format'
+import { MONTHS_NOM, MONTHS_GEN, MONTHS_SHORT } from '../utils/months'
+import { plural } from '../utils/plural'
 import { usePrefersReducedMotion } from '../hooks/useReducedMotion'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
@@ -11,10 +13,7 @@ import { monthInsights, titleKey } from '../utils/monthInsights'
 import ExpenseListDetail from './ExpenseListDetail'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 
-const MONTHS_FULL = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+const MONTHS_FULL = MONTHS_NOM
 
 function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
@@ -116,7 +115,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const maxDayAmount = Math.max(...dailyData.map(d => d.amount), 0)
   const maxAmount = Math.max(maxDayAmount, 1)
 
-  const monthShort = MONTHS_FULL[month - 1].slice(0, 3)
+  const monthShort = MONTHS_GEN[month - 1]
   const activeDay = chartHover ?? chartSel // hover wins over the pinned day
   const activeAmount = activeDay ? (dailyMap[activeDay] ?? 0) : 0
   const yearActive = yearHover ?? yearSel // year grid: hover wins over pinned cell
@@ -126,7 +125,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const trendBase = new Date(now.getFullYear(), now.getMonth(), 1)
   const trendData = Array.from({ length: TREND_N }, (_, i) => {
     const d = new Date(trendBase.getFullYear(), trendBase.getMonth() - (TREND_N - 1 - i), 1)
-    return { year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS_FULL[d.getMonth()].slice(0, 3), amount: 0 }
+    return { year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS_SHORT[d.getMonth()], amount: 0 }
   })
   for (const t of transactions) {
     const b = trendData.find(m => m.year === t.ts.getFullYear() && m.month === t.ts.getMonth() + 1)
@@ -172,26 +171,27 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const statCards = stats && (
     <>
       <StatCard
-        label="Avg / day"
+        label="В среднем / день"
         value={avgCalendar}
-        sub={<><span style={{ fontFamily: 'var(--font-mono)' }}>{fmtShort(stats.avgday)} ₽</span> / spending day</>}
-        subTitle="Average over days that had at least one expense"
+        sub={<>с тратами: {fmtShort(stats.avgday)} ₽</>}
+        subTitle="Среднее по дням, в которые была хотя бы одна трата"
       />
-      <StatCard label="Max / day" value={maxDayAmount} />
-      <StatCard label="Prev month" value={stats.prevmonth} />
+      <StatCard label="Максимум / день" value={maxDayAmount} />
+      <StatCard label="Прошлый месяц" value={stats.prevmonth} />
       {forecast !== null ? (
         <StatCard
-          label="Forecast"
+          label="Прогноз"
           value={forecast}
           accent
-          sub={`by ${daysInMonth} ${monthShort} at this pace`}
+          sub={`к ${daysInMonth} ${monthShort}`}
+          subTitle="При сохранении текущего темпа"
         />
       ) : (
         <StatCard
-          label="Operations"
+          label="Операции"
           value={insights.count}
           unit=""
-          sub={<>avg check <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtShort(insights.avgCheck)} ₽</span></>}
+          sub={<>средний чек {fmtShort(insights.avgCheck)} ₽</>}
         />
       )}
     </>
@@ -202,7 +202,6 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       day={detailDay}
       month={month}
       year={year}
-      monthName={MONTHS_FULL[month - 1]}
       transactions={transactions}
       onEdit={onEdit}
       onAddHere={onAddExpense}
@@ -225,13 +224,13 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
         subtitle={monthLabel}
         items={items}
         figures={[
-          { label: 'Times', value: `×${items.length}` },
-          { label: 'Avg each', value: `${fmtShort(items.length ? Math.round(sum / items.length) : 0)} ₽` },
-          { label: 'Of month', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
+          { label: 'Раз', value: `×${items.length}` },
+          { label: 'В среднем', value: `${fmtShort(items.length ? Math.round(sum / items.length) : 0)} ₽` },
+          { label: 'От месяца', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
         ]}
         note={days < items.length
-          ? `On ${days} different days — sometimes more than once a day.`
-          : `On ${days} different days.`}
+          ? `В ${days} ${plural(days, 'день', 'дня', 'дней')} — иногда несколько раз за день.`
+          : `В ${days} ${plural(days, 'день', 'дня', 'дней')}.`}
         strip={{ daysInMonth, today: isCurrentMonth ? now.getDate() : null }}
         onEdit={onEdit}
         onClose={() => setDrill(null)}
@@ -244,16 +243,16 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     const sum = items.reduce((a, t) => a + t.amount, 0)
     drillDetail = (
       <ExpenseListDetail
-        title="Large expenses"
+        title="Крупные траты"
         subtitle={monthLabel}
         items={items}
         sortBy="amount"
         shareOf={total}
         figures={[
-          { label: 'Share of month', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
-          { label: 'Without them', value: `${fmtShort(total - sum)} ₽` },
+          { label: 'Доля месяца', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
+          { label: 'Без них', value: `${fmtShort(total - sum)} ₽` },
         ]}
-        note={`Purchases of ${fmtShort(threshold)} ₽ or more — 3× your typical purchase (${fmtShort(insights.median)} ₽).`}
+        note={`Покупки от ${fmtShort(threshold)} ₽ — втрое больше типичной (${fmtShort(insights.median)} ₽).`}
         onEdit={onEdit}
         onClose={() => setDrill(null)}
         desktop={desktop}
@@ -265,12 +264,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   if (desktop) {
     return (
       <div className="flex-1 min-h-0 overflow-y-auto relative">
-        <div className="mx-auto w-full max-w-[1480px] px-10 pt-8 pb-12">
+        <div className="mx-auto w-full max-w-5xl px-6 pt-8 pb-12">
           {/* Header — month navigation lives here rather than inside the hero,
               since it now steers three panels at once. */}
           <div className="flex items-center justify-between mb-6 animate-fade-in">
-            <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Statistics
+            <h1 className="text-[26px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Статистика
             </h1>
             <div
               className="flex items-center gap-1 p-1"
@@ -281,7 +280,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 boxShadow: 'var(--shadow-surface)',
               }}
             >
-              <button onClick={prevMonth} aria-label="Previous month"
+              <button onClick={prevMonth} aria-label="Предыдущий месяц"
                 className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-elevated)]">
                 <ChevronLeft />
               </button>
@@ -291,7 +290,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               >
                 {MONTHS_FULL[month - 1]} {year}
               </span>
-              <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
+              <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Следующий месяц"
                 className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-20 hover:enabled:bg-[var(--bg-elevated)]">
                 <ChevronRight />
               </button>
@@ -317,19 +316,16 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   boxShadow: 'var(--hero-shadow)',
                 }}
               >
-                <div className="absolute pointer-events-none"
-                  style={{ top: -60, right: -50, width: 220, height: 220, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.12) 0%, transparent 70%)' }} />
                 <div className="relative px-6 py-6">
-                  <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
+                  <div className="text-[12px] font-semibold mb-2"
                     style={{ color: 'var(--text-tertiary)' }}>
-                    total spent
+                    Потрачено за месяц
                   </div>
                   <div
                     className="font-medium whitespace-nowrap leading-none"
                     style={{
                       fontSize: scaledFontSize(stats?.currentmonth ?? 0, 42, 24, 8) + 'px',
-                      letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                      letterSpacing: '-0.03em', color: 'var(--text-primary)', fontWeight: 600,
                     }}
                   >
                     {loading
@@ -348,7 +344,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                         {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
                       </span>
                       <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                        vs last month
+                        к прошлому месяцу
                       </span>
                     </div>
                   )}
@@ -363,11 +359,11 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
 
               {stats && !loading && !isEmpty && (
-                <Panel title="Top expenses" className="animate-fade-in delay-2">
+                <Panel title="Самые крупные" className="animate-fade-in delay-2">
                   <div className="px-6 pb-4 pt-1">
                     {(!stats.topexp || stats.topexp.length === 0) && (
                       <p className="text-[13px] pt-3" style={{ color: 'var(--text-tertiary)' }}>
-                        No expenses this month
+                        В этом месяце трат нет
                       </p>
                     )}
                     {stats.topexp?.map((exp, i) => {
@@ -386,13 +382,13 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                                 {i + 1}
                               </span>
                               <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
-                                {exp.title || '—'}
+                                {exp.title?.trim() ? exp.title : 'Без названия'}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 pl-3 flex-shrink-0">
                               <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{pct}%</span>
                               <span className="text-[15px] font-medium whitespace-nowrap"
-                                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}>
+                                style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                                 <CountUp value={exp.amount} format={fmtShort} /> ₽
                               </span>
                             </div>
@@ -425,7 +421,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 <>
                   <Panel
                     className="animate-fade-in"
-                    title={view === 'bars' ? 'Daily spending' : `This year · ${year}`}
+                    title={view === 'bars' ? 'Траты по дням' : `За год · ${year}`}
                     action={
                       <div className="flex items-center gap-3">
                         {view === 'bars' ? (
@@ -434,25 +430,25 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                               onClick={() => setDetailDay(activeDay)}
                               label={`${activeDay} ${monthShort}`}
                               amount={activeAmount}
-                              aria={`View expenses for ${activeDay} ${monthShort}`}
+                              aria={`Траты за ${activeDay} ${monthShort}`}
                             />
-                          ) : <Hint>hover a bar</Hint>
+                          ) : <Hint>наведите на столбец</Hint>
                         ) : (
                           yearActive ? (
                             <ValuePill
                               onClick={() => goToDate(yearActive.year, yearActive.month, yearActive.day)}
-                              label={`${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                              label={`${yearActive.day} ${MONTHS_GEN[yearActive.month - 1]}`}
                               amount={yearActive.amount}
-                              aria={`View expenses for ${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                              aria={`Траты за ${yearActive.day} ${MONTHS_GEN[yearActive.month - 1]}`}
                             />
-                          ) : <Hint>hover a day</Hint>
+                          ) : <Hint>наведите на день</Hint>
                         )}
                         <div className="flex p-0.5 gap-0.5"
                           style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                          <ViewBtn active={view === 'bars'} onClick={() => changeView('bars')} label="Bar chart view">
+                          <ViewBtn active={view === 'bars'} onClick={() => changeView('bars')} label="Столбцы по дням">
                             <BarsIcon />
                           </ViewBtn>
-                          <ViewBtn active={view === 'year'} onClick={() => changeView('year')} label="Yearly heatmap view">
+                          <ViewBtn active={view === 'year'} onClick={() => changeView('year')} label="Тепловая карта года">
                             <GridIcon />
                           </ViewBtn>
                         </div>
@@ -468,7 +464,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                           active={activeDay}
                           onSelect={toggleSel}
                           onHover={setChartHover}
-                          plotW={900}
+                          plotW={600}
                           barH={200}
                           maxBar={24}
                           maxGap={9}
@@ -490,16 +486,16 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
                   <Panel
                     className="animate-fade-in delay-2"
-                    title="Last 6 months"
+                    title="Последние 6 месяцев"
                     action={
                       trendItem && trendItem.amount > 0 ? (
                         <ValuePill
                           onClick={() => goToMonth(trendItem.year, trendItem.month)}
-                          label={`${trendItem.label} ${trendItem.year}${trendActive === trendPartial ? ' · so far' : ''}`}
+                          label={`${trendItem.label} ${trendItem.year}${trendActive === trendPartial ? ' · пока' : ''}`}
                           amount={trendItem.amount}
-                          aria={`Go to ${trendItem.label} ${trendItem.year}`}
+                          aria={`Открыть ${trendItem.label} ${trendItem.year}`}
                         />
-                      ) : <Hint>hover a month</Hint>
+                      ) : <Hint>наведите на месяц</Hint>
                     }
                   >
                     <div className="px-6 py-6">
@@ -519,12 +515,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   </Panel>
 
                   <div className="grid grid-cols-1 min-[1300px]:grid-cols-2 gap-5 items-start">
-                    <Panel title="Month in numbers" className="animate-fade-in delay-3">
+                    <Panel title="Месяц в цифрах" className="animate-fade-in delay-3">
                       <MonthNumbers insights={insights} showCount={forecast !== null} desktop
                         onOpenLarge={() => setDrill({ kind: 'large' })} />
                     </Panel>
                     {insights.frequent.length > 0 && (
-                      <Panel title="Most frequent" className="animate-fade-in delay-3">
+                      <Panel title="Чаще всего" className="animate-fade-in delay-3">
                         <div className="px-6 pb-3 pt-1">
                           <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
                         </div>
@@ -548,10 +544,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     <div className="relative flex flex-col flex-1 min-h-0">
     <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto pb-24">
 
+      <div className="px-5 pt-6 pb-1 text-[22px] font-bold tracking-tight animate-fade-in" style={{ color: 'var(--text-primary)' }}>
+        Статистика
+      </div>
+
       {/* Hero summary card — swipe left/right here to change month */}
       <div
         {...swipe}
-        className="hero mx-4 mt-5 animate-fade-in relative"
+        className="hero mx-4 mt-3 animate-fade-in relative"
         style={{
           ...swipe.style,
           background: 'var(--hero-bg)',
@@ -569,7 +569,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
         {/* Month selector inside card */}
         <div className="relative flex items-center justify-between px-5 pt-5">
-          <button onClick={prevMonth} aria-label="Previous month"
+          <button onClick={prevMonth} aria-label="Предыдущий месяц"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90"
             style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
             <ChevronLeft />
@@ -577,7 +577,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             {MONTHS_FULL[month - 1]} {year}
           </div>
-          <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Next month"
+          <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Следующий месяц"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-20 disabled:active:scale-100"
             style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}>
             <ChevronRight />
@@ -586,14 +586,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
         <div className="relative px-5 pt-4 pb-5">
           <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Total spent
+            Потрачено за месяц
           </div>
           <div
             className="font-medium whitespace-nowrap"
             style={{
               fontSize: scaledFontSize(stats?.currentmonth ?? 0, 38, 22, 7) + 'px',
               lineHeight: 1.15,
-              letterSpacing: '-0.02em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+              letterSpacing: '-0.03em', color: 'var(--text-primary)', fontWeight: 600,
             }}
           >
             {loading
@@ -612,7 +612,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
               </span>
               <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                vs last month
+                к прошлому месяцу
               </span>
             </div>
           )}
@@ -644,7 +644,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-baseline gap-2">
                 <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {view === 'bars' ? 'Daily spending' : 'This year'}
+                  {view === 'bars' ? 'Траты по дням' : 'За год'}
                 </span>
                 {view === 'year' && (
                   <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{year}</span>
@@ -656,7 +656,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               >
                 <button
                   onClick={() => changeView('bars')}
-                  aria-label="Bar chart view"
+                  aria-label="Столбцы по дням"
                   className="w-7 h-7 flex items-center justify-center rounded-md transition-all active:scale-95"
                   style={{ background: view === 'bars' ? 'var(--accent-soft)' : 'transparent', color: view === 'bars' ? 'var(--accent)' : 'var(--text-tertiary)' }}
                 >
@@ -664,7 +664,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 </button>
                 <button
                   onClick={() => changeView('year')}
-                  aria-label="Yearly heatmap view"
+                  aria-label="Тепловая карта года"
                   className="w-7 h-7 flex items-center justify-center rounded-md transition-all active:scale-95"
                   style={{ background: view === 'year' ? 'var(--accent-soft)' : 'transparent', color: view === 'year' ? 'var(--accent)' : 'var(--text-tertiary)' }}
                 >
@@ -682,10 +682,10 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       onClick={() => setDetailDay(activeDay)}
                       className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
                       style={{ background: 'var(--accent-soft)' }}
-                      aria-label={`View expenses for ${activeDay} ${monthShort}`}
+                      aria-label={`Траты за ${activeDay} ${monthShort}`}
                     >
                       <span style={{ color: 'var(--accent)' }}>{activeDay} {monthShort} · </span>
-                      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                      <span style={{ color: 'var(--accent)', fontWeight: 500 }}>
                         {fmtShort(activeAmount)} ₽
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -694,7 +694,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       </svg>
                     </button>
                   ) : (
-                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a bar</span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>нажмите на столбец</span>
                   )}
                 </div>
                 <BarChart
@@ -715,12 +715,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       onClick={() => goToDate(yearActive.year, yearActive.month, yearActive.day)}
                       className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
                       style={{ background: 'var(--accent-soft)' }}
-                      aria-label={`View expenses for ${yearActive.day} ${MONTHS_FULL[yearActive.month - 1].slice(0, 3)}`}
+                      aria-label={`Траты за ${yearActive.day} ${MONTHS_GEN[yearActive.month - 1]}`}
                     >
                       <span style={{ color: 'var(--accent)' }}>
-                        {yearActive.day} {MONTHS_FULL[yearActive.month - 1].slice(0, 3)} ·{' '}
+                        {yearActive.day} {MONTHS_GEN[yearActive.month - 1]} ·{' '}
                       </span>
-                      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                      <span style={{ color: 'var(--accent)', fontWeight: 500 }}>
                         {fmtShort(yearActive.amount)} ₽
                       </span>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -729,7 +729,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       </svg>
                     </button>
                   ) : (
-                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a day</span>
+                    <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>нажмите на день</span>
                   )}
                 </div>
                 <YearHeatmap
@@ -755,7 +755,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           {/* Month in numbers */}
           <div className="px-5 pt-4 pb-2">
             <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-              Month in numbers
+              Месяц в цифрах
             </div>
             <MonthNumbers insights={insights} showCount={forecast !== null}
               onOpenLarge={() => setDrill({ kind: 'large' })} />
@@ -766,11 +766,11 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           {/* Top expenses with progress bars */}
           <div className="px-5 pt-4">
             <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Top expenses
+              Самые крупные
             </div>
             {(!stats.topexp || stats.topexp.length === 0) && (
               <p className="text-[13px] pt-1" style={{ color: 'var(--text-tertiary)' }}>
-                No expenses this month
+                В этом месяце трат нет
               </p>
             )}
             {stats.topexp?.map((exp, i) => {
@@ -792,7 +792,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                         {i + 1}
                       </span>
                       <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
-                        {exp.title || '—'}
+                        {exp.title?.trim() ? exp.title : 'Без названия'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 pl-3 flex-shrink-0">
@@ -801,7 +801,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                       </span>
                       <span
                         className="text-[15px] font-medium whitespace-nowrap"
-                        style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+                        style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
                       >
                         <CountUp value={exp.amount} format={fmtShort} /> ₽
                       </span>
@@ -818,7 +818,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
               <div className="px-5 pt-4 pb-1">
                 <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  Most frequent
+                  Чаще всего
                 </div>
                 <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
               </div>
@@ -831,17 +831,17 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           <div className="mx-4 mt-4 mb-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Last 6 months
+                Последние 6 месяцев
               </span>
               {trendItem && trendItem.amount > 0 ? (
                 <button
                   onClick={() => goToMonth(trendItem.year, trendItem.month)}
                   className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
                   style={{ background: 'var(--accent-soft)' }}
-                  aria-label={`Go to ${trendItem.label} ${trendItem.year}`}
+                  aria-label={`Открыть ${trendItem.label} ${trendItem.year}`}
                 >
-                  <span style={{ color: 'var(--accent)' }}>{trendItem.label}{trendActive === trendPartial ? ' so far' : ''} · </span>
-                  <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                  <span style={{ color: 'var(--accent)' }}>{trendItem.label}{trendActive === trendPartial ? ' (пока)' : ''} · </span>
+                  <span style={{ color: 'var(--accent)', fontWeight: 500 }}>
                     {fmtShort(trendItem.amount)} ₽
                   </span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -850,7 +850,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   </svg>
                 </button>
               ) : (
-                <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>tap a month</span>
+                <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>нажмите на месяц</span>
               )}
             </div>
             <MonthlyTrend
@@ -930,7 +930,7 @@ function ValuePill({ onClick, label, amount, aria }) {
       style={{ background: 'var(--accent-soft)' }}
     >
       <span style={{ color: 'var(--accent)' }}>{label} · </span>
-      <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+      <span style={{ color: 'var(--accent)', fontWeight: 500 }}>
         {fmtShort(amount)} ₽
       </span>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -1018,12 +1018,12 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
       </div>
 
       <h3 className="text-[16px] font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-        {isCurrentMonth ? 'No expenses yet' : `Nothing in ${monthName}`}
+        {isCurrentMonth ? 'Пока нет трат' : `За ${monthName.toLowerCase()} трат нет`}
       </h3>
       <p className="text-[13px] leading-relaxed max-w-[240px]" style={{ color: 'var(--text-secondary)' }}>
         {isCurrentMonth
-          ? 'Add your first expense and your spending breakdown will show up here.'
-          : 'No expenses were recorded this month.'}
+          ? 'Добавьте первую трату — здесь появится разбивка расходов.'
+          : 'В этом месяце ничего не записано.'}
       </p>
 
       {isCurrentMonth && onAddExpense && (
@@ -1032,7 +1032,7 @@ function EmptyState({ isCurrentMonth, monthName, onAddExpense }) {
           className="mt-6 px-5 h-10 rounded-full text-[13px] font-medium active:scale-95 transition-transform"
           style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 0 20px var(--accent-glow)' }}
         >
-          Add expense
+          Добавить расход
         </button>
       )}
     </div>
@@ -1076,7 +1076,7 @@ function BarChart({
         width="100%"
         style={{ display: 'block', minWidth: scrollable ? Math.min(totalW, plotW) : 0, overflow: 'visible' }}
         role="img"
-        aria-label={`Daily spending chart, highest day ${fmtShort(maxAmount)} ₽`}
+        aria-label={`Траты по дням, максимум ${fmtShort(maxAmount)} ₽`}
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -1158,9 +1158,9 @@ function BarChart({
               <text
                 x={svgW} y={y - labelSize * 0.45}
                 textAnchor="end" fontSize={labelSize}
-                fill="var(--text-tertiary)" style={{ fontFamily: 'var(--font-mono)' }}
+                fill="var(--text-tertiary)"
               >
-                avg {fmtShort(avg)}
+                среднее {fmtShort(avg)}
               </text>
             </g>
           )
@@ -1192,7 +1192,7 @@ function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false })
         style={{
           fontSize: scaledFontSize(value, 18, 13, 6) + 'px',
           lineHeight: 1.2,
-          color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em',
+          color: 'var(--text-primary)', letterSpacing: '-0.01em',
         }}
       >
         <CountUp value={value} format={fmtShort} />{unit && ` ${unit}`}
@@ -1211,19 +1211,19 @@ function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false })
 function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
   const { count, avgCheck, median, noSpend, completedDays, large } = insights
   const rows = [
-    showCount && { label: 'Operations', value: count },
-    { label: 'Average purchase', value: `${fmtShort(avgCheck)} ₽` },
-    { label: 'Typical purchase', value: `${fmtShort(median)} ₽`, hint: 'median: half cost less, half more' },
+    showCount && { label: 'Операции', value: count },
+    { label: 'Средний чек', value: `${fmtShort(avgCheck)} ₽` },
+    { label: 'Типичная покупка', value: `${fmtShort(median)} ₽`, hint: 'медиана: половина дешевле, половина дороже' },
     completedDays > 0 && {
-      label: 'No-spend days',
+      label: 'Дни без трат',
       value: <>{noSpend}<span style={{ color: 'var(--text-tertiary)' }}> / {completedDays}</span></>,
     },
     large && {
-      label: 'Large expenses',
-      hint: `${fmtShort(large.threshold)} ₽ and up · 3× typical`,
+      label: 'Крупные траты',
+      hint: `от ${fmtShort(large.threshold)} ₽ · втрое больше типичной`,
       onClick: large.count > 0 ? onOpenLarge : null,
       value: large.count > 0
-        ? <>{large.count}<span className="text-[12px] font-normal" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)' }}> · {large.share}% of total</span></>
+        ? <>{large.count}<span className="text-[12px] font-normal" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-ui)' }}> · {large.share}% от всех</span></>
         : '—',
     },
   ].filter(Boolean)
@@ -1235,7 +1235,7 @@ function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
         return (
           <Row
             key={r.label}
-            {...(r.onClick ? { type: 'button', onClick: r.onClick, 'aria-label': `Show ${r.label.toLowerCase()}` } : {})}
+            {...(r.onClick ? { type: 'button', onClick: r.onClick, 'aria-label': `Показать: ${r.label.toLowerCase()}` } : {})}
             className={`w-full text-left flex items-center justify-between gap-3 py-2.5 ${r.onClick ? 'group rounded-lg transition-colors active:scale-[0.99] hover:bg-[var(--bg-elevated)] -mx-2 px-2' : ''}`}
             style={{
               borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
@@ -1251,7 +1251,7 @@ function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div
                 className="text-[14px] font-medium whitespace-nowrap"
-                style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+                style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
               >
                 {r.value}
               </div>
@@ -1280,14 +1280,14 @@ function FrequentList({ items, onOpen }) {
       key={g.key}
       type="button"
       onClick={() => onOpen?.(g)}
-      aria-label={`Show all ${g.title} expenses`}
+      aria-label={`Все траты «${g.title}»`}
       className="flex items-center justify-between gap-3 py-2.5 -mx-2 px-2 text-left rounded-lg transition-colors active:scale-[0.99] hover:bg-[var(--bg-elevated)]"
       style={{ width: 'calc(100% + 16px)', borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none' }}
     >
       <div className="flex items-center gap-3 min-w-0">
         <span
           className="text-[11px] font-semibold px-1.5 h-5 min-w-[28px] rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}
+          style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
         >
           ×{g.count}
         </span>
@@ -1296,7 +1296,7 @@ function FrequentList({ items, onOpen }) {
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <span
           className="text-[14px] font-medium whitespace-nowrap"
-          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+          style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
         >
           {fmtShort(g.sum)} ₽
         </span>

@@ -3,9 +3,9 @@
   "short_name": "Finance",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0b0b0b",
-  "theme_color": "#0b0b0b",
-  "description": "Minimal expense tracking app",
+  "background_color": "#F2F4F8",
+  "theme_color": "#F2F4F8",
+  "description": "Учёт расходов",
   "icons": [
     {
       "src": "/pic.png?v=2",

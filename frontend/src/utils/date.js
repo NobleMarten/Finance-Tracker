@@ -19,6 +19,12 @@ export function todayInput() {
   return toDateInput(new Date())
 }
 
+export function yesterdayInput() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return toDateInput(d)
+}
+
 /** Floor for the date picker: five years back is well past any useful history. */
 export function minDateInput() {
   const d = new Date()
@@ -82,19 +88,24 @@ export function toSpentAtKeepingTime(dateInput, originalTs) {
 
 /**
  * Human label for the date chip: `today` / `yesterday` / `20 Jun`.
- * en-GB for day-before-month order, and English to match the rest of the UI
- * chrome (Stats spells its months out in English too).
+ * Russian, lower-case («вчера», «28 октября») — it is used mid-sentence too.
  */
 export function dayLabel(dateInput) {
-  if (dateInput === todayInput()) return 'today'
+  if (dateInput === todayInput()) return 'сегодня'
 
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
-  if (dateInput === toDateInput(yesterday)) return 'yesterday'
+  if (dateInput === toDateInput(yesterday)) return 'вчера'
 
   const [y, m, d] = dateInput.split('-').map(Number)
   const date = new Date(y, m - 1, d)
-  const opts = { day: 'numeric', month: 'short' }
+  const opts = { day: 'numeric', month: 'long' }
   if (y !== new Date().getFullYear()) opts.year = 'numeric'
-  return date.toLocaleDateString('en-GB', opts)
+  return date.toLocaleDateString('ru-RU', opts)
+}
+
+/** Section heading for a day of expenses: «Сегодня», «Вчера», «28 октября». */
+export function dayHeading(date) {
+  const label = dayLabel(toDateInput(date))
+  return label[0].toUpperCase() + label.slice(1)
 }

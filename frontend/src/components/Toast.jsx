@@ -1,37 +1,39 @@
 import { useEffect } from 'react'
+import { Check, CircleAlert } from 'lucide-react'
 
+/**
+ * Navy pill toast. `message` is a string or { text, tone: 'error' }.
+ * Mobile: centred above the floating nav. Desktop: bottom-right corner.
+ */
 export default function Toast({ message, onClose, desktop = false }) {
   useEffect(() => {
-    const timer = setTimeout(onClose, 2500)
+    const timer = setTimeout(onClose, 2600)
     return () => clearTimeout(timer)
   }, [onClose])
 
-  // On desktop nothing sits at the bottom edge to clear, so the toast tucks into
-  // the bottom-right corner instead of floating over the middle of the content.
+  const text = typeof message === 'string' ? message : message?.text
+  const error = typeof message === 'object' && message?.tone === 'error'
+
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={
         desktop
-          ? 'fixed bottom-7 right-7 z-50 animate-toast-in-right'
-          : 'fixed bottom-[88px] left-1/2 -translate-x-1/2 z-50 animate-toast-in'
+          ? 'fixed bottom-7 right-7 z-[60] animate-toast-in-right'
+          : 'fixed left-1/2 z-[60] -translate-x-1/2 animate-toast-in'
       }
-      style={{
-        background: 'var(--bg-popover)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        padding: '10px 20px',
-        maxWidth: desktop ? '360px' : '280px',
-        boxShadow: desktop ? 'var(--shadow-pop)' : undefined,
-      }}
+      style={desktop ? undefined : { bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}
     >
-      {/* Раньше здесь был whitespace-nowrap: короткие «+ 350 ₽ added» помещались,
-          а текст ошибки просто обрезался по maxWidth. */}
-      <span
-        className="text-[13px] font-medium block"
-        style={{ color: 'var(--text-primary)' }}
+      <div
+        className="flex items-center gap-2.5 rounded-full py-2.5 pl-2.5 pr-5 text-white shadow-[0_16px_40px_-12px_rgba(14,20,48,0.55)]"
+        style={{ background: 'var(--navy-gradient)', maxWidth: desktop ? 380 : 320 }}
       >
-        {message}
-      </span>
+        <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${error ? 'bg-[#ff6b72]' : 'bg-white/15'}`}>
+          {error ? <CircleAlert className="h-3.5 w-3.5" strokeWidth={2.6} /> : <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+        </span>
+        <span className="text-[13px] font-semibold leading-snug">{text}</span>
+      </div>
     </div>
   )
 }
