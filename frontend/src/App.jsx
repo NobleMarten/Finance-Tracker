@@ -40,6 +40,9 @@ export default function App() {
   const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  // The status bar is translucent: once content scrolls under it, a navy shade
+  // fades in so the white clock stays readable over the white sheet.
+  const [scrolled, setScrolled] = useState(false)
   const isDesktop = useIsDesktop()
 
   const showToast = (msg) => {
@@ -58,6 +61,7 @@ export default function App() {
 
   const navigate = (next) => {
     if (next === 2) { openAdd(); return }
+    setScrolled(false)
     setScreen(next)
   }
 
@@ -220,15 +224,20 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 flex justify-center overflow-hidden bg-background">
-      <div
-        className="w-full h-full max-w-md flex flex-col relative overflow-hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        {/* The home header is navy edge to edge, so it handles the top inset
-            itself; every other screen gets it here. */}
+      {/* No safe-area padding here: every screen's navy header runs under the
+          status bar and every scroll area pads its own bottom, so nothing paints
+          the page background into the insets. */}
+      <div className="w-full h-full max-w-md flex flex-col relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-30 transition-opacity duration-200"
+          style={{ height: 'env(safe-area-inset-top)', background: '#131b39', opacity: scrolled ? 1 : 0 }}
+        />
         <div
           className="flex-1 flex flex-col min-h-0"
-          style={{ paddingTop: screen === 0 ? 0 : 'env(safe-area-inset-top)' }}
+          // Scroll events don't bubble, but the capture phase sees every
+          // screen's scroller without each one wiring a callback.
+          onScrollCapture={(e) => setScrolled(e.target.scrollTop > 8)}
         >
           <OfflineBanner message={error} onRetry={refresh} />
           {loading && screen === 0 ? (

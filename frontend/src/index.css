@@ -33,11 +33,13 @@
   --ring: 31 43 77;
   --radius: 1rem;
 
-  /* Soft slate-blue glow from the top-left corner over the navy base — depth,
-     not a colour shift (no violet). */
+  /* Navy base with a soft slate-blue glow from the top-left, a fainter one top-right
+     and a darker floor — depth, not a colour shift (no violet). */
   --navy-gradient:
-    radial-gradient(110% 85% at 0% 0%, rgba(84, 110, 186, 0.55) 0%, rgba(84, 110, 186, 0.18) 38%, transparent 66%),
-    linear-gradient(165deg, #1f2b4d 0%, #16203d 55%, #0e1430 100%);
+    radial-gradient(120% 70% at 0% 0%, rgba(104, 132, 214, 0.62) 0%, rgba(104, 132, 214, 0.22) 36%, transparent 66%),
+    radial-gradient(70% 55% at 100% 8%, rgba(54, 76, 148, 0.40) 0%, transparent 70%),
+    radial-gradient(90% 60% at 50% 110%, rgba(8, 12, 32, 0.55) 0%, transparent 70%),
+    linear-gradient(172deg, #24325e 0%, #18234a 42%, #111939 72%, #0c112b 100%);
 
   /* Semantic tokens */
   --bg-base: #F2F4F8;
