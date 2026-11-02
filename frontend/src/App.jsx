@@ -223,7 +223,13 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden bg-background">
+    // Navy behind the top half: while a screen fades in, this — not the light
+    // page background — sits under the translucent status bar, so iOS keeps the
+    // clock and icons white instead of flashing them black.
+    <div
+      className="fixed inset-0 flex justify-center overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom, #18234a 0%, #18234a 45%, var(--bg-base) 45%)' }}
+    >
       {/* No safe-area padding here: every screen's navy header runs under the
           status bar and every scroll area pads its own bottom, so nothing paints
           the page background into the insets. */}
