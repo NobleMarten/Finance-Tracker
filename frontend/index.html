@@ -10,9 +10,12 @@
   <!-- Phone: navy, matching the headers. Desktop: the page background. -->
   <meta name="theme-color" content="#1f2b4d" media="(max-width: 1023px)" />
   <meta name="theme-color" content="#F2F4F8" media="(min-width: 1024px)" />
-  <!-- Translucent: each screen's navy header runs under the clock. iOS reads this
-       when the app is added to the home screen, so a change needs a re-add. -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- Opaque status bar, painted with theme-color (#1f2b4d) — the top edge of
+       --navy-gradient is the same colour, so it reads as one surface.
+       Not black-translucent: in that mode iOS makes the home-screen app's window
+       ~one status bar shorter than the screen, leaving a band at the bottom that
+       the page cannot paint. iOS reads this at "Add to Home Screen". -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Finance" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/png" href="/pic.png?v=2">

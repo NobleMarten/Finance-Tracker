@@ -40,9 +40,6 @@ export default function App() {
   const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  // The status bar is translucent: once content scrolls under it, a navy shade
-  // fades in so the white clock stays readable over the white sheet.
-  const [scrolled, setScrolled] = useState(false)
   const isDesktop = useIsDesktop()
 
   const showToast = (msg) => {
@@ -61,7 +58,6 @@ export default function App() {
 
   const navigate = (next) => {
     if (next === 2) { openAdd(); return }
-    setScrolled(false)
     setScreen(next)
   }
 
@@ -223,27 +219,18 @@ export default function App() {
   }
 
   return (
-    // Navy behind the top half: while a screen fades in, this — not the light
-    // page background — sits under the translucent status bar, so iOS keeps the
-    // clock and icons white instead of flashing them black.
+    // Navy behind the top half: while a screen fades in, the top of the screen
+    // stays navy (continuing the status bar) instead of flashing the light
+    // page background.
     <div
       className="fixed inset-0 flex justify-center overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #18234a 0%, #18234a 45%, var(--bg-base) 45%)' }}
     >
-      {/* No safe-area padding here: every screen's navy header runs under the
-          status bar and every scroll area pads its own bottom, so nothing paints
-          the page background into the insets. */}
+      {/* No safe-area padding here: every scroll area pads its own bottom, so
+          nothing paints the page background under the home indicator. */}
       <div className="w-full h-full max-w-md flex flex-col relative overflow-hidden">
         <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-30 transition-opacity duration-200"
-          style={{ height: 'env(safe-area-inset-top)', background: '#131b39', opacity: scrolled ? 1 : 0 }}
-        />
-        <div
           className="flex-1 flex flex-col min-h-0"
-          // Scroll events don't bubble, but the capture phase sees every
-          // screen's scroller without each one wiring a callback.
-          onScrollCapture={(e) => setScrolled(e.target.scrollTop > 8)}
         >
           <OfflineBanner message={error} onRetry={refresh} />
           {loading && screen === 0 ? (
