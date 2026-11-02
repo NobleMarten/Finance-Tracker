@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import AppRoutes from './AppRoutes.jsx'
+import { installStandaloneViewportFix } from './utils/standaloneViewport'
 
 // Self-hosted fonts (bundled, no external CDN dependency)
 import '@fontsource/manrope/300.css'
@@ -12,6 +13,8 @@ import '@fontsource/manrope/600.css'
 import '@fontsource/manrope/700.css'
 
 import './index.css'
+
+installStandaloneViewportFix()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
