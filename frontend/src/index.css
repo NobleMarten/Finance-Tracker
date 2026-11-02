@@ -33,13 +33,16 @@
   --ring: 31 43 77;
   --radius: 1rem;
 
-  /* Navy base with a soft slate-blue glow from the top-left, a fainter one top-right
-     and a darker floor — depth, not a colour shift (no violet). */
+  /* Navy base with a soft slate-blue glow on the left, a fainter one on the right
+     and a darker floor — depth, not a colour shift (no violet).
+     The top edge is exactly #1f2b4d all the way across: that is the status bar's
+     theme-color, so header and status bar meet without a seam. Both glows are
+     centred low enough to have faded out before they reach y = 0. */
   --navy-gradient:
-    radial-gradient(120% 70% at 0% 0%, rgba(104, 132, 214, 0.62) 0%, rgba(104, 132, 214, 0.22) 36%, transparent 66%),
-    radial-gradient(70% 55% at 100% 8%, rgba(54, 76, 148, 0.40) 0%, transparent 70%),
-    radial-gradient(90% 60% at 50% 110%, rgba(8, 12, 32, 0.55) 0%, transparent 70%),
-    linear-gradient(172deg, #24325e 0%, #18234a 42%, #111939 72%, #0c112b 100%);
+    radial-gradient(85% 48% at 6% 42%, rgba(98, 126, 210, 0.50) 0%, rgba(98, 126, 210, 0.16) 45%, transparent 82%),
+    radial-gradient(60% 40% at 100% 45%, rgba(54, 76, 148, 0.34) 0%, transparent 85%),
+    radial-gradient(90% 60% at 50% 115%, rgba(8, 12, 32, 0.55) 0%, transparent 70%),
+    linear-gradient(180deg, #1f2b4d 0%, #1b2648 30%, #131b3b 68%, #0c112b 100%);
 
   /* Semantic tokens */
   --bg-base: #F2F4F8;
