@@ -1,48 +1,62 @@
-import { useState, useEffect, useRef } from 'react'
-import { fmtFull, fmtShort, fmtTime, scaledFontSize, greeting, currentMonth } from '../utils/format'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Clock3, ChartColumn, UserRound, ChevronDown, ChevronRight, Receipt } from 'lucide-react'
 import { api } from '../api/api'
+import { useAuth } from '../context/AuthContext'
 import PullToRefresh from './PullToRefresh'
-import { avatarColor } from '../utils/avatar'
+import { NumberTicker } from './magicui/number-ticker'
+import { Button } from './ui/button'
+import TxRow from './TxRow'
+import { dayHeading, toDateInput } from '../utils/date'
+import { fmtRub, fmtUsd, greeting, scaledFontSize, titleOf, currentMonth } from '../utils/format'
+import { cn } from '@/lib/utils'
 
-function useCountUp(target, duration = 700) {
-  const [display, setDisplay] = useState(0)
-  const prevTarget = useRef(null) // null = fresh mount, animate from 0
-  const frameRef = useRef(null)
+const PERIODS = [
+  { key: 'month', label: 'Месяц' },
+  { key: 'week', label: 'Неделя' },
+  { key: 'day', label: 'Сегодня' },
+]
 
-  useEffect(() => {
-    if (prevTarget.current === target) return // same value or Strict Mode second fire
-    const from = prevTarget.current === null ? 0 : prevTarget.current
-    prevTarget.current = target
-    if (from === target) { setDisplay(target); return }
-    if (frameRef.current) cancelAnimationFrame(frameRef.current)
-    const startTime = performance.now()
-    const tick = (now) => {
-      const t = Math.min((now - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - t, 3)
-      setDisplay(Math.round(from + (target - from) * eased))
-      if (t < 1) frameRef.current = requestAnimationFrame(tick)
-      else setDisplay(target)
+const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+
+/** Period boundaries + totals, recomputed only when the list changes. */
+function usePeriods(transactions) {
+  return useMemo(() => {
+    const now = new Date()
+    const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const w0 = new Date(d0)
+    w0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7))
+    const m0 = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const totals = { month: 0, week: 0, day: 0 }
+    for (const t of transactions) {
+      if (t.ts >= m0) totals.month += t.amount
+      if (t.ts >= w0) totals.week += t.amount
+      if (t.ts >= d0) totals.day += t.amount
     }
-    frameRef.current = requestAnimationFrame(tick)
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current)
-      prevTarget.current = null // reset on unmount → next mount always animates from 0
-    }
-  }, [target, duration])
-
-  return display
+    const sorted = [...transactions].sort((a, b) => b.ts - a.ts)
+    return { totals, sorted, w0, m0 }
+  }, [transactions])
 }
 
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-function fmtWeekDay(date) {
-  return WEEKDAYS[new Date(date).getDay()]
+/** Recent rows grouped into «Сегодня» / «Вчера» / «28 октября». */
+function groupByDay(items) {
+  const groups = []
+  for (const t of items) {
+    const key = toDateInput(t.ts)
+    const last = groups[groups.length - 1]
+    if (last && last.key === key) last.items.push(t)
+    else groups.push({ key, label: dayHeading(t.ts), items: [t] })
+  }
+  return groups
 }
 
-export default function Dashboard({ transactions, onEdit, onRefresh, desktop = false }) {
+export default function Dashboard({
+  transactions, onEdit, onRefresh, onNavigate, onAdd, onOpenProfile, desktop = false,
+}) {
+  const { user } = useAuth()
   const [rate, setRate] = useState(null)
-  const [weekExpanded, setWeekExpanded] = useState(false)
+  const [period, setPeriod] = useState('month')
+  const [weekOpen, setWeekOpen] = useState(false)
 
   useEffect(() => {
     api.getRate('RUB', 'USD')
@@ -50,570 +64,271 @@ export default function Dashboard({ transactions, onEdit, onRefresh, desktop = f
       .catch(() => setRate(null))
   }, [])
 
-  const now = new Date()
-  const d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const w0 = new Date(d0)
-  w0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7))
-  const m0 = new Date(now.getFullYear(), now.getMonth(), 1)
+  const { totals, sorted, w0, m0 } = usePeriods(transactions)
+  const weekTx = useMemo(() => sorted.filter(t => t.ts >= w0).slice(0, 8), [sorted, w0])
+  const recentGroups = useMemo(() => groupByDay(sorted.slice(0, desktop ? 12 : 8)), [sorted, desktop])
 
-  const sum = (f) => transactions.filter(f).reduce((s, t) => s + t.amount, 0)
-  const monthVal = sum(t => t.ts >= m0)
-  const weekVal = sum(t => t.ts >= w0)
-  const dayVal = sum(t => t.ts >= d0)
+  const selectPeriod = (key) => {
+    // A second tap on the active «Неделя» chip opens the week list — the old
+    // dropdown on the week card.
+    if (key === period && key === 'week') { setWeekOpen(o => !o); return }
+    setPeriod(key)
+    setWeekOpen(false)
+  }
 
-  const toUSD = (rub) =>
-    rate && rub > 0
-      ? (rub * rate).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-      : null
+  const initial = user?.email?.trim()[0]?.toUpperCase() ?? '?'
+  const value = totals[period]
 
-  const animatedMonthVal = useCountUp(monthVal)
-  const sorted = [...transactions].sort((a, b) => b.ts - a.ts)
+  const actions = [
+    { label: 'Добавить', Icon: Plus, onClick: onAdd, primary: true },
+    { label: 'История', Icon: Clock3, onClick: () => onNavigate?.(1) },
+    { label: 'Статистика', Icon: ChartColumn, onClick: () => onNavigate?.(3) },
+    { label: 'Профиль', Icon: UserRound, onClick: onOpenProfile },
+  ]
 
-  // The wide layout has a full column to give the recent list, so it shows more.
-  const recent = sorted.slice(0, desktop ? 12 : 6)
-
-  // Week transactions for mini-history
-  const weekTx = sorted.filter(t => t.ts >= w0).slice(0, desktop ? 8 : 5)
-
-  const heroAmount = animatedMonthVal === monthVal ? fmtFull(monthVal) : fmtShort(animatedMonthVal)
+  const hero = (
+    <Hero
+      desktop={desktop}
+      initial={initial}
+      onOpenProfile={onOpenProfile}
+      totals={totals}
+      period={period}
+      onSelect={selectPeriod}
+      weekOpen={weekOpen && !desktop}
+      weekTx={weekTx}
+      onEdit={onEdit}
+      value={value}
+      usd={fmtUsd(value, rate)}
+      actions={actions}
+      sparkline={period === 'month' ? <MonthSparkline transactions={transactions} monthStart={m0} height={desktop ? 64 : 40} /> : null}
+    />
+  )
 
   if (desktop) {
     return (
-      <DesktopDashboard
-        heroAmount={heroAmount}
-        monthVal={monthVal}
-        weekVal={weekVal}
-        dayVal={dayVal}
-        toUSD={toUSD}
-        transactions={transactions}
-        monthStart={m0}
-        recent={recent}
-        weekTx={weekTx}
-        onEdit={onEdit}
-      />
+      <div className="mx-auto w-full max-w-5xl px-6 pb-16 pt-8">
+        <div className="grid grid-cols-3 items-start gap-5">
+          <div className="col-span-2 flex min-w-0 flex-col gap-5">
+            {hero}
+            <section className="rounded-2xl bg-card px-6 pb-4 pt-5 shadow-soft">
+              <RecentHeader onAll={() => onNavigate?.(1)} />
+              <RecentList groups={recentGroups} onEdit={onEdit} onAdd={onAdd} />
+            </section>
+          </div>
+          <aside className="flex min-w-0 flex-col gap-5">
+            <section className="rounded-2xl bg-card px-5 pb-3 pt-5 shadow-soft">
+              <div className="mb-2 flex items-baseline justify-between">
+                <h2 className="text-[15px] font-bold tracking-tight">На этой неделе</h2>
+                <span className="text-[13px] font-semibold tabular-nums text-muted-foreground">{fmtRub(totals.week)}</span>
+              </div>
+              <WeekList items={weekTx} onEdit={onEdit} />
+            </section>
+            <section className="rounded-2xl bg-card p-5 shadow-soft">
+              <div className="text-[12px] font-semibold text-muted-foreground">Сегодня</div>
+              <div className="mt-1 text-[26px] font-semibold tracking-tight tabular-nums">{fmtRub(totals.day)}</div>
+              <div className="mt-0.5 h-4 text-[12px] text-muted-foreground">{fmtUsd(totals.day, rate) ? `≈ ${fmtUsd(totals.day, rate)}` : ''}</div>
+            </section>
+          </aside>
+        </div>
+      </div>
     )
   }
 
   return (
-    <PullToRefresh onRefresh={onRefresh} className="flex-1 min-h-0 overflow-y-auto">
-      {/* Hero glass card */}
-      <div
-        className="hero mx-4 mt-5 animate-fade-in relative overflow-hidden"
-        style={{
-          background: 'var(--hero-bg)',
-          border: '1px solid var(--hero-border)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--hero-shadow)',
-        }}
-      >
-        {/* Ambient glow top-right */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: -40, right: -40,
-            width: 140, height: 140,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, transparent 70%)',
-          }}
-        />
-
-        <div className="px-5 pt-5 pb-1">
-          <div className="flex items-center justify-between">
-            <span
-              className="text-[11px] uppercase tracking-[0.18em] font-medium"
-              style={{ color: 'var(--text-tertiary)' }}
-            >
-              {currentMonth()}
-            </span>
-            <span
-              className="text-[13px] font-light"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {greeting()}
-            </span>
-          </div>
-        </div>
-
-        <div className="px-5 pt-4 pb-5">
-          <div
-            className="text-[11px] uppercase tracking-[0.16em] font-medium mb-3"
-            style={{ color: 'var(--text-tertiary)' }}
-          >
-            this month
-          </div>
-          <div
-            className="leading-none overflow-hidden whitespace-nowrap font-medium"
-            style={{
-              fontSize: scaledFontSize(monthVal, 42, 26, 7) + 'px',
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            {heroAmount}
-          </div>
-          {toUSD(monthVal) && (
-            <div className="flex items-center gap-2 mt-2">
-              <span
-                className="text-[11px] font-medium uppercase tracking-[0.12em]"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                USD
-              </span>
-              <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                ≈ {toUSD(monthVal)}
-              </span>
-            </div>
-          )}
-          <MonthSparkline transactions={transactions} monthStart={m0} />
-        </div>
-      </div>
-
-      {/* Week / Today cards */}
-      <div className="mx-4 mt-3 animate-fade-in delay-4">
-        <div className="flex gap-3">
-          {/* Week card — clickable, expands sparkline */}
-          <div
-            className="flex-1 surface p-4 cursor-pointer transition-all duration-200 hover:bg-[var(--bg-hover)] active:scale-[0.99]"
-            onClick={() => setWeekExpanded(e => !e)}
-            style={{ overflow: 'hidden', borderLeft: '2px solid var(--accent)' }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div
-                className="text-[11px] uppercase tracking-[0.14em] font-medium"
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                week
-              </div>
-              <svg
-                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className="transition-transform duration-500"
-                style={{
-                  color: 'var(--text-tertiary)',
-                  transform: weekExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-            <div
-              className="overflow-hidden whitespace-nowrap font-medium"
-              style={{
-                fontSize: scaledFontSize(weekVal, 22, 15, 6) + 'px',
-                letterSpacing: '-0.01em',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
-              {fmtShort(weekVal)}
-            </div>
-            {toUSD(weekVal) && (
-              <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                {toUSD(weekVal)}
-              </div>
-            )}
-
-            {/* Mini week history — expands on click */}
-            <div
-              className="transition-all duration-500"
-              style={{
-                maxHeight: weekExpanded ? '200px' : '0px',
-                opacity: weekExpanded ? 1 : 0,
-                marginTop: weekExpanded ? '10px' : '0px',
-                overflow: 'hidden',
-                transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            >
-              {weekTx.length === 0 ? (
-                <p className="text-[11px] py-2" style={{ color: 'var(--text-ghost)' }}>
-                  no expenses this week
-                </p>
-              ) : (
-                weekTx.map((t, i) => (
-                  <div
-                    key={t.id}
-                    onClick={() => onEdit?.(t)}
-                    className="flex items-center justify-between py-1.5 rounded transition-colors duration-150 hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] cursor-pointer px-1 -mx-1"
-                    style={{
-                      borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
-                    }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-ghost)' }}>
-                        {fmtWeekDay(t.ts)}
-                      </span>
-                      <span className="text-[11px] font-light truncate" style={{ color: 'var(--text-secondary)' }}>
-                        {t.description || '—'}
-                      </span>
-                    </div>
-                    <span className="text-[12px] font-medium pl-2 whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
-                      {fmtShort(t.amount)}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Today card — static */}
-          <StatCard label="today" value={dayVal} usd={toUSD(dayVal)} />
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-6 mt-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-
-      {/* Recent transactions */}
-      <div className="px-6 pb-28 animate-fade-in delay-5">
-        <div
-          className="text-[11px] uppercase tracking-[0.14em] font-medium py-4"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          recent
-        </div>
-        {recent.length === 0 && (
-          <div className="flex flex-col items-center text-center py-10 animate-fade-in">
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center mb-3"
-              style={{ background: 'var(--accent-soft)' }}
-            >
-              <EmptyDocIcon />
-            </div>
-            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-              No expenses yet
-            </p>
-            <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-              Tap + to add your first one
-            </p>
-          </div>
-        )}
-        {recent.map((t, i) => {
-          const c = avatarColor(t.description)
-          return (
-          <div
-            key={t.id}
-            onClick={() => onEdit?.(t)}
-            className={`flex justify-between items-center py-3 animate-fade-in transition-all duration-150 hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)] active:scale-[0.99] cursor-pointer rounded-lg`}
-            style={{
-              borderTop: '1px solid var(--border-muted)',
-              animationDelay: `${0.3 + i * 0.05}s`,
-            }}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0"
-                style={{
-                  background: c.bg,
-                  color: c.fg,
-                }}
-              >
-                {(t.description || '—')[0].toUpperCase()}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span
-                  className="text-[13px] font-light truncate"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  {t.description || '—'}
-                </span>
-                <span
-                  className="text-[10px] font-medium"
-                  style={{ color: 'var(--text-tertiary)' }}
-                >
-                  {fmtTime(t.ts)}
-                </span>
-              </div>
-            </div>
-            <span
-              className="text-[15px] font-medium whitespace-nowrap pl-3"
-              style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', fontFamily: 'var(--font-mono)' }}
-            >
-              {fmtShort(t.amount)}
-            </span>
-          </div>
-          )
-        })}
-      </div>
+    <PullToRefresh onRefresh={onRefresh} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {hero}
+      {/* White sheet, tucked under the header's bottom edge. */}
+      <section className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pb-32 pt-6">
+        <RecentHeader onAll={() => onNavigate?.(1)} />
+        <RecentList groups={recentGroups} onEdit={onEdit} onAdd={onAdd} />
+      </section>
     </PullToRefresh>
   )
 }
 
-/* ────────────────────────── desktop ────────────────────────── */
+/* ─────────────────────────── header ─────────────────────────── */
 
-/**
- * Wide layout. The same numbers as the phone, but laid out as a real dashboard:
- * the month hero and the recent feed take the main column, the short-horizon
- * figures (week / today) and the week feed run down a narrower side column —
- * so nothing has to be tapped open to be read.
- */
-function DesktopDashboard({
-  heroAmount, monthVal, weekVal, dayVal, toUSD,
-  transactions, monthStart, recent, weekTx, onEdit,
+function Hero({
+  desktop, initial, onOpenProfile, totals, period, onSelect, weekOpen, weekTx, onEdit,
+  value, usd, actions, sparkline,
 }) {
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[1480px] px-10 pt-8 pb-12">
-        {/* Page header */}
-        <div className="flex items-baseline justify-between mb-6 animate-fade-in">
-          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Overview
-          </h1>
-          <span className="text-[13px] font-light" style={{ color: 'var(--text-secondary)' }}>
-            {greeting()}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-5 items-start">
-          {/* ── Main column ── */}
-          <div className="min-[1100px]:col-span-2 flex flex-col gap-5 min-w-0">
-            {/* Hero */}
-            <div
-              className="hero relative overflow-hidden animate-fade-in"
-              style={{
-                background: 'var(--hero-bg)',
-                border: '1px solid var(--hero-border)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--hero-shadow)',
-              }}
-            >
-              <div
-                className="absolute pointer-events-none"
-                style={{
-                  top: -80, right: -60, width: 320, height: 320, borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.12) 0%, transparent 70%)',
-                }}
-              />
-              <div className="relative px-8 pt-7">
-                <div className="flex items-center justify-between mb-5">
-                  <span
-                    className="text-[11px] uppercase tracking-[0.18em] font-medium"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    {currentMonth()} · this month
-                  </span>
-                  {toUSD(monthVal) && (
-                    <span
-                      className="text-[12px] px-2.5 py-1"
-                      style={{
-                        color: 'var(--text-secondary)',
-                        background: 'var(--overlay)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-full)',
-                      }}
-                    >
-                      ≈ {toUSD(monthVal)}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="leading-none whitespace-nowrap font-medium"
-                  style={{
-                    fontSize: scaledFontSize(monthVal, 68, 40, 8) + 'px',
-                    letterSpacing: '-0.03em',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
-                  {heroAmount}
-                </div>
-              </div>
-              {/* Full-bleed to the card edge — the cumulative curve is the card's
-                  floor, not a widget floating inside it. */}
-              <div className="relative">
-                <MonthSparkline transactions={transactions} monthStart={monthStart} height={96} />
-              </div>
-            </div>
-
-            {/* Recent feed */}
-            <section
-              className="animate-fade-in delay-2"
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-surface)',
-              }}
-            >
-              <div
-                className="px-6 py-4 flex items-baseline justify-between"
-                style={{ borderBottom: '1px solid var(--border-subtle)' }}
-              >
-                <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  Recent
-                </h2>
-                <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>
-                  click a row to edit
-                </span>
-              </div>
-
-              <div className="px-3 py-2">
-                {recent.length === 0 ? (
-                  <div className="flex flex-col items-center text-center py-14 animate-fade-in">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                      style={{ background: 'var(--accent-soft)' }}
-                    >
-                      <EmptyDocIcon />
-                    </div>
-                    <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                      No expenses yet
-                    </p>
-                    <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                      Use “Add expense” to record your first one
-                    </p>
-                  </div>
-                ) : recent.map((t, i) => {
-                  const c = avatarColor(t.description)
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => onEdit?.(t)}
-                      className="group flex items-center gap-4 px-3 py-2.5 rounded-xl cursor-pointer animate-fade-in transition-colors duration-150 hover:bg-[var(--bg-elevated)]"
-                      style={{ animationDelay: `${0.18 + i * 0.03}s` }}
-                    >
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-medium flex-shrink-0"
-                        style={{ background: c.bg, color: c.fg }}
-                      >
-                        {(t.description || '—')[0].toUpperCase()}
-                      </div>
-                      <span
-                        className="text-[14px] font-light truncate flex-1 min-w-0"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {t.description || '—'}
-                      </span>
-                      <span
-                        className="text-[12px] w-[86px] text-right flex-shrink-0"
-                        style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}
-                      >
-                        {fmtWeekDay(t.ts)} {fmtTime(t.ts)}
-                      </span>
-                      <span
-                        className="text-[15px] font-medium whitespace-nowrap w-[118px] text-right flex-shrink-0"
-                        style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', fontFamily: 'var(--font-mono)' }}
-                      >
-                        {fmtShort(t.amount)} ₽
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          </div>
-
-          {/* ── Side column ── */}
-          <div className="flex flex-col gap-5 min-w-0">
-            <div className="grid grid-cols-2 min-[1100px]:grid-cols-1 gap-5">
-              <BigStat label="This week" value={weekVal} usd={toUSD(weekVal)} accent delay="delay-1" />
-              <BigStat label="Today" value={dayVal} usd={toUSD(dayVal)} delay="delay-2" />
-            </div>
-
-            <section
-              className="animate-fade-in delay-3"
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-surface)',
-              }}
-            >
-              <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  This week
-                </h2>
-              </div>
-              <div className="px-2.5 py-2">
-                {weekTx.length === 0 ? (
-                  <p className="text-[12px] px-2.5 py-6 text-center" style={{ color: 'var(--text-ghost)' }}>
-                    no expenses this week
-                  </p>
-                ) : weekTx.map(t => (
-                  <div
-                    key={t.id}
-                    onClick={() => onEdit?.(t)}
-                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors duration-150 hover:bg-[var(--bg-elevated)]"
-                  >
-                    <span
-                      className="text-[10px] w-7 flex-shrink-0 uppercase tracking-wider"
-                      style={{ color: 'var(--text-ghost)' }}
-                    >
-                      {fmtWeekDay(t.ts)}
-                    </span>
-                    <span
-                      className="text-[13px] font-light truncate flex-1 min-w-0"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {t.description || '—'}
-                    </span>
-                    <span
-                      className="text-[13px] font-medium whitespace-nowrap"
-                      style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}
-                    >
-                      {fmtShort(t.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Side-column figure: the phone's StatCard, sized for a desktop column. */
-function BigStat({ label, value, usd, accent = false, delay = '' }) {
-  return (
-    <div
-      className={`p-5 animate-fade-in ${delay}`}
+    <header
+      className={cn('on-navy relative flex-shrink-0 overflow-hidden text-white', desktop ? 'rounded-3xl px-8 pb-7 pt-7 shadow-[0_24px_48px_-24px_rgba(14,20,48,0.6)]' : 'px-5 pb-12')}
       style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-subtle)',
-        borderLeft: accent ? '2px solid var(--accent)' : '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-surface)',
+        background: 'var(--navy-gradient)',
+        paddingTop: desktop ? undefined : 'calc(env(safe-area-inset-top) + 18px)',
       }}
     >
+      {/* Top row: greeting + avatar */}
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <div className="text-[12px] font-medium capitalize text-white/55">{currentMonth()}</div>
+          <div className="text-[17px] font-semibold tracking-tight">{greeting()}</div>
+        </div>
+        {!desktop && (
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            aria-label="Профиль"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[14px] font-bold transition-transform active:scale-90"
+          >
+            {initial}
+          </button>
+        )}
+      </div>
+
+      {/* Period chips */}
+      <div className="no-scrollbar -mx-5 mt-5 flex gap-2 overflow-x-auto px-5" role="tablist" aria-label="Период">
+        {PERIODS.map(({ key, label }) => {
+          const active = period === key
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              aria-expanded={key === 'week' && !desktop ? weekOpen : undefined}
+              onClick={() => onSelect(key)}
+              className={cn(
+                'flex h-8 flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[12px] font-semibold transition-colors duration-200',
+                active ? 'border-white bg-white text-primary' : 'border-white/15 bg-white/10 text-white/80 hover:bg-white/15',
+              )}
+            >
+              <span>{label}</span>
+              <span className={active ? 'text-primary/45' : 'text-white/35'}>·</span>
+              <span className="tabular-nums">{fmtRub(totals[key])}</span>
+              {key === 'week' && active && !desktop && (
+                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-300', weekOpen && 'rotate-180')} strokeWidth={2.4} />
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Big amount */}
+      <div className="mt-6">
+        <div
+          className="whitespace-nowrap font-semibold leading-none tracking-[-0.03em]"
+          style={{ fontSize: scaledFontSize(value, desktop ? 52 : 40, 28, 8) }}
+          aria-live="polite"
+        >
+          <NumberTicker value={value} format={fmtRub} />
+        </div>
+        <div className="mt-2 h-4 text-[13px] font-medium text-white/55">{usd ? `≈ ${usd}` : ''}</div>
+      </div>
+
+      {/* Week list — the old week-card dropdown */}
       <div
-        className="text-[11px] uppercase tracking-[0.14em] font-medium mb-3"
-        style={{ color: 'var(--text-tertiary)' }}
+        className="grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out"
+        style={{ gridTemplateRows: weekOpen ? '1fr' : '0fr', opacity: weekOpen ? 1 : 0, marginTop: weekOpen ? 16 : 0 }}
       >
-        {label}
+        <div className="overflow-hidden">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.07] px-3 py-1.5">
+            <WeekList items={weekTx} onEdit={onEdit} onNavy />
+          </div>
+        </div>
       </div>
-      <div
-        className="whitespace-nowrap font-medium leading-none"
-        style={{
-          fontSize: scaledFontSize(value, 32, 20, 7) + 'px',
-          letterSpacing: '-0.02em',
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-mono)',
-        }}
+
+      {sparkline && <div className={desktop ? '-mx-8 mt-4' : '-mx-5 mt-4'}>{sparkline}</div>}
+
+      {/* Actions */}
+      <div className={cn('mt-6 grid grid-cols-4', desktop ? 'max-w-md gap-4' : 'gap-2')}>
+        {actions.map(({ label, Icon, onClick, primary }) => (
+          <button key={label} type="button" onClick={onClick} className="group flex flex-col items-center gap-2">
+            <span
+              className={cn(
+                'flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-150 group-active:scale-90',
+                primary
+                  ? 'bg-white text-primary shadow-[0_10px_24px_-10px_rgba(0,0,0,0.5)]'
+                  : 'border border-white/15 bg-white/10 text-white group-hover:bg-white/15',
+              )}
+            >
+              <Icon className="h-[22px] w-[22px]" strokeWidth={primary ? 2.4 : 1.9} />
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">{label}</span>
+          </button>
+        ))}
+      </div>
+    </header>
+  )
+}
+
+function WeekList({ items, onEdit, onNavy = false }) {
+  if (items.length === 0) {
+    return <p className={cn('py-3 text-center text-[12px]', onNavy ? 'text-white/50' : 'text-muted-foreground')}>На этой неделе трат нет</p>
+  }
+  return items.map((t, i) => (
+    <button
+      key={t.id}
+      type="button"
+      onClick={() => onEdit?.(t)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors',
+        onNavy ? 'hover:bg-white/5' : 'hover:bg-muted',
+        i > 0 && (onNavy ? 'border-t border-white/[0.07]' : 'border-t border-border/60'),
+      )}
+    >
+      <span className={cn('w-5 flex-shrink-0 text-[11px] font-semibold', onNavy ? 'text-white/40' : 'text-muted-foreground')}>
+        {WEEKDAYS[t.ts.getDay()]}
+      </span>
+      <span className={cn('min-w-0 flex-1 truncate text-[13px] font-medium', onNavy ? 'text-white/85' : 'text-foreground/80')}>
+        {titleOf(t)}
+      </span>
+      <span className={cn('whitespace-nowrap text-[13px] font-semibold tabular-nums', onNavy ? 'text-white' : 'text-foreground')}>
+        {fmtRub(t.amount)}
+      </span>
+    </button>
+  ))
+}
+
+/* ─────────────────────────── recent ─────────────────────────── */
+
+function RecentHeader({ onAll }) {
+  return (
+    <div className="mb-1 flex items-center justify-between">
+      <h2 className="text-[17px] font-bold tracking-tight">Последние операции</h2>
+      <button
+        type="button"
+        onClick={onAll}
+        className="flex items-center gap-0.5 rounded-full py-1 pl-2.5 pr-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
-        {fmtShort(value)} ₽
-      </div>
-      <div className="text-[11px] mt-2 h-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-        {usd ?? ''}
-      </div>
+        Все <ChevronRight className="h-4 w-4" />
+      </button>
     </div>
   )
 }
 
-function EmptyDocIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-      stroke="var(--accent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-      <polyline points="14 3 14 8 19 8" />
-      <line x1="8" y1="13" x2="15" y2="13" />
-      <line x1="8" y1="17" x2="13" y2="17" />
-    </svg>
-  )
+function RecentList({ groups, onEdit, onAdd }) {
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-12 text-center animate-fade-in">
+        <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/[0.06] text-primary">
+          <Receipt className="h-6 w-6" strokeWidth={1.8} />
+        </span>
+        <p className="text-[15px] font-semibold">Пока нет трат</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">Добавьте первую — она появится здесь</p>
+        <Button size="sm" className="mt-5 rounded-full px-4" onClick={onAdd}>
+          <Plus strokeWidth={2.4} /> Добавить
+        </Button>
+      </div>
+    )
+  }
+
+  let index = 0
+  return groups.map(g => (
+    <div key={g.key} className="mt-4 first:mt-3">
+      <div className="mb-1 text-[12px] font-semibold text-muted-foreground">{g.label}</div>
+      {g.items.map(t => (
+        <TxRow key={t.id} t={t} onClick={() => onEdit?.(t)} delay={0.05 + (index++) * 0.03} />
+      ))}
+    </div>
+  ))
 }
 
-function MonthSparkline({ transactions, monthStart, height = 36 }) {
+/* ─────────────────────────── sparkline ─────────────────────────── */
+
+function MonthSparkline({ transactions, monthStart, height = 40 }) {
   const now = new Date()
   const todayDay = now.getDate()
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
@@ -621,7 +336,7 @@ function MonthSparkline({ transactions, monthStart, height = 36 }) {
   const daily = new Array(todayDay).fill(0)
   for (const t of transactions) {
     if (t.ts >= monthStart && t.ts <= now) {
-      const d = new Date(t.ts).getDate()
+      const d = t.ts.getDate()
       if (d >= 1 && d <= todayDay) daily[d - 1] += t.amount
     }
   }
@@ -629,79 +344,27 @@ function MonthSparkline({ transactions, monthStart, height = 36 }) {
   let acc = 0
   const cumulative = daily.map(v => (acc += v))
   const max = Math.max(...cumulative, 1)
-
-  if (cumulative.length < 2 || max === 0) return null
+  // The first days of a month draw a stub in the corner, not a trend.
+  if (cumulative.length < 5) return null
 
   const W = 320
   const H = height
   const PAD = 2
   const denom = Math.max(1, daysInMonth - 1)
-
-  const points = cumulative.map((v, i) => {
-    const x = PAD + (i / denom) * (W - 2 * PAD)
-    const y = H - PAD - (v / max) * (H - 2 * PAD)
-    return [x, y]
-  })
-
-  const linePath = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
-  const lastX = points[points.length - 1][0]
-  const firstX = points[0][0]
-  const areaPath = `${linePath} L${lastX.toFixed(2)},${H} L${firstX.toFixed(2)},${H} Z`
+  const points = cumulative.map((v, i) => [PAD + (i / denom) * (W - 2 * PAD), H - PAD - (v / max) * (H - 2 * PAD)])
+  const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
+  const area = `${line} L${points[points.length - 1][0].toFixed(2)},${H} L${points[0][0].toFixed(2)},${H} Z`
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className="mt-4 animate-fade-in"
-      style={{ width: '100%', height: H, display: 'block', overflow: 'visible' }}
-      aria-hidden="true"
-    >
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block w-full animate-fade-in" style={{ height: H }} aria-hidden="true">
       <defs>
-        <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        <linearGradient id="spark-navy" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill="url(#spark-grad)" />
-      <path
-        d={linePath}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.75"
-        style={{ vectorEffect: 'non-scaling-stroke' }}
-      />
+      <path d={area} fill="url(#spark-navy)" />
+      <path d={line} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ vectorEffect: 'non-scaling-stroke' }} />
     </svg>
-  )
-}
-
-function StatCard({ label, value, usd }) {
-  return (
-    <div className="flex-1 surface p-4">
-      <div
-        className="text-[11px] uppercase tracking-[0.14em] font-medium mb-2"
-        style={{ color: 'var(--text-tertiary)' }}
-      >
-        {label}
-      </div>
-      <div
-        className="overflow-hidden whitespace-nowrap font-medium"
-        style={{
-          fontSize: scaledFontSize(value, 22, 15, 6) + 'px',
-          letterSpacing: '-0.01em',
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-mono)',
-        }}
-      >
-        {fmtShort(value)}
-      </div>
-      {usd && (
-        <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-          {usd}
-        </div>
-      )}
-    </div>
   )
 }

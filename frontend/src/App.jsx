@@ -14,6 +14,7 @@ import Toast from './components/Toast'
 import OfflineBanner from './components/OfflineBanner'
 import ApiTokens from './components/ApiTokens'
 import { fmtRub } from './utils/format'
+import { Skeleton } from './components/ui/skeleton'
 import { dayLabel, todayInput } from './utils/date'
 
 export default function App() {
@@ -226,29 +227,26 @@ export default function App() {
 
 function SkeletonLoader() {
   return (
-    <div className="flex-1 px-6 pt-8 animate-fade-in">
-      <div className="skeleton h-3 w-20 mb-6" />
-      <div className="skeleton h-4 w-32 mb-8" />
-      <div className="skeleton h-10 w-48 mb-3" />
-      <div className="skeleton h-3 w-24 mb-8" />
-      <div style={{ borderTop: '1px solid var(--border-muted)' }} className="pt-5">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div className="skeleton h-3 w-12 mb-3" />
-            <div className="skeleton h-6 w-20" />
-          </div>
-          <div className="flex-1">
-            <div className="skeleton h-3 w-12 mb-3" />
-            <div className="skeleton h-6 w-20" />
-          </div>
+    <div className="flex-1 flex flex-col animate-fade-in">
+      <div className="px-5 pb-12" style={{ background: 'var(--navy-gradient)', paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}>
+        <div className="h-3 w-16 rounded-full bg-white/10" />
+        <div className="mt-2 h-4 w-32 rounded-full bg-white/15" />
+        <div className="mt-5 flex gap-2">
+          {[96, 120, 104].map(w => <div key={w} className="h-8 rounded-full bg-white/10" style={{ width: w }} />)}
+        </div>
+        <div className="mt-6 h-10 w-44 rounded-xl bg-white/15" />
+        <div className="mt-3 h-3 w-16 rounded-full bg-white/10" />
+        <div className="mt-6 grid grid-cols-4 gap-2">
+          {[0, 1, 2, 3].map(i => <div key={i} className="mx-auto h-14 w-14 rounded-2xl bg-white/10" />)}
         </div>
       </div>
-      <div style={{ borderTop: '1px solid var(--border-muted)' }} className="mt-5 pt-5">
-        <div className="skeleton h-3 w-16 mb-4" />
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="flex justify-between items-center py-3">
-            <div className="skeleton h-3 w-24" />
-            <div className="skeleton h-4 w-16" />
+      <div className="-mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
+        <Skeleton className="h-5 w-48" />
+        {[0, 1, 2, 3, 4].map(i => (
+          <div key={i} className="mt-5 flex items-center gap-3">
+            <Skeleton className="h-10 w-10" />
+            <div className="flex-1"><Skeleton className="h-3.5 w-28" /><Skeleton className="mt-2 h-3 w-12" /></div>
+            <Skeleton className="h-4 w-16" />
           </div>
         ))}
       </div>
@@ -259,18 +257,16 @@ function SkeletonLoader() {
 /** Mirrors the desktop dashboard grid so the first paint has the right shape. */
 function DesktopSkeleton() {
   return (
-    <div className="flex-1 overflow-hidden px-10 pt-8 animate-fade-in">
-      <div className="skeleton h-3 w-28 mb-8" />
-      <div className="grid grid-cols-3 gap-5 mb-5">
-        <div className="col-span-2 skeleton" style={{ height: 240, borderRadius: 'var(--radius-lg)' }} />
-        <div className="flex flex-col gap-5">
-          <div className="skeleton flex-1" style={{ borderRadius: 'var(--radius-md)' }} />
-          <div className="skeleton flex-1" style={{ borderRadius: 'var(--radius-md)' }} />
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-5xl px-6 pt-8 animate-fade-in">
       <div className="grid grid-cols-3 gap-5">
-        <div className="col-span-2 skeleton" style={{ height: 280, borderRadius: 'var(--radius-lg)' }} />
-        <div className="skeleton" style={{ height: 280, borderRadius: 'var(--radius-lg)' }} />
+        <div className="col-span-2 flex flex-col gap-5">
+          <div className="h-[340px] rounded-3xl" style={{ background: 'var(--navy-gradient)', opacity: 0.9 }} />
+          <Skeleton className="h-72 rounded-2xl" />
+        </div>
+        <div className="flex flex-col gap-5">
+          <Skeleton className="h-80 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+        </div>
       </div>
     </div>
   )
