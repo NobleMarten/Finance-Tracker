@@ -39,7 +39,7 @@ test('screens', async ({ page }, testInfo) => {
   await settle(page)
   await go('Главная')
 
-  await page.getByRole('button', { name: /^Повторить: Кофе/ }).click()
+  await page.getByRole('button', { name: /^Повторить: / }).click()
   await settle(page)
   await shot(page, testInfo, '12-repeat')
   await page.keyboard.press('Escape')

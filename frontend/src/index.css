@@ -33,7 +33,11 @@
   --ring: 31 43 77;
   --radius: 1rem;
 
-  --navy-gradient: linear-gradient(165deg, #1f2b4d 0%, #16203d 55%, #0e1430 100%);
+  /* Soft slate-blue glow from the top-left corner over the navy base — depth,
+     not a colour shift (no violet). */
+  --navy-gradient:
+    radial-gradient(110% 85% at 0% 0%, rgba(84, 110, 186, 0.55) 0%, rgba(84, 110, 186, 0.18) 38%, transparent 66%),
+    linear-gradient(165deg, #1f2b4d 0%, #16203d 55%, #0e1430 100%);
 
   /* Semantic tokens */
   --bg-base: #F2F4F8;

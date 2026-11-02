@@ -6,6 +6,7 @@ import PullToRefresh from './PullToRefresh'
 import { NumberTicker } from './magicui/number-ticker'
 import { Button } from './ui/button'
 import TxRow from './TxRow'
+import { repeatPick } from '../utils/repeatPick'
 import { dayHeading, toDateInput, yesterdayInput } from '../utils/date'
 import { fmtRub, fmtUsd, greeting, scaledFontSize, titleOf, currentMonth } from '../utils/format'
 import { cn } from '@/lib/utils'
@@ -80,15 +81,18 @@ export default function Dashboard({
   const value = totals[period]
 
   // Actions, not destinations: История / Статистика live in the nav already.
-  const last = sorted[0]
+  const repeat = useMemo(() => repeatPick(sorted), [sorted])
   const actions = [
     { label: 'Добавить', Icon: Plus, onClick: () => onAdd?.(), primary: true },
     { label: 'Вчера', Icon: CalendarMinus, onClick: () => onAdd?.(yesterdayInput()), aria: 'Добавить расход за вчера' },
     {
-      label: 'Повторить',
+      // The tile names what it will add («Кофе»), so the guess is visible before the tap.
+      label: repeat?.description || 'Повторить',
       Icon: Repeat2,
-      onClick: last ? () => onAdd?.(null, { amount: last.amount, description: last.description ?? '' }) : null,
-      aria: last ? `Повторить: ${titleOf(last)}, ${fmtRub(last.amount)}` : 'Повторить последнюю трату',
+      onClick: repeat ? () => onAdd?.(null, { amount: repeat.amount, description: repeat.description }) : null,
+      aria: repeat
+        ? `Повторить: ${repeat.description || 'Без названия'}, ${fmtRub(repeat.amount)}`
+        : 'Повторить трату',
     },
     { label: 'Профиль', Icon: UserRound, onClick: onOpenProfile },
   ]
@@ -242,9 +246,9 @@ function Hero({
 
       {/* Actions */}
       <div className={cn('mt-6 grid grid-cols-4', desktop ? 'max-w-md gap-4' : 'gap-2')}>
-        {actions.map(({ label, Icon, onClick, primary, aria }) => (
+        {actions.map(({ label, Icon, onClick, primary, aria }, i) => (
           <button
-            key={label}
+            key={i}
             type="button"
             onClick={onClick ?? undefined}
             disabled={!onClick}
@@ -261,7 +265,7 @@ function Hero({
             >
               <Icon className="h-[22px] w-[22px]" strokeWidth={primary ? 2.4 : 1.9} />
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">{label}</span>
+            <span className="max-w-[76px] truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">{label}</span>
           </button>
         ))}
       </div>
