@@ -13,7 +13,7 @@ export default function OfflineBanner({ message, onRetry, desktop = false }) {
   return (
     <div
       className={`flex items-center gap-3 flex-shrink-0 animate-fade-in ${
-        desktop ? 'mx-10 mt-4 px-4 py-2.5' : 'mx-4 mt-3 px-3 py-2'
+        desktop ? 'mx-auto w-[calc(100%-48px)] max-w-[976px] mt-4 px-4 py-2.5' : 'mx-4 mt-3 px-3 py-2'
       }`}
       role="status"
       style={{

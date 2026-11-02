@@ -7,12 +7,13 @@ import AddExpense from './components/AddExpense'
 import EditExpense from './components/EditExpense'
 import Stats from './components/Stats'
 import BottomNav from './components/BottomNav'
-import Sidebar from './components/Sidebar'
+import TopNav from './components/TopNav'
+import ProfileSheet from './components/ProfileSheet'
 import DesktopModal from './components/DesktopModal'
 import Toast from './components/Toast'
 import OfflineBanner from './components/OfflineBanner'
 import ApiTokens from './components/ApiTokens'
-import { fmtShort } from './utils/format'
+import { fmtRub } from './utils/format'
 import { dayLabel, todayInput } from './utils/date'
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
   // and back (History unmounts while another screen is shown).
   const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const isDesktop = useIsDesktop()
 
   const showToast = (msg) => {
@@ -57,11 +59,11 @@ export default function App() {
     } catch (e) {
       // Surface the reason (e.g. a rejected date) instead of failing silently,
       // then rethrow so AddExpense keeps the form filled for a retry.
-      showToast(e.message)
+      showToast({ text: e.message, tone: 'error' })
       throw e
     }
     const when = data.date && data.date !== todayInput() ? ` · ${dayLabel(data.date)}` : ''
-    showToast(`+ ${fmtShort(data.amount)} ₽ added${when}`)
+    showToast(`+${fmtRub(data.amount)} добавлено${when}`)
     setAddDate(null)
     setScreen(addReturn)
   }
@@ -70,16 +72,16 @@ export default function App() {
     try {
       await update(id, data)
     } catch (e) {
-      showToast(e.message)
+      showToast({ text: e.message, tone: 'error' })
       throw e
     }
-    showToast('expense updated')
+    showToast('Трата изменена')
     setEditingExpense(null)
   }
 
   const handleDelete = async (id) => {
     await remove(id)
-    showToast('expense deleted')
+    showToast('Трата удалена')
     // Экран редактирования мог быть открыт на этой же трате — закрываем,
     // иначе он останется висеть над списком, где её уже нет.
     setEditingExpense(cur => (cur && cur.id === id ? null : cur))
@@ -98,6 +100,9 @@ export default function App() {
           transactions={transactions}
           onEdit={setEditingExpense}
           onRefresh={refresh}
+          onNavigate={navigate}
+          onAdd={() => navigate(2)}
+          onOpenProfile={() => setProfileOpen(true)}
           desktop={isDesktop}
         />
       )}
@@ -135,6 +140,11 @@ export default function App() {
 
   const overlays = (
     <>
+      <ProfileSheet
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onOpenTokens={() => setTokensOpen(true)}
+      />
       {tokensOpen && (
         isDesktop
           ? (
@@ -159,11 +169,15 @@ export default function App() {
 
   if (isDesktop) {
     return (
-      <div className="fixed inset-0 flex overflow-hidden" style={{ background: 'var(--app-bg)' }}>
-        <Sidebar screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
-
-        <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
-          <OfflineBanner message={error} onRetry={refresh} desktop />
+      <div className="fixed inset-0 flex flex-col overflow-y-auto bg-background">
+        <TopNav
+          screen={screen}
+          onNavigate={navigate}
+          onAdd={() => navigate(2)}
+          onOpenProfile={() => setProfileOpen(true)}
+        />
+        <OfflineBanner message={error} onRetry={refresh} desktop />
+        <main className="flex-1 min-h-0 flex flex-col">
           {loading && screen === 0 ? (
             <DesktopSkeleton />
           ) : (
@@ -180,15 +194,17 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center overflow-hidden" style={{ background: 'var(--app-bg)' }}>
+    <div className="fixed inset-0 flex justify-center overflow-hidden bg-background">
       <div
-        className="w-full h-full max-w-sm flex flex-col relative overflow-hidden"
-        style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
+        className="w-full h-full max-w-md flex flex-col relative overflow-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex-1 flex flex-col min-h-0">
+        {/* The home header is navy edge to edge, so it handles the top inset
+            itself; every other screen gets it here. */}
+        <div
+          className="flex-1 flex flex-col min-h-0"
+          style={{ paddingTop: screen === 0 ? 0 : 'env(safe-area-inset-top)' }}
+        >
           <OfflineBanner message={error} onRetry={refresh} />
           {loading && screen === 0 ? (
             <SkeletonLoader />
@@ -198,7 +214,7 @@ export default function App() {
             </div>
           )}
         </div>
-        <BottomNav screen={screen} onNavigate={navigate} onOpenTokens={() => setTokensOpen(true)} />
+        <BottomNav screen={screen} onNavigate={navigate} onAdd={() => navigate(2)} />
 
         {overlays}
       </div>
@@ -207,7 +223,6 @@ export default function App() {
     </div>
   )
 }
-
 
 function SkeletonLoader() {
   return (
