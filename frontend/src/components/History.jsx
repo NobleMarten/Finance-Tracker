@@ -1,14 +1,15 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import { fmtFull, fmtShort, fmtTime, scaledFontSize } from '../utils/format'
+import { fmtShort, fmtRub, fmtTime, scaledFontSize, titleOf } from '../utils/format'
+import { plural } from '../utils/plural'
 import { toDateInput } from '../utils/date'
 import { avatarColor } from '../utils/avatar'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
 
-const SEGMENTS = ['Day', 'Month', 'Year']
+const SEGMENTS = ['День', 'Месяц', 'Год']
 const DAY_MS = 86400000
-const WEEK_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const WEEK_LETTERS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
 
 /* ────────────────────────── periods ────────────────────────── */
 
@@ -26,7 +27,7 @@ function mondayOf(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff)
 }
 
-const fmt = (d, opts) => d.toLocaleDateString('en-GB', opts)
+const fmt = (d, opts) => d.toLocaleDateString('ru-RU', opts)
 
 /**
  * `offset` counts periods back from the current one. Ends are built from the
@@ -45,9 +46,11 @@ function getRange(seg, offset) {
     return {
       start,
       end,
-      title: offset === 0 ? 'Today' : offset === 1 ? 'Yesterday' : fmt(start, { weekday: 'long' }),
+      title: offset === 0 ? 'Сегодня' : offset === 1 ? 'Вчера' : fmt(start, { weekday: 'long' }),
       subtitle: fmt(start, opts),
-      short: offset === 0 ? 'today' : offset === 1 ? 'yesterday' : fmt(start, { weekday: 'short' }),
+      short: offset === 0 ? 'сегодня' : offset === 1 ? 'вчера' : fmt(start, { weekday: 'short' }),
+      // Label used when this range is the comparison baseline (the previous period).
+      vs: offset === 1 ? 'ко вчера' : offset === 2 ? 'к позавчера' : `к ${fmt(start, { day: 'numeric', month: 'short' })}`,
     }
   }
 
@@ -59,6 +62,7 @@ function getRange(seg, offset) {
       title: fmt(start, { month: 'long' }),
       subtitle: String(start.getFullYear()),
       short: fmt(start, { month: 'short' }),
+      vs: `к ${fmt(start, { month: 'short' }).replace('.', '')}`,
     }
   }
 
@@ -67,8 +71,9 @@ function getRange(seg, offset) {
     start: new Date(y, 0, 1),
     end: new Date(y, 11, 31, 23, 59, 59, 999),
     title: String(y),
-    subtitle: offset === 0 ? 'this year' : null,
+    subtitle: offset === 0 ? 'этот год' : null,
     short: String(y),
+    vs: `к ${y}`,
   }
 }
 
@@ -139,7 +144,7 @@ function useHistoryData(transactions, seg, offset) {
       filtered,
       total,
       delta,
-      deltaLabel: `vs ${prevRange.short}`,
+      deltaLabel: prevRange.vs,
       groups: groupItems(seg, filtered),
       week: seg === 0 ? buildWeek(transactions, range.start) : null,
     }
@@ -205,7 +210,7 @@ export default function History({
       {/* Header */}
       <div className="px-5 pt-6 pb-4 flex-shrink-0 flex items-center justify-between gap-4 animate-fade-in">
         <div className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          History
+          История
         </div>
         <Segments seg={seg} onSeg={handleSeg} />
       </div>
@@ -262,16 +267,16 @@ function Segments({ seg, onSeg, desktop = false }) {
           width: `calc((100% - 8px) / ${SEGMENTS.length})`,
           transform: `translateX(${seg * 100}%)`,
           borderRadius: desktop ? 9 : 7,
-          background: 'var(--accent-soft)',
-          border: '1px solid rgba(var(--accent-rgb), 0.25)',
+          background: 'var(--accent)',
+          boxShadow: '0 4px 10px -4px rgba(14,20,48,0.5)',
         }}
       />
       {SEGMENTS.map((lbl, i) => (
         <button
           key={lbl}
           onClick={() => onSeg(i)}
-          className={`relative ${desktop ? 'w-20 py-1.5 text-[12px]' : 'w-14 py-1.5 text-[11px]'} font-semibold tracking-wide transition-colors duration-200 active:scale-95`}
-          style={{ color: seg === i ? 'var(--accent)' : 'var(--text-tertiary)' }}
+          className={`relative ${desktop ? 'w-20 py-1.5 text-[12px]' : 'w-16 py-1.5 text-[12px]'} font-semibold tracking-wide transition-colors duration-200 active:scale-95`}
+          style={{ color: seg === i ? '#fff' : 'var(--text-tertiary)' }}
         >
           {lbl}
         </button>
@@ -300,18 +305,10 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
         boxShadow: 'var(--hero-shadow)',
       }}
     >
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: -50, right: -50, width: 170, height: 170, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.13) 0%, transparent 70%)',
-        }}
-      />
-
       <div className="relative p-5">
         {/* Period navigation */}
         <div className="flex items-center gap-2">
-          <PeriodBtn onClick={() => setOffset(o => o + 1)} label="Previous period">
+          <PeriodBtn onClick={() => setOffset(o => o + 1)} label="Предыдущий период">
             <polyline points="15 18 9 12 15 6" />
           </PeriodBtn>
           <div key={`${seg}-${offset}`} className="flex-1 min-w-0 text-center animate-fade-in">
@@ -324,7 +321,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
               </div>
             )}
           </div>
-          <PeriodBtn onClick={() => setOffset(o => Math.max(0, o - 1))} disabled={offset === 0} label="Next period">
+          <PeriodBtn onClick={() => setOffset(o => Math.max(0, o - 1))} disabled={offset === 0} label="Следующий период">
             <polyline points="9 18 15 12 9 6" />
           </PeriodBtn>
         </div>
@@ -332,25 +329,25 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
         {/* Total */}
         <div className="mt-5 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.16em] font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>
-              spent
+            <div className="text-[12px] font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
+              Потрачено
             </div>
             <div
               className="whitespace-nowrap font-medium"
               style={{
                 fontSize: scaledFontSize(total, desktop ? 34 : 36, 22, 7) + 'px',
                 lineHeight: 1.1,
-                letterSpacing: '-0.02em',
+                letterSpacing: '-0.03em',
+                fontWeight: 600,
                 color: 'var(--text-primary)',
-                fontFamily: 'var(--font-mono)',
               }}
             >
-              <CountUp value={total} format={desktop ? fmtShort : fmtFull} />
+              <CountUp value={total} format={fmtShort} />
               <span className="text-[0.55em] ml-1" style={{ color: 'var(--text-tertiary)' }}>₽</span>
             </div>
             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
               <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                {count} {count === 1 ? 'expense' : 'expenses'}
+                {count} {plural(count, 'трата', 'траты', 'трат')}
               </span>
               {delta !== null && total > 0 && <DeltaPill delta={delta} label={deltaLabel} />}
             </div>
@@ -359,7 +356,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
           {onAdd && !desktop && (
             <button
               onClick={onAdd}
-              aria-label={`Add expense on ${range.subtitle}`}
+              aria-label={`Добавить расход: ${range.subtitle}`}
               className="flex-shrink-0 h-10 pl-3 pr-4 flex items-center gap-1.5 text-[13px] font-semibold transition-transform duration-150 active:scale-95"
               style={{
                 borderRadius: 'var(--radius-full)',
@@ -369,7 +366,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
               }}
             >
               <PlusGlyph />
-              Add
+              Добавить
             </button>
           )}
         </div>
@@ -388,7 +385,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
             }}
           >
             <PlusGlyph />
-            Add to {range.short}
+            Добавить на {range.short}
           </button>
         )}
       </div>
@@ -405,13 +402,12 @@ function DeltaPill({ delta, label }) {
       className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5"
       style={{
         borderRadius: 6,
-        fontFamily: 'var(--font-mono)',
         background: flat ? 'var(--overlay)' : up ? 'var(--danger-soft)' : 'var(--success-soft)',
         color: flat ? 'var(--text-secondary)' : up ? 'var(--danger)' : 'var(--success)',
       }}
     >
       {flat ? '=' : up ? '↑' : '↓'} {Math.abs(delta)}%
-      <span className="font-medium" style={{ fontFamily: 'var(--font-ui)', opacity: 0.8 }}>{label}</span>
+      <span className="font-medium" style={{ opacity: 0.8 }}>{label}</span>
     </span>
   )
 }
@@ -432,7 +428,7 @@ function WeekStrip({ week, offset, setOffset }) {
             key={i}
             disabled={future}
             onClick={() => setOffset(d.offset)}
-            aria-label={`${d.date.toDateString()}: ${fmtShort(d.total)} ₽`}
+            aria-label={`${fmt(d.date, { day: 'numeric', month: 'long' })}: ${fmtRub(d.total)}`}
             aria-current={selected ? 'date' : undefined}
             className="flex flex-col items-center gap-1.5 py-1.5 transition-colors duration-150 disabled:cursor-default"
             style={{
@@ -457,9 +453,8 @@ function WeekStrip({ week, offset, setOffset }) {
               {WEEK_LETTERS[i]}
             </span>
             <span
-              className="text-[11px] leading-none"
+              className="text-[11px] leading-none tabular-nums"
               style={{
-                fontFamily: 'var(--font-mono)',
                 fontWeight: selected || isToday ? 600 : 400,
                 color: selected ? 'var(--accent)' : isToday ? 'var(--text-primary)' : 'var(--text-secondary)',
               }}
@@ -489,8 +484,8 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
               {group.label}
               <span className="ml-2 font-medium" style={{ color: 'var(--text-ghost)' }}>{group.items.length}</span>
             </span>
-            <span className="text-[13px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-              {fmtShort(group.total)} ₽
+            <span className="text-[13px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+              {fmtRub(group.total)}
             </span>
           </div>
           <div className="mt-1.5 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border-muted)' }}>
@@ -505,7 +500,6 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
         className={desktop ? '' : 'overflow-hidden'}
         style={desktop ? undefined : {
           background: 'var(--bg-surface)',
-          border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-md)',
           boxShadow: 'var(--shadow-surface)',
         }}
@@ -516,14 +510,14 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
   )
 }
 
-function Avatar({ text, size = 36 }) {
+function Avatar({ text, size = 40 }) {
   const c = avatarColor(text)
   return (
     <div
-      className="flex items-center justify-center flex-shrink-0 font-semibold"
-      style={{ width: size, height: size, borderRadius: 11, background: c.bg, color: c.fg, fontSize: size * 0.38 }}
+      className="flex items-center justify-center flex-shrink-0 font-bold"
+      style={{ width: size, height: size, borderRadius: 12, background: c.bg, color: c.fg, fontSize: 14 }}
     >
-      {(text || '—')[0].toUpperCase()}
+      {text?.trim() ? text.trim()[0].toUpperCase() : '—'}
     </div>
   )
 }
@@ -551,59 +545,57 @@ function Row({ t, seg, index, first, onEdit }) {
     >
       {/* Divider inset past the avatar, iOS-list style */}
       {!first && (
-        <span className="absolute top-0 right-0" style={{ left: 62, borderTop: '1px solid var(--border-subtle)' }} />
+        <span className="absolute top-0 right-0" style={{ left: 66, borderTop: '1px solid var(--border-subtle)' }} />
       )}
       <Avatar text={t.description} />
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-          {t.description || '—'}
+        <div className="text-[14px] font-semibold truncate" style={{ color: t.description?.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+          {titleOf(t)}
         </div>
-        <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+        <div className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
           {rowMeta(t, seg)}
         </div>
       </div>
-      <span className="text-[15px] font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}>
-        {fmtShort(t.amount)}
-        <span className="text-[12px] ml-0.5" style={{ color: 'var(--text-tertiary)' }}>₽</span>
+      <span className="text-[15px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+        {fmtRub(t.amount)}
       </span>
     </div>
   )
 }
 
 function EmptyState({ seg, onAdd, desktop = false }) {
-  const text = seg === 0 ? 'No expenses this day' : seg === 1 ? 'No expenses this month' : 'No expenses this year'
+  const text = seg === 0 ? 'В этот день трат нет' : seg === 1 ? 'В этом месяце трат нет' : 'В этом году трат нет'
   return (
     <div className={`flex flex-col items-center justify-center ${desktop ? 'h-full py-20' : 'py-10'} animate-fade-in`}>
       <div
         className="w-14 h-14 flex items-center justify-center mb-4"
-        style={{ borderRadius: 18, background: 'var(--bg-surface)', border: '1px dashed var(--border-subtle)' }}
+        style={{ borderRadius: 18, background: 'var(--accent-soft)' }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
-          strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)' }}>
+          strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
           <rect x="3" y="4" width="18" height="18" rx="3" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
       </div>
-      <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>{text}</p>
+      <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{text}</p>
       {onAdd ? (
         <button
           onClick={onAdd}
           className="mt-4 h-9 px-4 flex items-center gap-1.5 text-[13px] font-semibold transition-all duration-150 active:scale-95"
           style={{
             borderRadius: 'var(--radius-full)',
-            color: 'var(--accent)',
-            background: 'var(--accent-soft)',
-            border: '1px solid rgba(var(--accent-rgb), 0.3)',
+            color: '#fff',
+            background: 'var(--accent)',
           }}
         >
           <PlusGlyph />
-          Add one
+          Добавить
         </button>
       ) : (
         <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-          {desktop ? 'Use ← → to browse other periods' : 'Swipe to browse other periods'}
+          {desktop ? 'Стрелки ← → листают периоды' : 'Свайпните карточку, чтобы листать периоды'}
         </p>
       )}
     </div>
@@ -640,11 +632,11 @@ function ListSkeleton() {
   return (
     <div
       className="animate-fade-in overflow-hidden"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-surface)' }}
+      style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-surface)' }}
     >
       {[0, 1, 2, 3, 4].map(i => (
         <div key={i} className="flex items-center gap-3 px-3.5 py-3">
-          <div className="skeleton w-9 h-9 flex-shrink-0" style={{ borderRadius: 11 }} />
+          <div className="skeleton w-10 h-10 flex-shrink-0" style={{ borderRadius: 12 }} />
           <div className="flex-1">
             <div className="skeleton h-3 mb-2" style={{ maxWidth: 140 }} />
             <div className="skeleton h-2.5 w-12" />
@@ -666,21 +658,21 @@ function ListSkeleton() {
 function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, onDelete, onEdit }) {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="mx-auto w-full max-w-[1480px] px-10 pt-8 flex flex-col flex-1 min-h-0">
+      <div className="mx-auto w-full max-w-5xl px-6 pt-8 flex flex-col flex-1 min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 flex-shrink-0 animate-fade-in">
-          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            History
+          <h1 className="text-[26px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            История
           </h1>
           <Segments seg={seg} onSeg={onSeg} desktop />
         </div>
 
         <div className="flex gap-6 flex-1 min-h-0 pb-8">
           {/* Side rail */}
-          <aside className="w-[320px] flex-shrink-0 flex flex-col gap-4 animate-fade-in delay-1">
+          <aside className="w-[300px] flex-shrink-0 flex flex-col gap-4 animate-fade-in delay-1">
             <PeriodHero seg={seg} offset={offset} setOffset={setOffset} data={data} onAdd={onAdd} desktop />
             <p className="text-[11px] leading-relaxed px-1" style={{ color: 'var(--text-ghost)' }}>
-              ← → arrow keys move between periods
+              Стрелки ← → переключают периоды
             </p>
           </aside>
 
@@ -689,19 +681,18 @@ function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, o
             className="flex-1 min-w-0 flex flex-col animate-fade-in delay-2 overflow-hidden"
             style={{
               background: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-lg)',
               boxShadow: 'var(--shadow-surface)',
             }}
           >
             <div
-              className="flex items-center gap-4 px-6 py-3 flex-shrink-0 text-[11px] uppercase tracking-[0.14em] font-medium"
+              className="flex items-center gap-4 px-6 py-3 flex-shrink-0 text-[12px] font-semibold"
               style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}
             >
-              <span className="w-9 flex-shrink-0" />
-              <span className="flex-1 min-w-0">description</span>
-              <span className="w-32 flex-shrink-0">{seg === 0 ? 'time' : 'date'}</span>
-              <span className="w-36 text-right flex-shrink-0">amount</span>
+              <span className="w-10 flex-shrink-0" />
+              <span className="flex-1 min-w-0">Описание</span>
+              <span className="w-32 flex-shrink-0">{seg === 0 ? 'Время' : 'Дата'}</span>
+              <span className="w-28 text-right flex-shrink-0">Сумма</span>
               <span className="w-8 flex-shrink-0" />
             </div>
 
@@ -753,17 +744,17 @@ function DesktopRow({ t, seg, index, onEdit, onDelete }) {
       onClick={onEdit}
     >
       <Avatar text={t.description} />
-      <span className="text-[14px] flex-1 min-w-0 font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-        {t.description || '—'}
+      <span className="text-[14px] flex-1 min-w-0 font-semibold truncate" style={{ color: t.description?.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        {titleOf(t)}
       </span>
-      <span className="text-[12px] w-32 flex-shrink-0" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+      <span className="text-[12px] font-medium w-32 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
         {rowMeta(t, seg)}
       </span>
       <span
-        className="text-[15px] font-medium whitespace-nowrap w-36 text-right flex-shrink-0"
-        style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.01em' }}
+        className="text-[15px] font-semibold whitespace-nowrap w-28 text-right flex-shrink-0"
+        style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
       >
-        {fmtShort(t.amount)} ₽
+        {fmtRub(t.amount)}
       </span>
       <button
         onClick={(e) => {
@@ -771,8 +762,8 @@ function DesktopRow({ t, seg, index, onEdit, onDelete }) {
           if (armed) onDelete?.()
           else setArmed(true)
         }}
-        aria-label={armed ? 'Confirm delete' : 'Delete expense'}
-        title={armed ? 'Click again to delete' : 'Delete'}
+        aria-label={armed ? 'Подтвердить удаление' : 'Удалить расход'}
+        title={armed ? 'Нажмите ещё раз, чтобы удалить' : 'Удалить'}
         className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-all duration-150 ${
           armed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
         }`}
