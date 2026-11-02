@@ -32,6 +32,11 @@ test('screens', async ({ page }, testInfo) => {
   await go('Статистика')
   await page.waitForTimeout(600)
   await shot(page, testInfo, '04-stats')
+  await page.getByRole('button', { name: 'Показать: крупные траты' }).first().click()
+  await settle(page)
+  await shot(page, testInfo, '11-stats-drill')
+  await page.keyboard.press('Escape')
+  await settle(page)
   await go('Главная')
 
   await page.getByRole('button', { name: mobile ? 'Добавить расход' : 'Добавить' }).first().click()

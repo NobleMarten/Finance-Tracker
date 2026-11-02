@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { heatColor } from '../utils/heatmap'
+import { MONTHS_SHORT } from '../utils/months'
 
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const GAP = 3
 const LABEL_H = 14
 const DAY_MS = 86400000
@@ -68,7 +68,7 @@ export default function YearHeatmap({ transactions, year, active, onSelect, onHo
 
   return (
     <div ref={scrollRef} className="overflow-x-auto no-scrollbar">
-      <svg width={W} height={H + LABEL_H} style={{ display: 'block' }} role="img" aria-label={`Spending heatmap for ${year}`}>
+      <svg width={W} height={H + LABEL_H} style={{ display: 'block' }} role="img" aria-label={`Тепловая карта трат за ${year}`}>
         {Object.entries(monthFirstCol).map(([m, col]) => (
           <text key={m} x={col * STEP} y={10} fontSize="9" fill="var(--text-tertiary)">
             {MONTHS_SHORT[m]}

@@ -1,11 +1,14 @@
-import { fmtTime, fmtShort, fmtFull, scaledFontSize } from '../utils/format'
+import { Plus } from 'lucide-react'
+import { fmtShort, scaledFontSize } from '../utils/format'
 import { toDateInput, todayInput } from '../utils/date'
+import { plural } from '../utils/plural'
+import { MONTHS_GEN } from '../utils/months'
 import CountUp from './CountUp'
-import DesktopModal from './DesktopModal'
-import { avatarColor } from '../utils/avatar'
+import ResponsiveSheet from './ResponsiveSheet'
+import TxRow from './TxRow'
 
 /**
- * Full-screen drill-down over the Stats area listing every expense recorded on a
+ * Drill-down sheet (dialog on desktop) listing every expense recorded on a
  * single day. Rows are tappable → open the app-level Edit screen via `onEdit`.
  * The total shown is the sum of the listed rows, so header and list always agree.
  *
@@ -16,7 +19,8 @@ import { avatarColor } from '../utils/avatar'
  * covering the whole window — a full-screen takeover for one day's rows would
  * throw away the context the user clicked from.
  */
-export default function DayDetail({ day, month, year, monthName, transactions, onEdit, onAddHere, onClose, desktop = false }) {
+export default function DayDetail({ day, month, year, transactions, onEdit, onAddHere, onClose }) {
+  const dayName = `${day} ${MONTHS_GEN[month - 1]} ${year}`
   const dateInput = toDateInput(new Date(year, month - 1, day))
   const canAdd = Boolean(onAddHere) && dateInput <= todayInput()
 
@@ -30,124 +34,50 @@ export default function DayDetail({ day, month, year, monthName, transactions, o
 
   const total = dayTx.reduce((s, t) => s + t.amount, 0)
 
-  const body = (
-    <div
-      className={desktop
-        ? 'absolute inset-0 flex flex-col'
-        : 'absolute inset-0 z-40 flex flex-col animate-fade-in-up'}
-      style={{ background: 'var(--bg-base)' }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4 flex-shrink-0">
-        <button
-          onClick={onClose}
-          aria-label="Back to stats"
-          className="w-9 h-9 flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
-          style={{ background: 'var(--overlay)', border: '1px solid var(--border-subtle)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <div className="text-[16px] font-medium" style={{ color: 'var(--text-primary)' }}>
-          {day} {monthName} {year}
-        </div>
-
-        {canAdd && (
-          <button
-            onClick={() => onAddHere(dateInput)}
-            aria-label={`Add expense on ${day} ${monthName} ${year}`}
-            className="w-9 h-9 ml-auto flex items-center justify-center rounded-full transition-colors active:scale-90 flex-shrink-0"
-            style={{ background: 'var(--accent-glow)', border: '1px solid var(--accent)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Total */}
-      <div className="px-5 pb-4 flex-shrink-0">
-        <div className="text-[12px] font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-          Total spent
-        </div>
-        <div
-          className="font-medium whitespace-nowrap"
-          style={{
-            fontSize: scaledFontSize(total, 34, 22, 7) + 'px',
-            lineHeight: 1.15,
-            letterSpacing: '-0.02em',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-          }}
-        >
-          <CountUp value={total} format={fmtFull} /> ₽
-        </div>
-        <div className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-          {dayTx.length} {dayTx.length === 1 ? 'expense' : 'expenses'}
-        </div>
-      </div>
-
-      <div className="mx-5 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-
-      {/* Expense list */}
-      <div className={`flex-1 min-h-0 overflow-y-auto px-5 ${desktop ? 'pb-5' : 'pb-28'}`}>
-        {dayTx.length === 0 ? (
-          <p className="text-[13px] pt-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
-            No expenses this day
-          </p>
-        ) : (
-          dayTx.map((t, i) => {
-            const c = avatarColor(t.description)
-            return (
-              <div
-                key={t.id}
-                onClick={() => onEdit?.(t)}
-                className="flex justify-between items-center py-3 animate-fade-in transition-all duration-150 hover:bg-[var(--bg-elevated)] active:bg-[var(--bg-elevated)] active:scale-[0.99] cursor-pointer rounded-lg"
-                style={{
-                  borderTop: i > 0 ? '1px solid var(--border-muted)' : 'none',
-                  animationDelay: `${i * 0.03}s`,
-                }}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium flex-shrink-0"
-                    style={{ background: c.bg, color: c.fg }}
-                  >
-                    {(t.description || '—')[0].toUpperCase()}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[13px] font-light truncate" style={{ color: 'var(--text-secondary)' }}>
-                      {t.description || '—'}
-                    </span>
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-                      {fmtTime(t.ts)}
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className="text-[15px] font-medium whitespace-nowrap pl-3"
-                  style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', fontFamily: 'var(--font-mono)' }}
-                >
-                  {fmtShort(t.amount)}
-                </span>
-              </div>
-            )
-          })
-        )}
-      </div>
-    </div>
-  )
-
-  if (!desktop) return body
-
   return (
-    <DesktopModal onClose={onClose} width={520} height="min(660px, 82vh)">
-      {body}
-    </DesktopModal>
+    <ResponsiveSheet
+      open
+      onOpenChange={(o) => { if (!o) onClose() }}
+      title={dayName}
+      dialogClassName="max-w-[480px] h-[min(640px,82vh)]"
+      sheetClassName="h-[82dvh]"
+    >
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-shrink-0 items-center gap-3 px-5 pb-2 pt-4 lg:pr-14 lg:pt-6">
+          <div className="text-[18px] font-bold tracking-tight">{dayName}</div>
+          {canAdd && (
+            <button
+              type="button"
+              onClick={() => onAddHere(dateInput)}
+              aria-label={`Добавить расход: ${dayName}`}
+              className="ml-auto flex h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform active:scale-95"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.4} /> Добавить
+            </button>
+          )}
+        </div>
+
+        <div className="flex-shrink-0 px-5 pb-4">
+          <div className="text-[12px] font-semibold text-muted-foreground">Потрачено</div>
+          <div
+            className="mt-1 whitespace-nowrap font-semibold tracking-[-0.03em]"
+            style={{ fontSize: scaledFontSize(total, 34, 22, 7), lineHeight: 1.15 }}
+          >
+            <CountUp value={total} format={fmtShort} /> ₽
+          </div>
+          <div className="mt-0.5 text-[12px] text-muted-foreground">
+            {dayTx.length} {plural(dayTx.length, 'трата', 'траты', 'трат')}
+          </div>
+        </div>
+
+        <div className="mx-4 mb-4 min-h-0 flex-1 overflow-y-auto rounded-2xl bg-card px-4 py-1 shadow-soft">
+          {dayTx.length === 0 ? (
+            <p className="py-8 text-center text-[13px] text-muted-foreground">В этот день трат нет</p>
+          ) : (
+            dayTx.map((t, i) => <TxRow key={t.id} t={t} onClick={() => onEdit?.(t)} delay={i * 0.03} />)
+          )}
+        </div>
+      </div>
+    </ResponsiveSheet>
   )
 }

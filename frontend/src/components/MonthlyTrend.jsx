@@ -59,7 +59,7 @@ export default function MonthlyTrend({
                 onMouseLeave={() => onHover?.(null)}
                 className="flex-1 flex flex-col items-center"
                 style={{ cursor: hasData ? 'pointer' : 'default' }}
-                aria-label={isPartial ? `${m.label}, month in progress` : m.label}
+                aria-label={isPartial ? `${m.label}, месяц идёт` : m.label}
               >
                 <div className="relative w-full flex items-end justify-center" style={{ height: TRACK_H }}>
                   {fh > 0 && (
@@ -112,14 +112,14 @@ export default function MonthlyTrend({
           {avgY !== null && (
             <span className="flex items-center gap-1.5">
               <span className="w-3" style={{ borderTop: '1px dashed var(--text-tertiary)' }} />
-              avg of full months · <span style={{ fontFamily: 'var(--font-mono)' }}>{fmtShort(avg)} ₽</span>
+              среднее за полные месяцы · {fmtShort(avg)} ₽
             </span>
           )}
           {partialIndex !== null && forecast > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-[2px]"
                 style={{ border: '1px dashed rgba(var(--accent-rgb),0.7)' }} />
-              {data[partialIndex].label} so far · forecast {fmtShort(forecast)} ₽
+              {data[partialIndex].label} пока · прогноз {fmtShort(forecast)} ₽
             </span>
           )}
         </div>
