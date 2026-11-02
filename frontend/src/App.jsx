@@ -27,6 +27,8 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false)
   // Pre-selected day for the add form, set when you open it from a day view.
   const [addDate, setAddDate] = useState(null)
+  // { amount, description } to start the form from — set by «Повторить».
+  const [addPrefill, setAddPrefill] = useState(null)
   // Bumped on every open so the form starts clean each time.
   const [addKey, setAddKey] = useState(0)
   // The edit sheet animates out after editingExpense is cleared; keep the last
@@ -45,9 +47,11 @@ export default function App() {
     setTimeout(() => setToast(msg), 10)
   }
 
-  /** `date` is `YYYY-MM-DD`; omitted means today. */
-  const openAdd = (date = null) => {
+  /** `date` is `YYYY-MM-DD`; omitted means today. `prefill` is { amount, description }. */
+  const openAdd = (date = null, prefill = null) => {
+    // Guards: callers wired straight to onClick would hand us the click event.
     setAddDate(typeof date === 'string' ? date : null)
+    setAddPrefill(prefill && typeof prefill.amount === 'number' ? prefill : null)
     setAddKey(k => k + 1)
     setAddOpen(true)
   }
@@ -107,7 +111,7 @@ export default function App() {
           onEdit={setEditingExpense}
           onRefresh={refresh}
           onNavigate={navigate}
-          onAdd={() => openAdd()}
+          onAdd={openAdd}
           onOpenProfile={() => setProfileOpen(true)}
           desktop={isDesktop}
         />
@@ -149,7 +153,14 @@ export default function App() {
         title="Новый расход"
         dialogClassName="max-w-[420px]"
       >
-        <AddExpense key={addKey} onAdd={handleAdd} initialDate={addDate} desktop={isDesktop} />
+        <AddExpense
+          key={addKey}
+          onAdd={handleAdd}
+          initialDate={addDate}
+          initialAmount={addPrefill?.amount}
+          initialDesc={addPrefill?.description}
+          desktop={isDesktop}
+        />
       </ResponsiveSheet>
 
       <ResponsiveSheet
@@ -187,7 +198,7 @@ export default function App() {
         <TopNav
           screen={screen}
           onNavigate={navigate}
-          onAdd={() => openAdd()}
+          onAdd={openAdd}
           onOpenProfile={() => setProfileOpen(true)}
         />
         <OfflineBanner message={error} onRetry={refresh} desktop />

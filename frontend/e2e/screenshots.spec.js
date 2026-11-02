@@ -39,7 +39,19 @@ test('screens', async ({ page }, testInfo) => {
   await settle(page)
   await go('Главная')
 
-  await page.getByRole('button', { name: mobile ? 'Добавить расход' : 'Добавить' }).first().click()
+  await page.getByRole('button', { name: /^Повторить: Кофе/ }).click()
+  await settle(page)
+  await shot(page, testInfo, '12-repeat')
+  await page.keyboard.press('Escape')
+  await settle(page)
+
+  await page.getByRole('button', { name: 'Добавить расход за вчера' }).click()
+  await settle(page)
+  await shot(page, testInfo, '13-yesterday')
+  await page.keyboard.press('Escape')
+  await settle(page)
+
+  await page.getByRole('button', { name: mobile ? 'Добавить расход' : 'Добавить', exact: true }).first().click()
   await settle(page)
   await shot(page, testInfo, '05-add')
   await page.keyboard.press('Escape')

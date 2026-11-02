@@ -19,6 +19,12 @@ export function todayInput() {
   return toDateInput(new Date())
 }
 
+export function yesterdayInput() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return toDateInput(d)
+}
+
 /** Floor for the date picker: five years back is well past any useful history. */
 export function minDateInput() {
   const d = new Date()

@@ -5,9 +5,10 @@ import Numpad from './Numpad'
 import ExpenseForm from './ExpenseForm'
 
 /** Body of the «Новый расход» sheet / dialog. Logic unchanged from the old screen. */
-export default function AddExpense({ onAdd, initialDate, desktop = false }) {
-  const [amt, setAmt] = useState('0')
-  const [desc, setDesc] = useState('')
+export default function AddExpense({ onAdd, initialDate, initialAmount, initialDesc, desktop = false }) {
+  // initialAmount / initialDesc prefill the form for «Повторить» on the home screen.
+  const [amt, setAmt] = useState(() => (initialAmount > 0 ? String(initialAmount) : '0'))
+  const [desc, setDesc] = useState(initialDesc ?? '')
   const [date, setDate] = useState(() => initialDate ?? todayInput())
   const [busy, setBusy] = useState(false)
   const hiddenRef = useRef(null)

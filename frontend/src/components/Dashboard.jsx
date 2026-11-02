@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Clock3, ChartColumn, UserRound, ChevronDown, ChevronRight, Receipt } from 'lucide-react'
+import { Plus, CalendarMinus, Repeat2, UserRound, ChevronDown, ChevronRight, Receipt } from 'lucide-react'
 import { api } from '../api/api'
 import { useAuth } from '../context/AuthContext'
 import PullToRefresh from './PullToRefresh'
 import { NumberTicker } from './magicui/number-ticker'
 import { Button } from './ui/button'
 import TxRow from './TxRow'
-import { dayHeading, toDateInput } from '../utils/date'
+import { dayHeading, toDateInput, yesterdayInput } from '../utils/date'
 import { fmtRub, fmtUsd, greeting, scaledFontSize, titleOf, currentMonth } from '../utils/format'
 import { cn } from '@/lib/utils'
 
@@ -79,10 +79,17 @@ export default function Dashboard({
   const initial = user?.email?.trim()[0]?.toUpperCase() ?? '?'
   const value = totals[period]
 
+  // Actions, not destinations: История / Статистика live in the nav already.
+  const last = sorted[0]
   const actions = [
-    { label: 'Добавить', Icon: Plus, onClick: onAdd, primary: true },
-    { label: 'История', Icon: Clock3, onClick: () => onNavigate?.(1) },
-    { label: 'Статистика', Icon: ChartColumn, onClick: () => onNavigate?.(3) },
+    { label: 'Добавить', Icon: Plus, onClick: () => onAdd?.(), primary: true },
+    { label: 'Вчера', Icon: CalendarMinus, onClick: () => onAdd?.(yesterdayInput()), aria: 'Добавить расход за вчера' },
+    {
+      label: 'Повторить',
+      Icon: Repeat2,
+      onClick: last ? () => onAdd?.(null, { amount: last.amount, description: last.description ?? '' }) : null,
+      aria: last ? `Повторить: ${titleOf(last)}, ${fmtRub(last.amount)}` : 'Повторить последнюю трату',
+    },
     { label: 'Профиль', Icon: UserRound, onClick: onOpenProfile },
   ]
 
@@ -112,7 +119,7 @@ export default function Dashboard({
             {hero}
             <section className="rounded-2xl bg-card px-6 pb-4 pt-5 shadow-soft">
               <RecentHeader onAll={() => onNavigate?.(1)} />
-              <RecentList groups={recentGroups} onEdit={onEdit} onAdd={onAdd} />
+              <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
             </section>
           </div>
           <aside className="flex min-w-0 flex-col gap-5">
@@ -140,7 +147,7 @@ export default function Dashboard({
       {/* White sheet, tucked under the header's bottom edge. */}
       <section className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pb-32 pt-6">
         <RecentHeader onAll={() => onNavigate?.(1)} />
-        <RecentList groups={recentGroups} onEdit={onEdit} onAdd={onAdd} />
+        <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
       </section>
     </PullToRefresh>
   )
@@ -235,8 +242,15 @@ function Hero({
 
       {/* Actions */}
       <div className={cn('mt-6 grid grid-cols-4', desktop ? 'max-w-md gap-4' : 'gap-2')}>
-        {actions.map(({ label, Icon, onClick, primary }) => (
-          <button key={label} type="button" onClick={onClick} className="group flex flex-col items-center gap-2">
+        {actions.map(({ label, Icon, onClick, primary, aria }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={onClick ?? undefined}
+            disabled={!onClick}
+            aria-label={aria ?? label}
+            className="group flex flex-col items-center gap-2 disabled:opacity-40"
+          >
             <span
               className={cn(
                 'flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-150 group-active:scale-90',
