@@ -129,7 +129,7 @@ export default function Dashboard({
           <aside className="flex min-w-0 flex-col gap-5">
             <section className="rounded-2xl bg-card px-5 pb-3 pt-5 shadow-soft">
               <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-[15px] font-bold tracking-tight">На этой неделе</h2>
+                <h2 className="text-[17px] font-bold tracking-tight">На этой неделе</h2>
                 <span className="text-[13px] font-semibold tabular-nums text-muted-foreground">{fmtRub(totals.week)}</span>
               </div>
               <WeekList items={weekTx} onEdit={onEdit} />
@@ -340,7 +340,7 @@ function RecentList({ groups, onEdit, onAdd }) {
   let index = 0
   return groups.map(g => (
     <div key={g.key} className="mt-4 first:mt-3">
-      <div className="mb-1 text-[12px] font-semibold text-muted-foreground">{g.label}</div>
+      <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{g.label}</div>
       {g.items.map(t => (
         <TxRow key={t.id} t={t} onClick={() => onEdit?.(t)} delay={0.05 + (index++) * 0.03} />
       ))}

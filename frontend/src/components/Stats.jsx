@@ -11,6 +11,11 @@ import YearHeatmap from './YearHeatmap'
 import MonthlyTrend from './MonthlyTrend'
 import { monthInsights, titleKey } from '../utils/monthInsights'
 import ExpenseListDetail from './ExpenseListDetail'
+import SectionCard, { SectionTitle } from './SectionCard'
+import {
+  ChartColumn, Grid3x3, Hash, TrendingUp, Repeat2, CalendarRange,
+  Receipt, Wallet, Scale, CalendarX, Flame, CalendarDays, ArrowUpToLine, History as HistoryIcon, Sparkles,
+} from 'lucide-react'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 
 const MONTHS_FULL = MONTHS_NOM
@@ -168,18 +173,25 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     completedDays: isCurrentMonth ? now.getDate() - 1 : daysInMonth,
   })
 
+  // Share of the month taken by the top-3 expenses — the «Самые крупные» meta line.
+  const topShare = stats?.currentmonth > 0 && stats.topexp?.length
+    ? Math.round((stats.topexp.reduce((sum, e) => sum + e.amount, 0) / stats.currentmonth) * 100)
+    : null
+
   const statCards = stats && (
     <>
       <StatCard
+        icon={CalendarDays}
         label="В среднем / день"
         value={avgCalendar}
         sub={<>с тратами: {fmtShort(stats.avgday)} ₽</>}
         subTitle="Среднее по дням, в которые была хотя бы одна трата"
       />
-      <StatCard label="Максимум / день" value={maxDayAmount} />
-      <StatCard label="Прошлый месяц" value={stats.prevmonth} />
+      <StatCard icon={ArrowUpToLine} label="Максимум / день" value={maxDayAmount} />
+      <StatCard icon={HistoryIcon} label="Прошлый месяц" value={stats.prevmonth} />
       {forecast !== null ? (
         <StatCard
+          icon={Sparkles}
           label="Прогноз"
           value={forecast}
           accent
@@ -188,6 +200,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
         />
       ) : (
         <StatCard
+          icon={Receipt}
           label="Операции"
           value={insights.count}
           unit=""
@@ -359,7 +372,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
 
               {stats && !loading && !isEmpty && (
-                <Panel title="Самые крупные" className="animate-fade-in delay-2">
+                <Panel icon={TrendingUp} title="Самые крупные" className="animate-fade-in delay-2">
                   <div className="px-6 pb-4 pt-1">
                     {(!stats.topexp || stats.topexp.length === 0) && (
                       <p className="text-[13px] pt-3" style={{ color: 'var(--text-tertiary)' }}>
@@ -376,7 +389,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3 min-w-0">
                               <span
-                                className="text-[11px] font-semibold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                                className="text-[13px] font-bold w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                                 style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
                               >
                                 {i + 1}
@@ -421,6 +434,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 <>
                   <Panel
                     className="animate-fade-in"
+                    icon={view === 'bars' ? ChartColumn : Grid3x3}
                     title={view === 'bars' ? 'Траты по дням' : `За год · ${year}`}
                     action={
                       <div className="flex items-center gap-3">
@@ -486,6 +500,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
                   <Panel
                     className="animate-fade-in delay-2"
+                    icon={CalendarRange}
                     title="Последние 6 месяцев"
                     action={
                       trendItem && trendItem.amount > 0 ? (
@@ -515,12 +530,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   </Panel>
 
                   <div className="grid grid-cols-1 min-[1300px]:grid-cols-2 gap-5 items-start">
-                    <Panel title="Месяц в цифрах" className="animate-fade-in delay-3">
+                    <Panel icon={Hash} title="Месяц в цифрах" className="animate-fade-in delay-3">
                       <MonthNumbers insights={insights} showCount={forecast !== null} desktop
                         onOpenLarge={() => setDrill({ kind: 'large' })} />
                     </Panel>
                     {insights.frequent.length > 0 && (
-                      <Panel title="Чаще всего" className="animate-fade-in delay-3">
+                      <Panel icon={Repeat2} title="Чаще всего" className="animate-fade-in delay-3">
                         <div className="px-6 pb-3 pt-1">
                           <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
                         </div>
@@ -631,18 +646,13 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
       {stats && !loading && !isEmpty && (
         <>
+          <div className="flex flex-col gap-3 px-4 pt-1">
           {/* Daily bars ⇄ yearly contribution heatmap */}
-          <div className="mx-4 mt-4 mb-5">
-            {/* Header: title + view toggle */}
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {view === 'bars' ? 'Траты по дням' : 'За год'}
-                </span>
-                {view === 'year' && (
-                  <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{year}</span>
-                )}
-              </div>
+          <SectionCard
+            icon={view === 'bars' ? ChartColumn : Grid3x3}
+            title={view === 'bars' ? 'Траты по дням' : 'За год'}
+            meta={view === 'year' ? String(year) : null}
+            action={
               <div
                 className="flex p-0.5 gap-0.5"
                 style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}
@@ -664,8 +674,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   <GridIcon />
                 </button>
               </div>
-            </div>
-
+            }
+          >
             {view === 'bars' ? (
               <>
                 {/* Active-day value — tap to open that day */}
@@ -734,33 +744,20 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 />
               </>
             )}
-          </div>
-
-          <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+          </SectionCard>
 
           {/* Stat cards 2×2 grid */}
-          <div className="mx-4 mt-4 grid grid-cols-2 gap-3 mb-5">
+          <div className="grid grid-cols-2 gap-3">
             {statCards}
           </div>
 
-          <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-
-          {/* Month in numbers */}
-          <div className="px-5 pt-4 pb-2">
-            <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-              Месяц в цифрах
-            </div>
+          <SectionCard icon={Hash} title="Месяц в цифрах" bodyClassName="px-4 pb-2">
             <MonthNumbers insights={insights} showCount={forecast !== null}
               onOpenLarge={() => setDrill({ kind: 'large' })} />
-          </div>
-
-          <div className="mx-5" style={{ borderTop: '1px solid var(--border-subtle)' }} />
+          </SectionCard>
 
           {/* Top expenses with progress bars */}
-          <div className="px-5 pt-4">
-            <div className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Самые крупные
-            </div>
+          <SectionCard icon={TrendingUp} title="Самые крупные" meta={topShare != null ? `${topShare}% месяца` : null} bodyClassName="px-4 pb-2">
             {(!stats.topexp || stats.topexp.length === 0) && (
               <p className="text-[13px] pt-1" style={{ color: 'var(--text-tertiary)' }}>
                 В этом месяце трат нет
@@ -779,12 +776,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <span
-                        className="text-[11px] font-semibold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        className="text-[13px] font-bold w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
                       >
                         {i + 1}
                       </span>
-                      <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
+                      <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                         {exp.title?.trim() ? exp.title : 'Без названия'}
                       </span>
                     </div>
@@ -804,29 +801,20 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 </div>
               )
             })}
-          </div>
+          </SectionCard>
 
           {insights.frequent.length > 0 && (
-            <>
-              <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-              <div className="px-5 pt-4 pb-1">
-                <div className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  Чаще всего
-                </div>
-                <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
-              </div>
-            </>
+            <SectionCard icon={Repeat2} title="Чаще всего" bodyClassName="px-4 pb-2">
+              <FrequentList items={insights.frequent} onOpen={g => setDrill({ kind: 'group', key: g.key, title: g.title })} />
+            </SectionCard>
           )}
 
-          <div className="mx-5 mt-1" style={{ borderTop: '1px solid var(--border-subtle)' }} />
-
           {/* Monthly trend — last 6 months */}
-          <div className="mx-4 mt-4 mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Последние 6 месяцев
-              </span>
-              {trendItem && trendItem.amount > 0 ? (
+          <SectionCard
+            icon={CalendarRange}
+            title="Последние 6 месяцев"
+            action={
+              trendItem && trendItem.amount > 0 ? (
                 <button
                   onClick={() => goToMonth(trendItem.year, trendItem.month)}
                   className="text-[12px] whitespace-nowrap flex items-center gap-1 rounded-md px-1.5 py-0.5 -mr-1.5 transition-colors active:scale-95"
@@ -844,8 +832,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 </button>
               ) : (
                 <span className="text-[11px]" style={{ color: 'var(--text-ghost)' }}>нажмите на месяц</span>
-              )}
-            </div>
+              )
+            }
+          >
             <MonthlyTrend
               data={trendData}
               avg={trendAvg}
@@ -856,6 +845,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
               onSelect={toggleTrendSel}
               onHover={setTrendHover}
             />
+          </SectionCard>
           </div>
         </>
       )}
@@ -871,25 +861,12 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 /* ────────────────────────── desktop building blocks ────────────────────────── */
 
 /** Titled card. `action` sits opposite the title in the header strip. */
-function Panel({ title, action, className = '', children }) {
+function Panel({ icon, title, action, className = '', children }) {
   return (
-    <section
-      className={className}
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-surface)',
-      }}
-    >
+    <section className={`rounded-2xl bg-card shadow-soft ${className}`}>
       {(title || action) && (
-        <div
-          className="flex items-center justify-between gap-4 px-6 py-3.5"
-          style={{ borderBottom: '1px solid var(--border-subtle)' }}
-        >
-          <h2 className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-            {title}
-          </h2>
+        <div className="flex items-center justify-between gap-4 px-6 pb-1 pt-5">
+          <SectionTitle icon={icon} title={title} />
           {action}
         </div>
       )}
@@ -1165,35 +1142,26 @@ function BarChart({
   )
 }
 
-function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false }) {
+function StatCard({ icon: Icon, label, value, unit = '₽', sub, subTitle, accent = false }) {
+  // «Прогноз» is the one forward-looking figure, so it gets the navy treatment.
   return (
     <div
-      className="p-4 flex flex-col"
-      style={{
-        background: accent ? 'linear-gradient(160deg, var(--accent-soft) 0%, var(--bg-surface) 70%)' : 'var(--bg-surface)',
-        border: accent ? '1px solid rgba(var(--accent-rgb),0.25)' : '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-surface)',
-      }}
+      className={`flex flex-col rounded-2xl p-4 ${accent ? 'on-navy text-white' : 'bg-card shadow-soft'}`}
+      style={accent ? { background: 'var(--navy-gradient)', boxShadow: '0 14px 30px -16px rgba(14,20,48,0.6)' } : undefined}
     >
-      <div className="text-[12px] font-medium mb-2 flex items-center gap-1.5"
-        style={{ color: accent ? 'var(--accent)' : 'var(--text-secondary)' }}>
-        {accent && <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />}
-        {label}
+      <div className={`mb-2 flex items-start gap-1.5 text-[12px] font-semibold leading-tight ${accent ? 'text-white/70' : 'text-muted-foreground'}`}>
+        {Icon && <Icon className="mt-px h-3.5 w-3.5 flex-shrink-0" strokeWidth={2.2} />}
+        <span>{label}</span>
       </div>
       <div
-        className="font-medium whitespace-nowrap"
-        style={{
-          fontSize: scaledFontSize(value, 18, 13, 6) + 'px',
-          lineHeight: 1.2,
-          color: 'var(--text-primary)', letterSpacing: '-0.01em',
-        }}
+        className="whitespace-nowrap font-semibold tracking-tight"
+        style={{ fontSize: scaledFontSize(value, 22, 15, 6) + 'px', lineHeight: 1.15 }}
       >
         <CountUp value={value} format={fmtShort} />{unit && ` ${unit}`}
       </div>
       {sub && (
-        <div className="text-[11px] mt-1.5 leading-snug whitespace-nowrap overflow-hidden text-ellipsis"
-          style={{ color: 'var(--text-tertiary)' }} title={subTitle}>
+        <div className={`mt-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] leading-snug ${accent ? 'text-white/60' : 'text-muted-foreground'}`}
+          title={subTitle}>
           {sub}
         </div>
       )}
@@ -1205,14 +1173,16 @@ function StatCard({ label, value, unit = '₽', sub, subTitle, accent = false })
 function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
   const { count, avgCheck, median, noSpend, completedDays, large } = insights
   const rows = [
-    showCount && { label: 'Операции', value: count },
-    { label: 'Средний чек', value: `${fmtShort(avgCheck)} ₽` },
-    { label: 'Типичная покупка', value: `${fmtShort(median)} ₽`, hint: 'медиана: половина дешевле, половина дороже' },
+    showCount && { icon: Receipt, label: 'Операции', value: count },
+    { icon: Wallet, label: 'Средний чек', value: `${fmtShort(avgCheck)} ₽` },
+    { icon: Scale, label: 'Типичная покупка', value: `${fmtShort(median)} ₽`, hint: 'медиана: половина дешевле, половина дороже' },
     completedDays > 0 && {
+      icon: CalendarX,
       label: 'Дни без трат',
       value: <>{noSpend}<span style={{ color: 'var(--text-tertiary)' }}> / {completedDays}</span></>,
     },
     large && {
+      icon: Flame,
       label: 'Крупные траты',
       hint: `от ${fmtShort(large.threshold)} ₽ · втрое больше типичной`,
       onClick: large.count > 0 ? onOpenLarge : null,
@@ -1236,15 +1206,18 @@ function MonthNumbers({ insights, showCount, onOpenLarge, desktop = false }) {
               width: r.onClick ? 'calc(100% + 16px)' : undefined,
             }}
           >
-            <div className="min-w-0">
-              <div className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
+            <div className="flex min-w-0 items-start gap-2.5">
+              {r.icon && <r.icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" strokeWidth={2} />}
+              <div className="min-w-0">
+              <div className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{r.label}</div>
               {r.hint && (
                 <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{r.hint}</div>
               )}
+              </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div
-                className="text-[14px] font-medium whitespace-nowrap"
+                className="text-[14px] font-semibold whitespace-nowrap"
                 style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}
               >
                 {r.value}
@@ -1280,12 +1253,11 @@ function FrequentList({ items, onOpen }) {
     >
       <div className="flex items-center gap-3 min-w-0">
         <span
-          className="text-[11px] font-semibold px-1.5 h-5 min-w-[28px] rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}
+          className="text-[11px] font-bold px-2 h-6 min-w-[32px] rounded-full flex items-center justify-center flex-shrink-0 bg-primary text-primary-foreground"
         >
           ×{g.count}
         </span>
-        <span className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{g.title}</span>
+        <span className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{g.title}</span>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <span
