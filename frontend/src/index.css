@@ -35,14 +35,15 @@
 
   /* Navy base with a soft slate-blue glow on the left, a fainter one on the right
      and a darker floor — depth, not a colour shift (no violet).
-     The top edge is exactly #1f2b4d all the way across: that is the status bar's
-     theme-color, so header and status bar meet without a seam. Both glows are
-     centred low enough to have faded out before they reach y = 0. */
+     The top edge is #19234a all the way across: theme-color is #1f2b4d, but iOS
+     renders the opaque status bar a touch darker (#19234a, measured from a device
+     screenshot). Starting from what is actually on screen and easing into the
+     navy removes the seam. Both glows fade out before they reach y = 0. */
   --navy-gradient:
     radial-gradient(85% 48% at 6% 42%, rgba(98, 126, 210, 0.50) 0%, rgba(98, 126, 210, 0.16) 45%, transparent 82%),
     radial-gradient(60% 40% at 100% 45%, rgba(54, 76, 148, 0.34) 0%, transparent 85%),
     radial-gradient(90% 60% at 50% 115%, rgba(8, 12, 32, 0.55) 0%, transparent 70%),
-    linear-gradient(180deg, #1f2b4d 0%, #1b2648 30%, #131b3b 68%, #0c112b 100%);
+    linear-gradient(180deg, #19234a 0%, #1e2a4d 9%, #1b2648 30%, #131b3b 68%, #0c112b 100%);
 
   /* Semantic tokens */
   --bg-base: #F2F4F8;

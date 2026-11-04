@@ -23,7 +23,7 @@ export default function Toast({ message, onClose, desktop = false }) {
           ? 'fixed bottom-7 right-7 z-[60] animate-toast-in-right'
           : 'fixed left-1/2 z-[60] -translate-x-1/2 animate-toast-in'
       }
-      style={desktop ? undefined : { bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}
+      style={desktop ? undefined : { bottom: 'calc(env(safe-area-inset-bottom) + 70px)' }}
     >
       <div
         className="flex items-center gap-2.5 rounded-full py-2.5 pl-2.5 pr-5 text-white shadow-[0_16px_40px_-12px_rgba(14,20,48,0.55)]"
