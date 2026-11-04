@@ -17,7 +17,8 @@ export default function BottomNav({ screen, onNavigate, onAdd }) {
     <nav
       aria-label="Основная навигация"
       className="absolute left-1/2 z-40 -translate-x-1/2"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+      // Slightly into the home-indicator inset — tuned on device with Web Inspector.
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) - 10px)' }}
     >
       <div className="flex items-center gap-1 rounded-full bg-card p-1.5 shadow-float ring-1 ring-black/[0.04]">
         <NavBtn item={home} active={screen === home.screen} onClick={() => onNavigate(home.screen)} />
