@@ -6,6 +6,7 @@ import { avatarColor } from '../utils/avatar'
 import { useSwipeNav } from '../hooks/useSwipeNav'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
+import { CalendarDays } from 'lucide-react'
 
 const SEGMENTS = ['День', 'Месяц', 'Год']
 const DAY_MS = 86400000
@@ -487,17 +488,24 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
   return (
     <section className="mb-5 animate-fade-in" style={{ animationDelay: `${Math.min(index, 6) * 0.05}s` }}>
       {group.label && (
-        <div className="px-1 mb-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[12px] font-semibold capitalize" style={{ color: 'var(--text-secondary)' }}>
-              {group.label}
-              <span className="ml-2 font-medium" style={{ color: 'var(--text-ghost)' }}>{group.items.length}</span>
-            </span>
-            <span className="text-[13px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+        <div className="px-1 mb-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary/[0.07] text-primary">
+                <CalendarDays className="h-3.5 w-3.5" strokeWidth={2.2} />
+              </span>
+              <span className="truncate text-[14px] font-bold first-letter:uppercase" style={{ color: 'var(--text-primary)' }}>
+                {group.label}
+              </span>
+              <span className="flex-shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                {group.items.length}
+              </span>
+            </div>
+            <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
               {fmtRub(group.total)}
             </span>
           </div>
-          <div className="mt-1.5 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border-muted)' }}>
+          <div className="mt-2 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border-muted)' }}>
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.max(2, share * 100)}%`, background: 'rgba(var(--accent-rgb), 0.6)' }}
