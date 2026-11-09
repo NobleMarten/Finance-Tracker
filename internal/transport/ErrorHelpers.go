@@ -67,7 +67,7 @@ func WriteError(w http.ResponseWriter, err error) {
 			Message: err.Error(),
 		}
 	case errors.Is(err, model.ErrUserExists):
-		status = http.StatusBadRequest
+		status = http.StatusConflict
 		res = ErrorResponse{
 			Code:    "USER_EXISTS",
 			Message: err.Error(),
