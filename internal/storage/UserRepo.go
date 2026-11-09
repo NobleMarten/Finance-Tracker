@@ -4,17 +4,20 @@ import (
 	"FinanceTracker/internal/model"
 	"context"
 	"database/sql"
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func (p *PostgresRepo) CreateUser(ctx context.Context, login, email, password_hash string) (model.User, error) {
 	row := p.DB.QueryRowContext(ctx, "INSERT INTO users(login, email, password_hash) VALUES ($1, $2, $3) RETURNING id, login, email, password_hash, created_at", login, email, password_hash)
 	var user model.User
+	var pgError *pgconn.PgError
 	if err := row.Scan(&user.ID, &user.Login, &user.Email, &user.PasswordHash, &user.CreatedAt); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.As(err, &pgError) && pgError.Code == "23505" {
 			return model.User{}, model.ErrUserExists
-		} else {
-			return model.User{}, err
 		}
+		return model.User{}, err
 	}
 	return user, nil
 }
