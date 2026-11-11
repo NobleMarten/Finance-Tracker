@@ -5,16 +5,24 @@ import { toSpentAt, toSpentAtKeepingTime, todayInput } from '../utils/date'
 
 const CACHE_KEY = 'transactions'
 
+// The API never returns an empty title: the service stores a blank one as the
+// literal "Untitled". Map it back to "no description" so the UI can show its
+// own placeholder and so it is never offered as a title to repeat.
+const SERVER_BLANK_TITLE = 'Untitled'
+
 /**
  * `spent_at` is when the money left the wallet, `created_at` is when the row was
  * written. Everything user-facing sorts and groups by the former; the fallback
  * keeps cached payloads from before the field existed readable.
  */
-const normalize = (t) => ({
-  ...t,
-  description: t.title ?? t.description ?? '',
-  ts: new Date(t.spent_at ?? t.created_at),
-})
+const normalize = (t) => {
+  const title = t.title ?? t.description ?? ''
+  return {
+    ...t,
+    description: title === SERVER_BLANK_TITLE ? '' : title,
+    ts: new Date(t.spent_at ?? t.created_at),
+  }
+}
 
 /** Newest spend first. Backdated rows arrive out of order, so we can't trust insertion order. */
 const byNewest = (list) => [...list].sort((a, b) => b.ts - a.ts)
