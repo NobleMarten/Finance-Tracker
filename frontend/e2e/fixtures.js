@@ -10,7 +10,7 @@ let nextId = 100
 export const expenses = [
   { title: 'Кофе', amount: 320, spent_at: at(0, 9, 12) },
   { title: 'Такси', amount: 680, spent_at: at(0, 8, 40) },
-  { title: '', amount: 150, spent_at: at(1, 19, 5) },
+  { title: 'Untitled', amount: 150, spent_at: at(1, 19, 5) },
   { title: 'Продукты', amount: 2_840, spent_at: at(1, 18, 30) },
   { title: 'Обед', amount: 540, spent_at: at(2, 13, 15) },
   { title: 'Кино', amount: 900, spent_at: at(3, 21, 0) },

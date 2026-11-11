@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, CalendarMinus, Repeat2, UserRound, ChevronDown, ChevronRight, Receipt } from 'lucide-react'
 import { api } from '../api/api'
-import { useAuth } from '../context/AuthContext'
 import PullToRefresh from './PullToRefresh'
 import { NumberTicker } from './magicui/number-ticker'
 import { Button } from './ui/button'
 import TxRow from './TxRow'
 import { repeatPick } from '../utils/repeatPick'
 import { dayHeading, toDateInput, yesterdayInput } from '../utils/date'
-import { fmtRub, fmtUsd, greeting, scaledFontSize, titleOf, currentMonth } from '../utils/format'
+import { fmtRub, fmtRubSigned, fmtUsd, greeting, scaledFontSize, titleOf, currentMonth, NO_TITLE } from '../utils/format'
 import { cn } from '@/lib/utils'
 
 const PERIODS = [
@@ -54,7 +53,6 @@ function groupByDay(items) {
 export default function Dashboard({
   transactions, onEdit, onRefresh, onNavigate, onAdd, onOpenProfile, desktop = false,
 }) {
-  const { user } = useAuth()
   const [rate, setRate] = useState(null)
   const [period, setPeriod] = useState('month')
   const [weekOpen, setWeekOpen] = useState(false)
@@ -77,13 +75,12 @@ export default function Dashboard({
     setWeekOpen(false)
   }
 
-  const initial = user?.email?.trim()[0]?.toUpperCase() ?? '?'
   const value = totals[period]
 
-  // Actions, not destinations: История / Статистика live in the nav already.
+  // Actions, not destinations: История / Статистика live in the nav already,
+  // and so does the plain «+» — no «Добавить» tile here.
   const repeat = useMemo(() => repeatPick(sorted), [sorted])
   const actions = [
-    { label: 'Добавить', Icon: Plus, onClick: () => onAdd?.(), primary: true },
     { label: 'Вчера', Icon: CalendarMinus, onClick: () => onAdd?.(yesterdayInput()), aria: 'Добавить расход за вчера' },
     {
       // The tile names what it will add («Кофе»), so the guess is visible before the tap.
@@ -91,7 +88,7 @@ export default function Dashboard({
       Icon: Repeat2,
       onClick: repeat ? () => onAdd?.(null, { amount: repeat.amount, description: repeat.description }) : null,
       aria: repeat
-        ? `Повторить: ${repeat.description || 'Без названия'}, ${fmtRub(repeat.amount)}`
+        ? `Повторить: ${repeat.description || NO_TITLE}, ${fmtRub(repeat.amount)}`
         : 'Повторить трату',
     },
     { label: 'Профиль', Icon: UserRound, onClick: onOpenProfile },
@@ -100,9 +97,6 @@ export default function Dashboard({
   const hero = (
     <Hero
       desktop={desktop}
-      initial={initial}
-      onOpenProfile={onOpenProfile}
-      totals={totals}
       period={period}
       onSelect={selectPeriod}
       weekOpen={weekOpen && !desktop}
@@ -111,7 +105,7 @@ export default function Dashboard({
       value={value}
       usd={fmtUsd(value, rate)}
       actions={actions}
-      sparkline={period === 'month' ? <MonthSparkline transactions={transactions} monthStart={m0} height={desktop ? 64 : 40} /> : null}
+      sparkline={period === 'month' ? <MonthSparkline transactions={transactions} monthStart={m0} height={desktop ? 64 : 48} /> : null}
     />
   )
 
@@ -149,12 +143,21 @@ export default function Dashboard({
     <PullToRefresh onRefresh={onRefresh} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {hero}
       {/* White sheet, tucked under the header's bottom edge. */}
-      <section
-        className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
-      >
+      <section className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
         <RecentHeader onAll={() => onNavigate?.(1)} />
         <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
+        {/* Clearance for the floating nav, and the fade under it: at the end of
+            the list this is plain white space below the last row; mid-scroll it
+            sticks to the bottom edge and rows dissolve into it instead of
+            being cut by the pill. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none sticky bottom-0 -mx-5"
+          style={{
+            height: 'calc(env(safe-area-inset-bottom) + 104px)',
+            background: 'linear-gradient(to top, rgb(var(--card)) 0%, rgb(var(--card)) 45%, rgb(var(--card) / 0.85) 65%, rgb(var(--card) / 0) 100%)',
+          }}
+        />
       </section>
     </PullToRefresh>
   )
@@ -163,7 +166,7 @@ export default function Dashboard({
 /* ─────────────────────────── header ─────────────────────────── */
 
 function Hero({
-  desktop, initial, onOpenProfile, totals, period, onSelect, weekOpen, weekTx, onEdit,
+  desktop, period, onSelect, weekOpen, weekTx, onEdit,
   value, usd, actions, sparkline,
 }) {
   return (
@@ -174,26 +177,14 @@ function Hero({
         paddingTop: desktop ? undefined : 'calc(env(safe-area-inset-top) + 18px)',
       }}
     >
-      {/* Top row: greeting + avatar */}
-      <div className="flex items-center justify-between">
-        <div className="min-w-0">
-          <div className="text-[12px] font-medium capitalize text-white/55">{currentMonth()}</div>
-          <div className="text-[17px] font-semibold tracking-tight">{greeting()}</div>
-        </div>
-        {!desktop && (
-          <button
-            type="button"
-            onClick={onOpenProfile}
-            aria-label="Профиль"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[14px] font-bold transition-transform active:scale-90"
-          >
-            {initial}
-          </button>
-        )}
+      {/* Top row: greeting. Profile lives in the action tiles (mobile) / top nav (desktop). */}
+      <div className="min-w-0">
+        <div className="text-[12px] font-medium capitalize text-white/55">{currentMonth()}</div>
+        <div className="text-[15px] font-semibold tracking-tight">{greeting()}</div>
       </div>
 
-      {/* Period chips */}
-      <div className="no-scrollbar -mx-5 mt-5 flex gap-1.5 overflow-x-auto px-5" role="tablist" aria-label="Период">
+      {/* Period switch — labels only; the figure lives once, below. */}
+      <div className="mt-5 flex gap-1.5" role="tablist" aria-label="Период">
         {PERIODS.map(({ key, label }) => {
           const active = period === key
           return (
@@ -205,15 +196,13 @@ function Hero({
               aria-expanded={key === 'week' && !desktop ? weekOpen : undefined}
               onClick={() => onSelect(key)}
               className={cn(
-                'flex h-8 flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 text-[12px] font-semibold transition-colors duration-200',
+                'flex h-8 flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-200',
                 active ? 'border-white bg-white text-primary' : 'border-white/15 bg-white/10 text-white/80 hover:bg-white/15',
               )}
             >
               <span>{label}</span>
-              <span className={active ? 'text-primary/45' : 'text-white/35'}>·</span>
-              <span className="tabular-nums">{fmtRub(totals[key])}</span>
               {key === 'week' && active && !desktop && (
-                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-300', weekOpen && 'rotate-180')} strokeWidth={2.4} />
+                <ChevronDown className={cn('-mr-1 h-3.5 w-3.5 transition-transform duration-300', weekOpen && 'rotate-180')} strokeWidth={2.4} />
               )}
             </button>
           )
@@ -223,13 +212,13 @@ function Hero({
       {/* Big amount */}
       <div className="mt-6">
         <div
-          className="whitespace-nowrap font-semibold leading-none tracking-[-0.03em]"
-          style={{ fontSize: scaledFontSize(value, desktop ? 52 : 40, 28, 8) }}
+          className="whitespace-nowrap font-semibold leading-none tracking-[-0.03em] tabular-nums"
+          style={{ fontSize: scaledFontSize(value, desktop ? 52 : 44, 28, 8) }}
           aria-live="polite"
         >
           <NumberTicker value={value} format={fmtRub} />
         </div>
-        <div className="mt-2 h-4 text-[13px] font-medium text-white/55">{usd ? `≈ ${usd}` : ''}</div>
+        <div className="mt-2 h-4 text-[13px] font-medium tabular-nums text-white/55">{usd ? `≈ ${usd}` : ''}</div>
       </div>
 
       {/* Week list — the old week-card dropdown */}
@@ -245,10 +234,11 @@ function Hero({
         </div>
       </div>
 
-      {sparkline && <div className={desktop ? '-mx-8 mt-4' : '-mx-5 mt-4'}>{sparkline}</div>}
+      {/* Content-width: starts and ends on the same margins as the text above. */}
+      {sparkline && <div className="mt-4">{sparkline}</div>}
 
       {/* Actions */}
-      <div className={cn('mt-6 grid grid-cols-4', desktop ? 'max-w-md gap-4' : 'gap-2')}>
+      <div className={cn('mt-6 grid grid-cols-3', desktop ? 'max-w-xs gap-4' : 'gap-2')}>
         {actions.map(({ label, Icon, onClick, primary, aria }, i) => (
           <button
             key={i}
@@ -256,7 +246,7 @@ function Hero({
             onClick={onClick ?? undefined}
             disabled={!onClick}
             aria-label={aria ?? label}
-            className="group flex flex-col items-center gap-2 disabled:opacity-40"
+            className="group flex min-w-0 flex-col items-center gap-2 disabled:opacity-40"
           >
             <span
               className={cn(
@@ -268,7 +258,7 @@ function Hero({
             >
               <Icon className="h-[22px] w-[22px]" strokeWidth={primary ? 2.4 : 1.9} />
             </span>
-            <span className="max-w-[76px] truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">{label}</span>
+            <span className="max-w-full truncate px-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/60">{label}</span>
           </button>
         ))}
       </div>
@@ -298,7 +288,7 @@ function WeekList({ items, onEdit, onNavy = false }) {
         {titleOf(t)}
       </span>
       <span className={cn('whitespace-nowrap text-[13px] font-semibold tabular-nums', onNavy ? 'text-white' : 'text-foreground')}>
-        {fmtRub(t.amount)}
+        {fmtRubSigned(t.amount)}
       </span>
     </button>
   ))
@@ -353,7 +343,6 @@ function RecentList({ groups, onEdit, onAdd }) {
 function MonthSparkline({ transactions, monthStart, height = 40 }) {
   const now = new Date()
   const todayDay = now.getDate()
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
 
   const daily = new Array(todayDay).fill(0)
   for (const t of transactions) {
@@ -369,10 +358,12 @@ function MonthSparkline({ transactions, monthStart, height = 40 }) {
   // The first days of a month draw a stub in the corner, not a trend.
   if (cumulative.length < 5) return null
 
+  // x runs over the elapsed days, so the line always spans the full width
+  // instead of stopping wherever today falls in the month.
   const W = 320
   const H = height
   const PAD = 2
-  const denom = Math.max(1, daysInMonth - 1)
+  const denom = Math.max(1, cumulative.length - 1)
   const points = cumulative.map((v, i) => [PAD + (i / denom) * (W - 2 * PAD), H - PAD - (v / max) * (H - 2 * PAD)])
   const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ')
   const area = `${line} L${points[points.length - 1][0].toFixed(2)},${H} L${points[0][0].toFixed(2)},${H} Z`
@@ -381,7 +372,7 @@ function MonthSparkline({ transactions, monthStart, height = 40 }) {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="block w-full animate-fade-in" style={{ height: H }} aria-hidden="true">
       <defs>
         <linearGradient id="spark-navy" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.16" />
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.22" />
           <stop offset="100%" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
       </defs>

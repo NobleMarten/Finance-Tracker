@@ -258,12 +258,12 @@ function SkeletonLoader() {
         <div className="h-3 w-16 rounded-full bg-white/10" />
         <div className="mt-2 h-4 w-32 rounded-full bg-white/15" />
         <div className="mt-5 flex gap-2">
-          {[96, 120, 104].map(w => <div key={w} className="h-8 rounded-full bg-white/10" style={{ width: w }} />)}
+          {[76, 82, 88].map(w => <div key={w} className="h-8 rounded-full bg-white/10" style={{ width: w }} />)}
         </div>
         <div className="mt-6 h-10 w-44 rounded-xl bg-white/15" />
         <div className="mt-3 h-3 w-16 rounded-full bg-white/10" />
-        <div className="mt-6 grid grid-cols-4 gap-2">
-          {[0, 1, 2, 3].map(i => <div key={i} className="mx-auto h-14 w-14 rounded-2xl bg-white/10" />)}
+        <div className="mt-6 grid grid-cols-3 gap-2">
+          {[0, 1, 2].map(i => <div key={i} className="mx-auto h-14 w-14 rounded-2xl bg-white/10" />)}
         </div>
       </div>
       <div className="-mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">

@@ -26,7 +26,7 @@ export function fmtRub(n) {
   return rubFmt.format(Math.round(n || 0))
 }
 
-/** «-10 501 ₽» / «+10 ₽» for signed rows. */
+/** «−10 501 ₽» / «+10 ₽» for signed rows. U+2212 minus, glued to the figure. */
 export function fmtRubSigned(n, sign = '−') {
   return `${sign}${fmtRub(Math.abs(n))}`
 }
@@ -75,7 +75,7 @@ export function currentMonth() {
 }
 
 /** Empty description placeholder, shared by every list. */
-export const NO_TITLE = 'Без названия'
+export const NO_TITLE = 'Без описания'
 
 export function titleOf(t) {
   return t?.description?.trim() ? t.description : NO_TITLE
