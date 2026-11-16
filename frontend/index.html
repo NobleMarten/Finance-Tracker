@@ -7,17 +7,31 @@
   <meta name="description" content="Finance Tracker — учёт расходов" />
   <title>Finance Tracker</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <!-- Phone: navy, matching the headers. Desktop: the page background. -->
-  <meta name="theme-color" content="#1f2b4d" media="(max-width: 1023px)" />
+  <!-- Phone: the header's top colour (per gradient theme, see src/lib/theme.js).
+       Desktop: the page background. -->
+  <meta name="theme-color" content="#2c3f7d" media="(max-width: 1023px)" />
   <meta name="theme-color" content="#F2F4F8" media="(min-width: 1024px)" />
-  <!-- Opaque status bar, painted with theme-color (#1f2b4d) — the top edge of
-       --navy-gradient is the same colour, so it reads as one surface.
-       Not black-translucent: in that mode iOS makes the home-screen app's window
-       ~one status bar shorter than the screen, leaving a band at the bottom that
-       the page cannot paint. iOS reads this at "Add to Home Screen". -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <!-- Translucent: the gradient header runs under the clock / Dynamic Island.
+       In this mode iOS sizes the home-screen app's viewport one status bar
+       shorter than the screen (the bottom band seen in 5f6853f); the app frame
+       is stretched to the full screen height to cover it — see
+       src/lib/viewport.js and .app-frame in index.css.
+       iOS reads this at "Add to Home Screen": a change needs a re-add. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Finance" />
   <link rel="manifest" href="/manifest.json" />
+  <!-- Saved gradient theme before first paint: no flash of the default one.
+       Mirrors applyTheme() in src/lib/theme.js. -->
+  <script>
+    (function () {
+      var tops = { a: '#2c3f7d', b: '#24084a', c: '#3a3466' }
+      var id = 'a'
+      try { var s = localStorage.getItem('ft_theme'); if (tops[s]) id = s } catch (e) {}
+      document.documentElement.dataset.theme = id
+      var m = document.querySelector('meta[name="theme-color"][media="(max-width: 1023px)"]')
+      if (m) m.setAttribute('content', tops[id])
+    })()
+  </script>
   <link rel="icon" type="image/png" href="/pic.png?v=2">
   <link rel="apple-touch-icon" href="/pic.png?v=2">
 </head>

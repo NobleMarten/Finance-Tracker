@@ -33,18 +33,6 @@
   --ring: 31 43 77;
   --radius: 1rem;
 
-  /* Navy base with a soft slate-blue glow on the left, a fainter one on the right
-     and a darker floor — depth, not a colour shift (no violet).
-     The top edge is #19234a all the way across: theme-color is #1f2b4d, but iOS
-     renders the opaque status bar a touch darker (#19234a, measured from a device
-     screenshot). Starting from what is actually on screen and easing into the
-     navy removes the seam. Both glows fade out before they reach y = 0. */
-  --navy-gradient:
-    radial-gradient(85% 48% at 6% 42%, rgba(98, 126, 210, 0.50) 0%, rgba(98, 126, 210, 0.16) 45%, transparent 82%),
-    radial-gradient(60% 40% at 100% 45%, rgba(54, 76, 148, 0.34) 0%, transparent 85%),
-    radial-gradient(90% 60% at 50% 115%, rgba(8, 12, 32, 0.55) 0%, transparent 70%),
-    linear-gradient(180deg, #19234a 0%, #1e2a4d 9%, #1b2648 30%, #131b3b 68%, #0c112b 100%);
-
   /* Semantic tokens */
   --bg-base: #F2F4F8;
   --bg-surface: #FFFFFF;
@@ -418,4 +406,170 @@ input, button, select, textarea {
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
   border-radius: var(--radius-sm);
+}
+
+/* ─── Gradient themes ───
+   The user picks one in Профиль; <html data-theme="a|b|c"> (set before first
+   paint by the inline script in index.html). Each theme owns:
+   --mesh-top     header top edge = status bar colour (theme-color in lib/theme.js)
+   --mesh-base    the header's own background
+   --mesh-layers  glow blobs (in .mesh::before)
+   --navy-gradient compact version for small accent surfaces (Прогноз, avatar, logo)
+   --fab-*        the «+» button in the bottom nav
+   --chart-*      daily bars on Статистика (gradient + selected bar)
+   --sheet-*      tint where the light sheet meets the header
+   Gradients interpolate in oklch: no grey mud between hues. */
+:root,
+[data-theme='a'] {
+  /* Ocean — blue mesh, pink corners (docs/IMG_2522) */
+  --mesh-top: #2c3f7d;
+  --mesh-base: linear-gradient(in oklch 180deg, #34488a 0%, #2b4080 45%, #2a3b78 100%);
+  --mesh-layers:
+    radial-gradient(in oklch 34% 20% at 8% 6%, #b77fd0 0%, oklch(0.62 0.12 320 / 0) 100%),
+    radial-gradient(in oklch 30% 16% at 0% 16%, #c06a9e 0%, oklch(0.6 0.13 350 / 0) 100%),
+    radial-gradient(in oklch 40% 22% at 92% 4%, #6d8ff0 0%, oklch(0.65 0.14 265 / 0) 100%),
+    radial-gradient(in oklch 44% 22% at 38% 36%, #4f8fdc 0%, oklch(0.62 0.13 250 / 0) 100%),
+    radial-gradient(in oklch 40% 22% at 92% 34%, #1f2c5a 0%, oklch(0.27 0.08 268 / 0) 100%),
+    radial-gradient(in oklch 44% 20% at 46% 62%, #22305e 0%, oklch(0.28 0.08 268 / 0) 100%),
+    radial-gradient(in oklch 44% 24% at 6% 82%, #4d86ee 0%, oklch(0.63 0.16 260 / 0) 100%),
+    radial-gradient(in oklch 40% 22% at 100% 86%, #a97cae 0%, oklch(0.62 0.08 330 / 0) 100%);
+  --navy-gradient:
+    radial-gradient(in oklch 70% 60% at 0% 0%, oklch(0.62 0.13 320 / 0.55) 0%, oklch(0.62 0.13 320 / 0) 100%),
+    radial-gradient(in oklch 80% 70% at 100% 100%, oklch(0.63 0.16 258 / 0.7) 0%, oklch(0.63 0.16 258 / 0) 100%),
+    linear-gradient(in oklch 160deg, #34488a 0%, #22305e 100%);
+  --fab-bg: linear-gradient(in oklch 145deg, #5b8ff0 0%, #34488a 100%);
+  --fab-shadow: 0 8px 20px -6px rgba(44, 63, 125, 0.65);
+  --chart-top: #3f63d0;
+  --chart-bottom: #8fb0f0;
+  --chart-active: #2c3f7d;
+  --sheet-tint: oklch(0.95 0.025 262);
+  --sheet-glow: oklch(0.55 0.15 262 / 0.35);
+  --grain-opacity: 0.035;
+}
+[data-theme='b'] {
+  /* Sunset — violet → magenta, peach glow (docs/IMG_2523) */
+  --mesh-top: #24084a;
+  --mesh-base: linear-gradient(in oklch 200deg, #1d043f 0%, #3b1882 30%, #7614b6 62%, #b21eca 100%);
+  --mesh-layers:
+    radial-gradient(in oklch 40% 30% at 100% 0%, #16032e 0%, oklch(0.18 0.08 300 / 0) 100%),
+    radial-gradient(in oklch 46% 26% at 0% 64%, #c40fdc 0%, oklch(0.55 0.28 318 / 0) 100%),
+    radial-gradient(in oklch 52% 26% at 56% 100%, #e46ad6 0%, oklch(0.70 0.20 330 / 0) 100%),
+    radial-gradient(in oklch 40% 30% at 104% 74%, #f6956a 0%, oklch(0.75 0.13 45 / 0) 100%);
+  --navy-gradient:
+    radial-gradient(in oklch 70% 70% at 100% 100%, oklch(0.75 0.13 45 / 0.55) 0%, oklch(0.75 0.13 45 / 0) 100%),
+    linear-gradient(in oklch 200deg, #2a0a5c 0%, #6a14b0 60%, #b21eca 100%);
+  --fab-bg: linear-gradient(in oklch 145deg, #c43ad6 0%, #4f1da4 100%);
+  --fab-shadow: 0 8px 20px -6px rgba(118, 20, 182, 0.6);
+  --chart-top: #8d16c4;
+  --chart-bottom: #e46ad6;
+  --chart-active: #5a12a0;
+  --sheet-tint: oklch(0.95 0.03 330);
+  --sheet-glow: oklch(0.60 0.22 320 / 0.40);
+  --grain-opacity: 0.035;
+}
+[data-theme='c'] {
+  /* Lavender — navy on the left (under the balance), soft glow on the right
+     (docs/IMG_2524, mirrored) */
+  --mesh-top: #3a3466;
+  --mesh-base: linear-gradient(in oklch 260deg, #8a68a2 0%, #5f5892 45%, #2c295c 85%, #201e49 100%);
+  --mesh-layers:
+    radial-gradient(in oklch 60% 40% at 100% 48%, #d8b0e2 0%, oklch(0.80 0.08 315 / 0) 100%),
+    radial-gradient(in oklch 40% 30% at 0% 0%, #1a1a40 0%, oklch(0.22 0.07 280 / 0) 100%),
+    radial-gradient(in oklch 70% 24% at 60% 100%, #4a3468 0%, oklch(0.35 0.08 305 / 0) 100%);
+  --navy-gradient:
+    radial-gradient(in oklch 80% 80% at 100% 30%, oklch(0.80 0.08 315 / 0.6) 0%, oklch(0.80 0.08 315 / 0) 100%),
+    linear-gradient(in oklch 250deg, #6f5a98 0%, #2c295c 100%);
+  --fab-bg: linear-gradient(in oklch 145deg, #9a7cc0 0%, #3a3466 100%);
+  --fab-shadow: 0 8px 20px -6px rgba(58, 52, 102, 0.6);
+  --chart-top: #6f5a98;
+  --chart-bottom: #b99ad4;
+  --chart-active: #3a3466;
+  --sheet-tint: oklch(0.95 0.025 300);
+  --sheet-glow: oklch(0.55 0.12 300 / 0.35);
+  --grain-opacity: 0.04;
+}
+:root {
+  --glass-fill-1: rgba(255, 255, 255, 0.16);
+  --glass-fill-2: rgba(255, 255, 255, 0.07);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.32);
+}
+
+/* Header background: base on the element, blobs in ::before (oversized so they
+   spill past the edges; animated by transform only, so the gradients never
+   repaint), grain in ::after. background-color is the fallback if a browser
+   can't parse the oklch gradients. */
+.mesh {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--mesh-top);
+  background-image: var(--mesh-base);
+}
+.mesh::before,
+.mesh::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.mesh::before {
+  inset: -10%;
+  background-image: var(--mesh-layers);
+  will-change: transform;
+  animation: mesh-drift 26s ease-in-out infinite alternate;
+}
+.mesh::after {
+  inset: 0;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.6 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+@keyframes mesh-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(4%, -2%, 0) scale(1.04); }
+  100% { transform: translate3d(-2.5%, 1.5%, 0) scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh::before { animation: none; }
+}
+
+/* Glass on the header. No backdrop-filter on purpose: these sit in a scroll
+   container, and blurring a smooth gradient is visually a no-op anyway —
+   the read comes from the fill gradient and the lit top edge. */
+.glass {
+  background: linear-gradient(180deg, var(--glass-fill-1), var(--glass-fill-2));
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 20px -12px rgba(4, 6, 20, 0.6);
+}
+
+/* The sheet under the header picks up the theme tint at its top edge. */
+.sheet-flow {
+  background-image: linear-gradient(in oklch 180deg, var(--sheet-tint) 0px, rgb(var(--card) / 0) 140px);
+  box-shadow: 0 -14px 36px -14px var(--sheet-glow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* «+» in the bottom nav follows the theme. */
+.fab {
+  background-color: var(--mesh-top);
+  background-image: var(--fab-bg);
+  box-shadow: var(--fab-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* iOS standalone needs an absolute frame to paint below its shorter viewport.
+   A fixed frame is clipped there even when given the full screen height. */
+.app-frame {
+  position: fixed;
+  inset: 0;
+}
+@media (max-width: 1023px) {
+  html.standalone .app-frame {
+    position: absolute;
+    bottom: auto;
+    height: var(--app-h, 100%);
+  }
+  html.standalone {
+    /* The exposed iOS canvas follows the active header theme. */
+    background: var(--mesh-top);
+  }
 }

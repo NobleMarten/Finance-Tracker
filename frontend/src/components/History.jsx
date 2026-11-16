@@ -7,6 +7,7 @@ import { useSwipeNav } from '../hooks/useSwipeNav'
 import CountUp from './CountUp'
 import PullToRefresh from './PullToRefresh'
 import { CalendarDays } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const SEGMENTS = ['День', 'Месяц', 'Год']
 const DAY_MS = 86400000
@@ -211,8 +212,8 @@ export default function History({
       {/* Navy header under the translucent status bar: title, segments and the
           period itself, flat — the same shape as the home screen. */}
       <header
-        className="hero on-navy flex-shrink-0 pb-10 text-white animate-fade-in"
-        style={{ background: 'var(--navy-gradient)', paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}
+        className="mesh hero on-navy flex-shrink-0 pb-10 text-white animate-fade-in"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}
       >
         <div className="px-5 flex items-center justify-between gap-4">
           <div className="text-[22px] font-bold tracking-tight">История</div>
@@ -230,7 +231,7 @@ export default function History({
       </header>
 
       <section
-        className="relative -mt-6 flex-1 rounded-t-[28px] bg-background px-4 pt-5"
+        className="sheet-flow relative -mt-6 flex-1 rounded-t-[28px] bg-background px-4 pt-5"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
       >
         {showSkeleton ? (
@@ -256,11 +257,9 @@ export default function History({
 function Segments({ seg, onSeg, desktop = false, onNavy = false }) {
   return (
     <div
-      className="relative flex p-1"
+      className={cn('relative flex p-1', onNavy && 'glass')}
       style={onNavy ? {
-        background: 'rgba(255,255,255,0.10)',
         borderRadius: 'var(--radius-sm)',
-        border: '1px solid rgba(255,255,255,0.15)',
       } : {
         background: 'var(--bg-surface)',
         borderRadius: desktop ? 'var(--radius-md)' : 'var(--radius-sm)',

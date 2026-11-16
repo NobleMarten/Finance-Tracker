@@ -43,8 +43,10 @@ export function useTransactions() {
     try {
       setError(null)
       const data = await api.getTransactions()
-      // backend returns { items: [...], total: N }
-      const items = data?.items ?? data ?? []
+      // Backend returns { items: [...], total: N }. An empty list may come as
+      // `items: null` (Go nil slice) — `??` would then fall back to the whole
+      // object, so check for an array explicitly.
+      const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
       const next = byNewest(items.map(normalize))
       setTransactions(next)
       persist(next)
