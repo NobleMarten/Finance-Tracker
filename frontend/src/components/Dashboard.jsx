@@ -143,7 +143,7 @@ export default function Dashboard({
     <PullToRefresh onRefresh={onRefresh} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {hero}
       {/* White sheet, tucked under the header's bottom edge. */}
-      <section className="relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
+      <section className="sheet-flow relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
         <RecentHeader onAll={() => onNavigate?.(1)} />
         <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
         {/* Clearance for the floating nav, and the fade under it: at the end of
@@ -171,9 +171,8 @@ function Hero({
 }) {
   return (
     <header
-      className={cn('on-navy relative flex-shrink-0 overflow-hidden text-white', desktop ? 'rounded-3xl px-8 pb-7 pt-7 shadow-[0_24px_48px_-24px_rgba(14,20,48,0.6)]' : 'px-5 pb-12')}
+      className={cn('mesh on-navy flex-shrink-0 text-white', desktop ? 'rounded-3xl px-8 pb-7 pt-7 shadow-[0_24px_48px_-24px_rgba(14,20,48,0.6)]' : 'px-5 pb-12')}
       style={{
-        background: 'var(--navy-gradient)',
         paddingTop: desktop ? undefined : 'calc(env(safe-area-inset-top) + 18px)',
       }}
     >
@@ -197,7 +196,7 @@ function Hero({
               onClick={() => onSelect(key)}
               className={cn(
                 'flex h-8 flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3.5 text-[13px] font-semibold transition-colors duration-200',
-                active ? 'border-white bg-white text-primary' : 'border-white/15 bg-white/10 text-white/80 hover:bg-white/15',
+                active ? 'border-white bg-white text-primary' : 'glass text-white/85',
               )}
             >
               <span>{label}</span>
@@ -253,7 +252,7 @@ function Hero({
                 'flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-150 group-active:scale-90',
                 primary
                   ? 'bg-white text-primary shadow-[0_10px_24px_-10px_rgba(0,0,0,0.5)]'
-                  : 'border border-white/15 bg-white/10 text-white group-hover:bg-white/15',
+                  : 'glass text-white',
               )}
             >
               <Icon className="h-[22px] w-[22px]" strokeWidth={primary ? 2.4 : 1.9} />

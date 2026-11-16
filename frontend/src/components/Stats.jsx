@@ -563,10 +563,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           Swipe left/right on it to change month. */}
       <header
         {...swipe}
-        className="hero on-navy relative flex-shrink-0 pb-12 text-white animate-fade-in"
+        className="mesh hero on-navy flex-shrink-0 pb-12 text-white animate-fade-in"
         style={{
           ...swipe.style,
-          background: 'var(--navy-gradient)',
           paddingTop: 'calc(env(safe-area-inset-top) + 18px)',
         }}
       >
@@ -574,14 +573,14 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           <div className="text-[22px] font-bold tracking-tight">Статистика</div>
           <div className="flex items-center gap-1">
             <button onClick={prevMonth} aria-label="Предыдущий месяц"
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/15 bg-white/10 transition-all active:scale-90">
+              className="glass w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90">
               <ChevronLeft />
             </button>
             <div className="min-w-[112px] text-center text-[13px] font-semibold text-white/80">
               {MONTHS_FULL[month - 1]} {year}
             </div>
             <button onClick={nextMonth} disabled={isCurrentMonth} aria-label="Следующий месяц"
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-white/15 bg-white/10 transition-all active:scale-90 disabled:opacity-25 disabled:active:scale-100">
+              className="glass w-8 h-8 flex items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-25 disabled:active:scale-100">
               <ChevronRight />
             </button>
           </div>
@@ -624,7 +623,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
 
       {/* Grey sheet tucked under the header; cards sit on it. */}
       <section
-        className="relative -mt-7 flex-1 rounded-t-[28px] bg-background pt-3"
+        className="sheet-flow relative -mt-7 flex-1 rounded-t-[28px] bg-background pt-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
       >
       {loading && <StatsSkeleton />}
@@ -1051,8 +1050,8 @@ function BarChart({
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.25" />
+            <stop offset="0%" stopColor="var(--chart-top)" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="var(--chart-bottom)" stopOpacity="0.35" />
           </linearGradient>
         </defs>
 
@@ -1088,7 +1087,7 @@ function BarChart({
                   width={barWidth}
                   height={fullBarH}
                   rx={Math.min(2, barWidth / 2)}
-                  fill={!hasData ? 'var(--bg-elevated)' : isActive ? 'var(--accent)' : `url(#${gradId})`}
+                  fill={!hasData ? 'var(--bg-elevated)' : isActive ? 'var(--chart-active)' : `url(#${gradId})`}
                   style={{
                     transformOrigin: '0px 0px',
                     transform: animated ? 'scaleY(1)' : 'scaleY(0)',
@@ -1143,11 +1142,11 @@ function BarChart({
 }
 
 function StatCard({ icon: Icon, label, value, unit = '₽', sub, subTitle, accent = false }) {
-  // «Прогноз» is the one forward-looking figure, so it gets the navy treatment.
+  // «Прогноз» is the one forward-looking figure, so it gets the theme gradient.
   return (
     <div
       className={`flex flex-col rounded-2xl p-4 ${accent ? 'on-navy text-white' : 'bg-card shadow-soft'}`}
-      style={accent ? { background: 'var(--navy-gradient)', boxShadow: '0 14px 30px -16px rgba(14,20,48,0.6)' } : undefined}
+      style={accent ? { backgroundColor: 'var(--mesh-top)', backgroundImage: 'var(--navy-gradient)', boxShadow: '0 14px 30px -16px rgba(14,20,48,0.6)' } : undefined}
     >
       <div className={`mb-2 flex items-start gap-1.5 text-[12px] font-semibold leading-tight ${accent ? 'text-white/70' : 'text-muted-foreground'}`}>
         {Icon && <Icon className="mt-px h-3.5 w-3.5 flex-shrink-0" strokeWidth={2.2} />}

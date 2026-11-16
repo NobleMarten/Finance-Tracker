@@ -40,6 +40,9 @@ export default function App() {
   const [historyView, setHistoryView] = useState({ seg: 0, offset: 0 })
   const [tokensOpen, setTokensOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  // The status bar is translucent: once content scrolls under it, a shade in
+  // the header colour fades in so the white clock stays readable over the sheet.
+  const [scrolled, setScrolled] = useState(false)
   const isDesktop = useIsDesktop()
 
   const showToast = (msg) => {
@@ -58,6 +61,7 @@ export default function App() {
 
   const navigate = (next) => {
     if (next === 2) { openAdd(); return }
+    setScrolled(false)
     setScreen(next)
   }
 
@@ -219,18 +223,33 @@ export default function App() {
   }
 
   return (
-    // Navy behind the top half: while a screen fades in, the top of the screen
-    // stays navy (continuing the status bar) instead of flashing the light
-    // page background.
+    // Header colour behind the top half: while a screen fades in, the top of the
+    // screen keeps the status-bar colour instead of flashing the light page
+    // background.
     <div
-      className="fixed inset-0 flex justify-center overflow-hidden"
-      style={{ background: 'linear-gradient(to bottom, #18234a 0%, #18234a 45%, var(--bg-base) 45%)' }}
+      className="app-frame flex justify-center overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom, var(--mesh-top) 0%, var(--mesh-top) 45%, var(--bg-base) 45%)' }}
     >
-      {/* No safe-area padding here: every scroll area pads its own bottom, so
-          nothing paints the page background under the home indicator. */}
+      {/* No safe-area padding here: every header runs under the status bar and
+          every scroll area pads its own bottom, so nothing paints the page
+          background into the insets. */}
       <div className="w-full h-full max-w-md flex flex-col relative overflow-hidden">
         <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-30 transition-opacity duration-200"
+          style={{ height: 'env(safe-area-inset-top)', background: 'var(--mesh-top)', opacity: scrolled ? 1 : 0 }}
+        />
+        <div
           className="flex-1 flex flex-col min-h-0"
+          // Scroll events don't bubble, but the capture phase sees every
+          // screen's scroller without each one wiring a callback. The shade
+          // turns on only once the light sheet reaches the clock — until then
+          // the gradient header itself is under it.
+          onScrollCapture={(e) => {
+            const header = e.target.querySelector?.('.mesh')
+            const limit = header ? header.offsetHeight - 80 : 8
+            setScrolled(e.target.scrollTop > limit)
+          }}
         >
           <OfflineBanner message={error} onRetry={refresh} />
           {loading && screen === 0 ? (
@@ -254,7 +273,7 @@ export default function App() {
 function SkeletonLoader() {
   return (
     <div className="flex-1 flex flex-col animate-fade-in">
-      <div className="px-5 pb-12" style={{ background: 'var(--navy-gradient)', paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}>
+      <div className="mesh px-5 pb-12" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 18px)' }}>
         <div className="h-3 w-16 rounded-full bg-white/10" />
         <div className="mt-2 h-4 w-32 rounded-full bg-white/15" />
         <div className="mt-5 flex gap-2">
@@ -266,7 +285,7 @@ function SkeletonLoader() {
           {[0, 1, 2].map(i => <div key={i} className="mx-auto h-14 w-14 rounded-2xl bg-white/10" />)}
         </div>
       </div>
-      <div className="-mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
+      <div className="sheet-flow -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
         <Skeleton className="h-5 w-48" />
         {[0, 1, 2, 3, 4].map(i => (
           <div key={i} className="mt-5 flex items-center gap-3">
