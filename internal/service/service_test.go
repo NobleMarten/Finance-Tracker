@@ -154,60 +154,35 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestSummary(t *testing.T) {
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.FixedZone("MSK", 3*60*60))
+	to := from.AddDate(1, 0, 0)
+	userID, otherID := 1, 2
+	expenses := []model.Expense{
+		{Amount: 100, UserID: &userID, SpentAt: from},
+		{Amount: 200, UserID: &userID, SpentAt: to.Add(-time.Microsecond)},
+		{Amount: 400, UserID: &userID, SpentAt: from.Add(-time.Microsecond)},
+		{Amount: 800, UserID: &userID, SpentAt: to},
+		{Amount: 1600, UserID: &otherID, SpentAt: from},
+	}
 	tests := []struct {
 		name     string
-		month    int
-		wantErr  error
+		from, to time.Time
 		wantSum  int
-		mockdata []model.Expense
+		wantErr  error
 	}{
-		{"succes", 4, nil, 300,
-			[]model.Expense{
-				{
-					ID:        1,
-					Amount:    100,
-					Title:     "Test1",
-					CreatedAt: time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
-				},
-				{
-					ID:        3,
-					Amount:    200,
-					Title:     "Test2",
-					CreatedAt: time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
-				},
-			},
-		},
-		{"invalid month", 13, model.ErrInvalidMonth, 0, nil},
-		{"zero month", 0, nil, 100,
-			[]model.Expense{
-				{
-					ID:        3,
-					Amount:    100,
-					Title:     "Test3",
-					CreatedAt: time.Date(2026, 4, 27, 0, 0, 0, 0, time.UTC),
-				},
-			},
-		},
-		{"negative month", -1, model.ErrInvalidMonth, 0, nil},
+		{"year boundaries and user isolation", from, to, 300, nil},
+		{"following year", to, to.AddDate(1, 0, 0), 800, nil},
+		{"no expenses", to.AddDate(1, 0, 0), to.AddDate(2, 0, 0), 0, nil},
+		{"equal boundaries", from, from, 0, model.ErrInvalidDateRange},
+		{"reversed boundaries", to, from, 0, model.ErrInvalidDateRange},
+		{"missing boundary", time.Time{}, to, 0, model.ErrInvalidDateRange},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			repo := ItemService{
-				repo: &MockRepo{
-					expenses: tt.mockdata,
-				},
-			}
-			userID := 1
-			y := 2026
-			tz := ""
-
-			sum, err := repo.Summary(ctx, tt.month, y, userID, tz)
+			svc := NewItemService(&MockRepo{expenses: expenses})
+			got, err := svc.Summary(context.Background(), tt.from, tt.to, userID)
 			assert.ErrorIs(t, err, tt.wantErr)
-			if tt.wantErr == nil {
-				assert.Equal(t, tt.wantSum, sum)
-			}
+			assert.Equal(t, tt.wantSum, got)
 		})
 	}
 }

@@ -8,14 +8,19 @@ import (
 )
 
 type ExpenseRepo interface {
+	DailyRange(ctx context.Context, from, to time.Time, userID int, tz string) ([]model.DailyAggregate, error)
+	Analytics(ctx context.Context, month, year, userID int, tz string) (model.Analytics, error)
+	FilteredExpenses(ctx context.Context, userID, limit int, cursor *model.Cursor, filter model.ExpenseFilter) (model.ResultPaginate, error)
+
 	Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error)
 	List(ctx context.Context, userID int) ([]model.Expense, error)
 	Delete(ctx context.Context, id int, userID int) (model.Expense, error)
 	Clear(ctx context.Context, userID int) error
-	Summary(ctx context.Context, m, y int, userID int, tz string) (int, error)
+	Summary(ctx context.Context, from, to time.Time, userID int) (int, error)
 	Update(ctx context.Context, id int, newamount *int, newtile *string, userID int, spentAt *time.Time) (model.Expense, error)
 	DailyTotal(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error)
 	TopExpenses(ctx context.Context, m, y int, limit int, userID int, tz string) ([]model.Expense, error)
+	Paginate(ctx context.Context, userID int, limit int, cursor *model.Cursor) (res model.ResultPaginate, err error)
 }
 
 type ItemService struct {
@@ -128,13 +133,11 @@ func (s *ItemService) Clear(ctx context.Context, userID int) error {
 	return s.repo.Clear(ctx, userID)
 }
 
-func (s *ItemService) Summary(ctx context.Context, m, y int, userID int, tz string) (int, error) {
-
-	if 0 > m || m > 12 {
-		return 0, model.ErrInvalidMonth
+func (s *ItemService) Summary(ctx context.Context, from, to time.Time, userID int) (int, error) {
+	if from.IsZero() || to.IsZero() || !from.Before(to) {
+		return 0, model.ErrInvalidDateRange
 	}
-
-	return s.repo.Summary(ctx, m, y, userID, tz)
+	return s.repo.Summary(ctx, from, to, userID)
 }
 
 func (s *ItemService) DailyTotal(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error) {
@@ -162,4 +165,58 @@ func (s *ItemService) AvgPerDay(sum int, lenDaily int) int {
 		return 0
 	}
 	return sum / lenDaily
+}
+
+func (s *ItemService) Paginate(ctx context.Context, userID int, limit int, cursor *model.Cursor) (res model.ResultPaginate, err error) {
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	return s.repo.Paginate(ctx, userID, limit, cursor)
+}
+
+func (s *ItemService) Analytics(ctx context.Context, month, year, userID int, tz string) (model.Analytics, error) {
+	if month < 1 || month > 12 {
+		return model.Analytics{}, model.ErrInvalidMonth
+	}
+	if year < 1 || year > 9999 {
+		return model.Analytics{}, model.ErrInvalidYear
+	}
+	if _, err := time.LoadLocation(tz); err != nil {
+		return model.Analytics{}, model.ErrInvalidTimezone
+	}
+	return s.repo.Analytics(ctx, month, year, userID, tz)
+}
+
+func (s *ItemService) FilteredExpenses(ctx context.Context, userID, limit int, cursor *model.Cursor, filter model.ExpenseFilter) (model.ResultPaginate, error) {
+	if filter.From.IsZero() != filter.To.IsZero() || (!filter.From.IsZero() && !filter.From.Before(filter.To)) {
+		return model.ResultPaginate{}, model.ErrInvalidDateRange
+	}
+	if filter.MinAmount != nil && *filter.MinAmount < 0 {
+		return model.ResultPaginate{}, model.ErrNegativeAmount
+	}
+	if cursor != nil && (cursor.ID <= 0 || cursor.SpentAt.IsZero()) {
+		return model.ResultPaginate{}, model.ErrInvalidCursor
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	return s.repo.FilteredExpenses(ctx, userID, limit, cursor, filter)
+}
+
+func (s *ItemService) DailyRange(ctx context.Context, from, to time.Time, userID int, tz string) ([]model.DailyAggregate, error) {
+	if from.IsZero() || to.IsZero() || !from.Before(to) || to.Sub(from) > 367*24*time.Hour {
+		return nil, model.ErrInvalidDateRange
+	}
+	if _, err := time.LoadLocation(tz); err != nil {
+		return nil, model.ErrInvalidTimezone
+	}
+	return s.repo.DailyRange(ctx, from, to, userID, tz)
 }

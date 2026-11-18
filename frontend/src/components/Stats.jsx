@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/api'
 import { fmtShort, scaledFontSize } from '../utils/format'
 import { MONTHS_NOM, MONTHS_GEN, MONTHS_SHORT } from '../utils/months'
@@ -9,7 +9,6 @@ import PullToRefresh from './PullToRefresh'
 import DayDetail from './DayDetail'
 import YearHeatmap from './YearHeatmap'
 import MonthlyTrend from './MonthlyTrend'
-import { monthInsights, titleKey } from '../utils/monthInsights'
 import ExpenseListDetail from './ExpenseListDetail'
 import SectionCard, { SectionTitle } from './SectionCard'
 import {
@@ -24,13 +23,17 @@ function getDaysInMonth(month, year) {
   return new Date(year, month, 0).getDate()
 }
 
-export default function Stats({ onAddExpense, transactions = [], onEdit, desktop = false }) {
+export default function Stats({ onAddExpense, onEdit, desktop = false, summaryRevision }) {
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [response, setResponse] = useState(null)
+  const request = useRef(null)
+  const statsKey = `${month}:${year}:${summaryRevision}`
+  const currentResponse = response?.key === statsKey ? response : null
+  const stats = currentResponse?.data ?? null
+  const loading = !currentResponse || currentResponse.loading
+  const error = currentResponse?.error
   const [detailDay, setDetailDay] = useState(null) // drill-down: selected day number
   const [drill, setDrill] = useState(null) // drill-down: { kind: 'group', key } | { kind: 'large' }
   const [view, setView] = useState('bars') // 'bars' (default) | 'year' (contribution grid)
@@ -41,16 +44,38 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const [trendSel, setTrendSel] = useState(null) // pinned month index in the trend
   const [trendHover, setTrendHover] = useState(null) // hovered month index in the trend
 
-  const loadStats = useCallback(() => {
-    setLoading(true)
-    setError(null)
-    return api.getStats(month, year)
-      .then(setStats)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [month, year])
+  const loadStats = useCallback(async () => {
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
+    setResponse({ key: statsKey, data: null, loading: true, error: null })
+    try {
+      const data = await api.getAnalytics(month, year, { signal: controller.signal })
+      if (!data?.insights || !Array.isArray(data.year_daily) || !Array.isArray(data.trend) || data.trend.length !== 6) {
+        throw new Error('Сервер вернул неполную статистику')
+      }
+      if (!controller.signal.aborted) setResponse({ key: statsKey, data, loading: false, error: null })
+    } catch (error) {
+      if (!controller.signal.aborted) setResponse({ key: statsKey, data: null, loading: false, error: error.message })
+    }
+  }, [month, year, statsKey])
 
-  useEffect(() => { loadStats() }, [loadStats])
+  useEffect(() => {
+    loadStats()
+    return () => request.current?.abort()
+  }, [loadStats])
+
+  // A mutation refreshes aggregates and closes details based on the old snapshot.
+  useEffect(() => {
+    setDetailDay(null)
+    setDrill(null)
+    setYearHover(null)
+    setYearSel(null)
+    setChartHover(null)
+    setChartSel(null)
+    setTrendHover(null)
+    setTrendSel(null)
+  }, [summaryRevision])
 
   const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
@@ -123,19 +148,22 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const monthShort = MONTHS_GEN[month - 1]
   const activeDay = chartHover ?? chartSel // hover wins over the pinned day
   const activeAmount = activeDay ? (dailyMap[activeDay] ?? 0) : 0
-  const yearActive = yearHover ?? yearSel // year grid: hover wins over pinned cell
+  const yearCell = yearHover ?? yearSel // hover wins over the pinned day
+  const selectedYearDay = yearCell && stats?.year_daily.find(row => {
+    const [y, m, d] = row.date.split('-').map(Number)
+    return y === yearCell.year && m === yearCell.month && d === yearCell.day
+  })
+  const yearActive = yearCell && stats ? { ...yearCell, amount: selectedYearDay?.amount ?? 0 } : null
 
-  // Monthly trend — last 6 months of totals, computed client-side from transactions.
+  // Monthly trend uses complete server aggregates; zero months are filled for display.
   const TREND_N = 6
   const trendBase = new Date(now.getFullYear(), now.getMonth(), 1)
-  const trendData = Array.from({ length: TREND_N }, (_, i) => {
+  const trendData = stats ? stats.trend.map(row => ({
+    ...row, label: MONTHS_SHORT[row.month - 1],
+  })) : Array.from({ length: TREND_N }, (_, i) => {
     const d = new Date(trendBase.getFullYear(), trendBase.getMonth() - (TREND_N - 1 - i), 1)
     return { year: d.getFullYear(), month: d.getMonth() + 1, label: MONTHS_SHORT[d.getMonth()], amount: 0 }
   })
-  for (const t of transactions) {
-    const b = trendData.find(m => m.year === t.ts.getFullYear() && m.month === t.ts.getMonth() + 1)
-    if (b) b.amount += t.amount
-  }
   // The last trend bar is always the month in progress: project it, and keep it
   // out of the average so a half-month doesn't drag the reference line down.
   const trendPartial = TREND_N - 1
@@ -156,7 +184,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       ? Math.round(((stats.currentmonth - stats.prevmonth) / stats.prevmonth) * 100)
       : null
 
-  const isEmpty = stats && !loading && stats.currentmonth === 0
+  const isEmpty = stats && !loading && stats.insights.count === 0
 
   // Two honest averages: per calendar day (what the forecast extrapolates) and
   // per spending day (what the backend's `avgday` is).
@@ -165,13 +193,16 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   const avgCalendar = maxDay > 0 ? Math.round(total / maxDay) : 0
   const forecast = isCurrentMonth && maxDay > 0 ? Math.round((total / maxDay) * daysInMonth) : null
 
-  const insights = monthInsights({
-    transactions,
-    month,
-    year,
-    dailyAmounts: dailyData.map(d => d.amount),
-    completedDays: isCurrentMonth ? now.getDate() - 1 : daysInMonth,
-  })
+  const completedDays = isCurrentMonth ? now.getDate() - 1 : daysInMonth
+  const insights = {
+    count: stats?.insights.count ?? 0,
+    avgCheck: stats?.insights.avg_check ?? 0,
+    median: stats?.insights.median ?? 0,
+    large: stats?.insights.large ?? null,
+    frequent: stats?.insights.frequent ?? [],
+    completedDays,
+    noSpend: dailyData.slice(0, completedDays).filter(day => day.amount === 0).length,
+  }
 
   // Share of the month taken by the top-3 expenses — the «Самые крупные» meta line.
   const topShare = stats?.currentmonth > 0 && stats.topexp?.length
@@ -215,7 +246,9 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       day={detailDay}
       month={month}
       year={year}
-      transactions={transactions}
+      summaryRevision={summaryRevision}
+      total={stats ? (stats.daily.find(row => Number(row.date.split('-')[2]) === detailDay)?.amount ?? 0) : null}
+      count={stats ? (stats.daily.find(row => Number(row.date.split('-')[2]) === detailDay)?.count ?? 0) : null}
       onEdit={onEdit}
       onAddHere={onAddExpense}
       onClose={() => setDetailDay(null)}
@@ -223,52 +256,51 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
     />
   )
 
-  // Drill-down lists are rebuilt from the month's operations on every render,
-  // so an edit made from inside the list shows up in it straight away.
   const monthLabel = `${MONTHS_FULL[month - 1]} ${year}`
+  const monthFilter = {
+    from: new Date(year, month - 1, 1).toISOString(),
+    to: new Date(year, month, 1).toISOString(),
+  }
   let drillDetail = null
   if (drill?.kind === 'group') {
-    const items = insights.ops.filter(t => titleKey(t) === drill.key)
-    const sum = items.reduce((a, t) => a + t.amount, 0)
-    const days = new Set(items.map(t => t.ts.getDate())).size
-    drillDetail = (
+    const group = insights.frequent.find(g => g.key === drill.key)
+    if (group) drillDetail = (
       <ExpenseListDetail
-        title={items[0]?.description.trim() || drill.title}
+        title={group.title}
         subtitle={monthLabel}
-        items={items}
+        filter={{ ...monthFilter, title: group.key }}
+        summaryRevision={summaryRevision}
+        total={group.sum}
+        count={group.count}
         figures={[
-          { label: 'Раз', value: `×${items.length}` },
-          { label: 'В среднем', value: `${fmtShort(items.length ? Math.round(sum / items.length) : 0)} ₽` },
-          { label: 'От месяца', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
+          { label: 'Раз', value: `×${group.count}` },
+          { label: 'В среднем', value: `${fmtShort(Math.round(group.sum / group.count))} ₽` },
+          { label: 'От месяца', value: `${total > 0 ? Math.round(group.sum / total * 100) : 0}%` },
         ]}
-        note={days < items.length
-          ? `В ${days} ${plural(days, 'день', 'дня', 'дней')} — иногда несколько раз за день.`
-          : `В ${days} ${plural(days, 'день', 'дня', 'дней')}.`}
-        strip={{ daysInMonth, today: isCurrentMonth ? now.getDate() : null }}
+        note={`В ${group.days} ${plural(group.days, 'день', 'дня', 'дней')}.`}
+        strip={{ daysInMonth, today: isCurrentMonth ? now.getDate() : null, daily: group.daily }}
         onEdit={onEdit}
         onClose={() => setDrill(null)}
-        desktop={desktop}
       />
     )
   } else if (drill?.kind === 'large' && insights.large) {
-    const { threshold } = insights.large
-    const items = insights.ops.filter(t => t.amount >= threshold)
-    const sum = items.reduce((a, t) => a + t.amount, 0)
+    const large = insights.large
     drillDetail = (
       <ExpenseListDetail
         title="Крупные траты"
         subtitle={monthLabel}
-        items={items}
-        sortBy="amount"
+        filter={{ ...monthFilter, minAmount: large.threshold }}
+        summaryRevision={summaryRevision}
+        total={large.sum}
+        count={large.count}
         shareOf={total}
         figures={[
-          { label: 'Доля месяца', value: `${total > 0 ? Math.round((sum / total) * 100) : 0}%` },
-          { label: 'Без них', value: `${fmtShort(total - sum)} ₽` },
+          { label: 'Доля месяца', value: `${large.share}%` },
+          { label: 'Без них', value: `${fmtShort(total - large.sum)} ₽` },
         ]}
-        note={`Покупки от ${fmtShort(threshold)} ₽ — втрое больше типичной (${fmtShort(insights.median)} ₽).`}
+        note={`Покупки от ${fmtShort(large.threshold)} ₽ — втрое больше типичной (${fmtShort(insights.median)} ₽).`}
         onEdit={onEdit}
         onClose={() => setDrill(null)}
-        desktop={desktop}
       />
     )
   }
@@ -313,7 +345,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl text-[13px]"
               style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-              {error}
+              <p role="alert">{error}</p>
+              <button type="button" className="mt-2 rounded px-2 py-1 font-semibold underline" onClick={loadStats}>Повторить</button>
             </div>
           )}
 
@@ -343,7 +376,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   >
                     {loading
                       ? <span className="skeleton inline-block align-middle h-9 w-44" />
-                      : <><CountUp value={stats?.currentmonth ?? 0} format={fmtShort} /> ₽</>}
+                      : stats ? <><CountUp key={statsKey} value={stats.currentmonth} format={fmtShort} /> ₽</> : <span>— ₽</span>}
                   </div>
                   {delta !== null && (
                     <div className="flex items-center gap-2 mt-3">
@@ -430,7 +463,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                 </Panel>
               )}
 
-              {stats && !loading && !isEmpty && (
+              {stats && !loading && (
                 <>
                   <Panel
                     className="animate-fade-in"
@@ -487,7 +520,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                         />
                       ) : (
                         <YearHeatmap
-                          transactions={transactions}
+                          daily={stats.year_daily}
                           year={year}
                           active={yearActive}
                           onSelect={toggleYearSel}
@@ -558,7 +591,6 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
   return (
     <div className="relative flex flex-col flex-1 min-h-0">
     <PullToRefresh onRefresh={loadStats} className="flex flex-col flex-1 min-h-0 overflow-y-auto">
-
       {/* Navy header runs under the translucent status bar, like the home screen.
           Swipe left/right on it to change month. */}
       <header
@@ -600,7 +632,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
           >
             {loading
               ? <span className="inline-block align-middle h-9 w-40 rounded-xl bg-white/15" />
-              : <><CountUp value={stats?.currentmonth ?? 0} format={fmtShort} /> ₽</>}
+              : stats ? <><CountUp key={statsKey} value={stats.currentmonth} format={fmtShort} /> ₽</> : <span>— ₽</span>}
           </div>
           {delta !== null && (
             <div className="flex items-center gap-2 mt-2.5">
@@ -631,7 +663,8 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
       {error && (
         <div className="mx-5 mt-3 px-4 py-3 rounded-xl text-[13px]"
           style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
-          {error}
+          <p role="alert">{error}</p>
+          <button type="button" className="mt-2 rounded px-2 py-1 font-semibold underline" onClick={loadStats}>Повторить</button>
         </div>
       )}
 
@@ -643,7 +676,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
         />
       )}
 
-      {stats && !loading && !isEmpty && (
+      {stats && !loading && (
         <>
           <div className="flex flex-col gap-3 px-4 pt-1">
           {/* Daily bars ⇄ yearly contribution heatmap */}
@@ -735,7 +768,7 @@ export default function Stats({ onAddExpense, transactions = [], onEdit, desktop
                   )}
                 </div>
                 <YearHeatmap
-                  transactions={transactions}
+                  daily={stats.year_daily}
                   year={year}
                   active={yearActive}
                   onSelect={toggleYearSel}

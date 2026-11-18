@@ -12,6 +12,15 @@ func WriteError(w http.ResponseWriter, err error) {
 	var res ErrorResponse
 
 	switch {
+	case errors.Is(err, model.ErrInvalidAmountFilter):
+		status = http.StatusBadRequest
+		res = ErrorResponse{Code: "INVALID_AMOUNT_FILTER", Message: err.Error()}
+	case errors.Is(err, model.ErrInvalidDateRange):
+		status = http.StatusBadRequest
+		res = ErrorResponse{Code: "INVALID_DATE_RANGE", Message: err.Error()}
+	case errors.Is(err, model.ErrInvalidTimezone):
+		status = http.StatusBadRequest
+		res = ErrorResponse{Code: "INVALID_TIMEZONE", Message: err.Error()}
 	case errors.Is(err, model.ErrEmptyTitle): //
 		status = http.StatusBadRequest
 		res = ErrorResponse{
@@ -40,6 +49,18 @@ func WriteError(w http.ResponseWriter, err error) {
 		status = http.StatusBadRequest
 		res = ErrorResponse{
 			Code:    "INVALID_MONTH",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrInvalidSpentAt):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_SPENTAT",
+			Message: err.Error(),
+		}
+	case errors.Is(err, model.ErrInvalidCursor):
+		status = http.StatusBadRequest
+		res = ErrorResponse{
+			Code:    "INVALID_CURSOR",
 			Message: err.Error(),
 		}
 	case errors.Is(err, model.ErrInvalidYear):

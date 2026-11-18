@@ -4,7 +4,9 @@ import { plural } from '../utils/plural'
 import { toDateInput } from '../utils/date'
 import { avatarColor } from '../utils/avatar'
 import { useSwipeNav } from '../hooks/useSwipeNav'
+import { api } from '../api/api'
 import CountUp from './CountUp'
+import TransactionPagination from './TransactionPagination'
 import PullToRefresh from './PullToRefresh'
 import { CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -116,51 +118,105 @@ function groupItems(seg, items) {
 }
 
 /** Mon–Sun around the selected day, with each day's total for the strip chart. */
-function buildWeek(transactions, dayStart) {
+function buildWeek(daily, dayStart) {
   const today = new Date()
   const mon = mondayOf(dayStart)
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i)
     return { date, offset: daysBetween(today, date), total: 0 }
   })
-  const weekEnd = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 7)
-  for (const t of transactions) {
-    if (t.ts >= mon && t.ts < weekEnd) days[daysBetween(t.ts, mon)].total += t.amount
-  }
+  const totals = new Map(daily.map(row => [row.date, row.amount]))
+  for (const day of days) day.total = totals.get(toDateInput(day.date)) ?? 0
   return days
 }
 
-function useHistoryData(transactions, seg, offset) {
+function useHistoryData(transactions, seg, offset, boundary, ready) {
   return useMemo(() => {
     const range = getRange(seg, offset)
     const filtered = transactions.filter(t => inRange(t, range)).sort((a, b) => b.ts - a.ts)
-    const total = sum(filtered)
-
     const prevRange = getRange(seg, offset + 1)
-    const prevTotal = sum(transactions.filter(t => inRange(t, prevRange)))
-    // No baseline → no percentage; "+∞%" says nothing useful.
-    const delta = prevTotal > 0 ? Math.round(((total - prevTotal) / prevTotal) * 100) : null
+    const complete = ready && (!boundary || new Date(boundary) < range.start)
 
     return {
       range,
+      complete,
       filtered,
-      total,
-      delta,
       deltaLabel: prevRange.vs,
       groups: groupItems(seg, filtered),
-      week: seg === 0 ? buildWeek(transactions, range.start) : null,
     }
-  }, [transactions, seg, offset])
+  }, [transactions, seg, offset, boundary, ready])
 }
 
 /* ────────────────────────── screen ────────────────────────── */
 
 export default function History({
   transactions, loading, onDelete, onEdit, onRefresh, onAddExpense,
-  view, onViewChange, desktop = false,
+  view, onViewChange, desktop = false, pagination, nextCursor, summaryRevision,
 }) {
   const { seg, offset } = view
-  const data = useHistoryData(transactions, seg, offset)
+  const listData = useHistoryData(transactions, seg, offset, nextCursor?.spent_at, pagination.ready)
+  const [summary, setSummary] = useState(null)
+  const [summaryAttempt, setSummaryAttempt] = useState(0)
+  // The UI's inclusive calendar end becomes the API's exclusive upper bound.
+  // Dates originate at local midnight, so toISOString preserves the user's
+  // timezone boundaries, including DST, while sending unambiguous UTC instants.
+  const from = listData.range.start.toISOString()
+  const to = new Date(listData.range.end.getTime() + 1).toISOString()
+  const previousFrom = getRange(seg, offset + 1).start.toISOString()
+  const summaryKey = `${from}:${to}:${summaryRevision}:${summaryAttempt}`
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setSummary({ key: summaryKey, total: null, previousTotal: null, error: null, previousError: null })
+    // Requests are independent: failure of the comparison never hides the
+    // selected period's total. Late responses cannot overwrite another period.
+    const requestTotal = async (start, end, field, errorField) => {
+      try {
+        const result = await api.getSummary(start, end, { signal: controller.signal })
+        if (!Number.isFinite(result?.sum)) throw new Error('Сервер вернул некорректный итог периода')
+        if (controller.signal.aborted) return
+        setSummary(current => current?.key === summaryKey ? { ...current, [field]: result.sum } : current)
+      } catch (error) {
+        if (controller.signal.aborted) return
+        setSummary(current => current?.key === summaryKey ? { ...current, [errorField]: error.message } : current)
+      }
+    }
+    requestTotal(from, to, 'total', 'error')
+    requestTotal(previousFrom, from, 'previousTotal', 'previousError')
+    return () => controller.abort()
+  }, [from, to, previousFrom, summaryKey])
+
+  const [week, setWeek] = useState(null)
+  const weekStart = mondayOf(listData.range.start)
+  const weekFrom = weekStart.toISOString()
+  const weekTo = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7).toISOString()
+  const weekKey = `${weekFrom}:${summaryRevision}:${summaryAttempt}`
+  useEffect(() => {
+    if (seg !== 0) return
+    const controller = new AbortController()
+    api.getDailyTotals(weekFrom, weekTo, { signal: controller.signal }).then(daily => {
+      if (!Array.isArray(daily)) throw new Error('Сервер вернул некорректные итоги недели')
+      if (!controller.signal.aborted) setWeek({ key: weekKey, daily, error: null })
+    }).catch(error => {
+      if (!controller.signal.aborted) setWeek({ key: weekKey, daily: null, error: error.message })
+    })
+    return () => controller.abort()
+  }, [seg, weekFrom, weekTo, weekKey])
+
+  const activeSummary = summary?.key === summaryKey ? summary : null
+  const total = activeSummary?.total ?? null
+  const previousTotal = activeSummary?.previousTotal ?? null
+  const data = {
+    ...listData,
+    week: seg === 0 && week?.key === weekKey && week.daily ? buildWeek(week.daily, listData.range.start) : null,
+    weekError: seg === 0 && week?.key === weekKey ? week.error : null,
+    total,
+    delta: total !== null && previousTotal > 0 ? Math.round((total - previousTotal) / previousTotal * 100) : null,
+    summaryKey,
+    summaryError: activeSummary?.error,
+    comparisonError: activeSummary?.previousError,
+    retrySummary: () => setSummaryAttempt(value => value + 1),
+  }
 
   const setOffset = useCallback((next) => {
     onViewChange(v => ({ ...v, offset: typeof next === 'function' ? next(v.offset) : next }))
@@ -194,6 +250,7 @@ export default function History({
   if (desktop) {
     return (
       <DesktopHistory
+        pagination={pagination}
         seg={seg}
         onSeg={handleSeg}
         offset={offset}
@@ -237,16 +294,23 @@ export default function History({
         {showSkeleton ? (
           <ListSkeleton />
         ) : data.filtered.length === 0 ? (
-          <EmptyState seg={seg} onAdd={onAdd} />
+          data.complete ? <EmptyState seg={seg} onAdd={onAdd} /> : (
+            <p className="py-8 text-center text-[14px] text-muted-foreground">
+              В загруженной части истории трат за этот период нет.
+            </p>
+          )
         ) : (
           data.groups.map((g, gi) => (
-            <Group key={g.key} group={g} periodTotal={data.total} index={gi}>
+            <Group key={g.key} group={g} partial={!data.complete} periodTotal={data.total} index={gi}>
               {g.items.map((t, i) => (
                 <Row key={t.id} t={t} seg={seg} index={i} first={i === 0} onEdit={() => onEdit?.(t)} />
               ))}
             </Group>
           ))
         )}
+        <TransactionPagination {...pagination} note={data.complete
+          ? 'Можно загрузить более ранние периоды.'
+          : 'Список трат за период загружен частично. Итог считается по всему периоду.'} />
       </section>
     </PullToRefresh>
   )
@@ -339,7 +403,7 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
         <div className="mt-5 flex items-end justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12px] font-semibold mb-1.5" style={{ color: 'var(--text-tertiary)' }}>
-              Потрачено
+              Потрачено за {SEGMENTS[seg].toLowerCase()}
             </div>
             <div
               className="whitespace-nowrap font-medium"
@@ -351,15 +415,29 @@ function PeriodHero({ seg, offset, setOffset, data, onAdd, swipe, desktop = fals
                 color: 'var(--text-primary)',
               }}
             >
-              <CountUp value={total} format={fmtShort} />
+              {total === null
+                ? <span aria-label={data.summaryError ? 'Итог недоступен' : 'Итог загружается'}>—</span>
+                : <CountUp key={data.summaryKey} value={total} format={fmtShort} />}
               <span className="text-[0.55em] ml-1" style={{ color: 'var(--text-tertiary)' }}>₽</span>
             </div>
             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
               <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                {count} {plural(count, 'трата', 'траты', 'трат')}
+                {!data.complete && 'Загружено: '}{count} {plural(count, 'трата', 'траты', 'трат')}
               </span>
               {delta !== null && total > 0 && <DeltaPill delta={delta} label={deltaLabel} />}
+              {total === null && !data.summaryError && <span role="status" className="text-[12px]">Считаем итог…</span>}
             </div>
+            {(data.summaryError || data.comparisonError || data.weekError) && (
+              <div className="mt-3 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p role="alert">{data.summaryError
+                  ? `Не удалось загрузить итог: ${data.summaryError}`
+                  : data.comparisonError ? 'Сравнение с предыдущим периодом недоступно.' : 'Не удалось загрузить итоги недели.'}</p>
+                <button type="button" onClick={data.retrySummary}
+                  className="mt-1 rounded px-1 py-1 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2">
+                  Повторить
+                </button>
+              </div>
+            )}
           </div>
 
           {onAdd && !desktop && (
@@ -481,7 +559,7 @@ function WeekStrip({ week, offset, setOffset }) {
  * A titled card of rows. Month/Year groups get a header with the group total
  * and a thin bar showing its share of the whole period.
  */
-function Group({ group, periodTotal, index, children, desktop = false }) {
+function Group({ group, periodTotal, index, children, desktop = false, partial = false }) {
   const share = periodTotal > 0 ? group.total / periodTotal : 0
 
   return (
@@ -502,6 +580,7 @@ function Group({ group, periodTotal, index, children, desktop = false }) {
             </div>
             <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
               {fmtRub(group.total)}
+              {partial && <span className="block text-right text-[10px] font-normal text-muted-foreground">загружено</span>}
             </span>
           </div>
           <div className="mt-2 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border-muted)' }}>
@@ -671,7 +750,7 @@ function ListSkeleton() {
  * while the list scrolls, and the list itself gets a real table shape — time,
  * description, amount in aligned columns — instead of the phone's stacked row.
  */
-function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, onDelete, onEdit }) {
+function DesktopHistory({ pagination, seg, onSeg, offset, setOffset, data, loading, onAdd, onDelete, onEdit }) {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="mx-auto w-full max-w-5xl px-6 pt-8 flex flex-col flex-1 min-h-0">
@@ -716,11 +795,15 @@ function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, o
               {loading ? (
                 <ListSkeleton />
               ) : data.filtered.length === 0 ? (
-                <EmptyState seg={seg} onAdd={onAdd} desktop />
+                data.complete ? <EmptyState seg={seg} onAdd={onAdd} desktop /> : (
+                  <p className="py-8 text-center text-[14px] text-muted-foreground">
+                    В загруженной части истории трат за этот период нет.
+                  </p>
+                )
               ) : (
                 data.groups.map((g, gi) => (
                   <div key={g.key} className="px-3">
-                    <Group group={g} periodTotal={data.total} index={gi} desktop>
+                    <Group group={g} partial={!data.complete} periodTotal={data.total} index={gi} desktop>
                       {g.items.map((t, i) => (
                         <DesktopRow
                           key={t.id} t={t} seg={seg} index={i}
@@ -731,6 +814,9 @@ function DesktopHistory({ seg, onSeg, offset, setOffset, data, loading, onAdd, o
                   </div>
                 ))
               )}
+              <TransactionPagination {...pagination} note={data.complete
+                ? 'Можно загрузить более ранние периоды.'
+                : 'Список трат за период загружен частично. Итог считается по всему периоду.'} />
             </div>
           </section>
         </div>

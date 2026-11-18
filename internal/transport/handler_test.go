@@ -252,28 +252,28 @@ func TestSummary(t *testing.T) {
 		query       string
 		wantSum     int
 		wantUSD     float64
-		summaryFunc func(ctx context.Context, m, y int, userID int, tz string) (int, error)
+		summaryFunc func(ctx context.Context, from, to time.Time, userID int) (int, error)
 		wantStatus  int
 		wantErr     bool
 		errValRate  error
 		returnRate  float64
 	}{
-		{"succes", "?month=6&year=2026", 1000, 10, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"succes", "?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z", 1000, 10, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 1000, nil
 		}, 200, false, nil, 0.01},
-		{"empty year", "?month=6&year=", 1000, 10, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"day range", "?from=2026-06-01T00:00:00Z&to=2026-06-02T00:00:00Z", 1000, 10, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 1000, nil
 		}, 200, false, nil, 0.01},
-		{"invalid month", "?month=abc&year=2026", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"invalid from", "?from=abc&to=2027-01-01T00:00:00Z", 0, 0, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 1000, model.ErrInvalidMonth
 		}, 400, true, nil, 0},
-		{"invalid year", "?month=6&year=abc", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"invalid to", "?from=2026-01-01T00:00:00Z&to=abc", 0, 0, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 1000, model.ErrInvalidMonth
 		}, 400, true, nil, 0},
-		{"api down", "?month=6&year=2026", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"api down", "?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z", 0, 0, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 1000, nil
 		}, 500, true, errors.New("api down"), 0.01},
-		{"summary err", "?month=6&year=2026", 0, 0, func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+		{"summary err", "?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z", 0, 0, func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 			return 0, model.ErrSomething
 		}, 500, true, nil, 0.01},
 	}
@@ -465,7 +465,7 @@ func TestStats(t *testing.T) {
 				DailyTotalFunc: func(ctx context.Context, m int, y int, userID int, tz string) ([]model.DailyExpense, error) {
 					return tt.wantExpDaily, tt.wantErrVal
 				},
-				SummaryFunc: func(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+				SummaryFunc: func(ctx context.Context, from, to time.Time, userID int) (int, error) {
 					cnt += 1
 					if cnt == 1 {
 						return tt.wantSumCurrent, tt.wantErrVal

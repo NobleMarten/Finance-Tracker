@@ -27,14 +27,8 @@ function usePeriods(transactions) {
     w0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7))
     const m0 = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const totals = { month: 0, week: 0, day: 0 }
-    for (const t of transactions) {
-      if (t.ts >= m0) totals.month += t.amount
-      if (t.ts >= w0) totals.week += t.amount
-      if (t.ts >= d0) totals.day += t.amount
-    }
     const sorted = [...transactions].sort((a, b) => b.ts - a.ts)
-    return { totals, sorted, w0, m0 }
+    return { sorted, w0, m0 }
   }, [transactions])
 }
 
@@ -51,11 +45,47 @@ function groupByDay(items) {
 }
 
 export default function Dashboard({
-  transactions, onEdit, onRefresh, onNavigate, onAdd, onOpenProfile, desktop = false,
+  transactions, onEdit, onRefresh, onNavigate, onAdd, onOpenProfile, desktop = false, pagination, summaryRevision,
 }) {
   const [rate, setRate] = useState(null)
   const [period, setPeriod] = useState('month')
   const [weekOpen, setWeekOpen] = useState(false)
+  const [summary, setSummary] = useState(null)
+  const [summaryError, setSummaryError] = useState(null)
+  const [summaryAttempt, setSummaryAttempt] = useState(0)
+
+  // Totals must cover the whole period, independently of the expenses page.
+  // Existing /stats returns daily aggregates, not the full expense history.
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    setSummary(null)
+    setSummaryError(null)
+    const now = new Date()
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
+    const current = api.getStats(now.getMonth() + 1, now.getFullYear(), { signal: controller.signal })
+    const previous = weekStart.getMonth() !== now.getMonth()
+      ? api.getStats(weekStart.getMonth() + 1, weekStart.getFullYear(), { signal: controller.signal })
+      : Promise.resolve(null)
+    Promise.all([current, previous]).then(([month, earlier]) => {
+      if (!active) return
+      const daily = [...(month.daily ?? []), ...(earlier?.daily ?? [])].map(row => {
+        const [year, m, day] = row.date.split('-').map(Number)
+        return { amount: row.amount, ts: new Date(year, m - 1, day) }
+      })
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      setSummary({
+        daily,
+        totals: {
+          month: month.currentmonth,
+          week: daily.filter(t => t.ts >= weekStart).reduce((sum, t) => sum + t.amount, 0),
+          day: daily.filter(t => t.ts >= today && t.ts < new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)).reduce((sum, t) => sum + t.amount, 0),
+        },
+      })
+    }).catch(error => { if (active) setSummaryError(error.message) })
+    return () => { active = false; controller.abort() }
+  }, [summaryRevision, summaryAttempt])
 
   useEffect(() => {
     api.getRate('RUB', 'USD')
@@ -63,7 +93,7 @@ export default function Dashboard({
       .catch(() => setRate(null))
   }, [])
 
-  const { totals, sorted, w0, m0 } = usePeriods(transactions)
+  const { sorted, w0, m0 } = usePeriods(transactions)
   const weekTx = useMemo(() => sorted.filter(t => t.ts >= w0).slice(0, 8), [sorted, w0])
   const recentGroups = useMemo(() => groupByDay(sorted.slice(0, desktop ? 12 : 8)), [sorted, desktop])
 
@@ -75,7 +105,8 @@ export default function Dashboard({
     setWeekOpen(false)
   }
 
-  const value = totals[period]
+  const displayedTotals = summary?.totals
+  const value = displayedTotals?.[period] ?? null
 
   // Actions, not destinations: История / Статистика live in the nav already,
   // and so does the plain «+» — no «Добавить» tile here.
@@ -102,10 +133,12 @@ export default function Dashboard({
       weekOpen={weekOpen && !desktop}
       weekTx={weekTx}
       onEdit={onEdit}
+      summaryError={summaryError}
+      onRetrySummary={() => setSummaryAttempt(value => value + 1)}
       value={value}
       usd={fmtUsd(value, rate)}
       actions={actions}
-      sparkline={period === 'month' ? <MonthSparkline transactions={transactions} monthStart={m0} height={desktop ? 64 : 48} /> : null}
+      sparkline={period === 'month' && summary ? <MonthSparkline transactions={summary.daily} monthStart={m0} height={desktop ? 64 : 48} /> : null}
     />
   )
 
@@ -117,6 +150,7 @@ export default function Dashboard({
             {hero}
             <section className="rounded-2xl bg-card px-6 pb-4 pt-5 shadow-soft">
               <RecentHeader onAll={() => onNavigate?.(1)} />
+              {pagination.hasMore && <p className="mb-3 text-[12px] text-muted-foreground">Более ранние траты можно загрузить в истории.</p>}
               <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
             </section>
           </div>
@@ -124,14 +158,14 @@ export default function Dashboard({
             <section className="rounded-2xl bg-card px-5 pb-3 pt-5 shadow-soft">
               <div className="mb-2 flex items-baseline justify-between">
                 <h2 className="text-[17px] font-bold tracking-tight">На этой неделе</h2>
-                <span className="text-[13px] font-semibold tabular-nums text-muted-foreground">{fmtRub(totals.week)}</span>
+                <span className="text-[13px] font-semibold tabular-nums text-muted-foreground">{displayedTotals ? fmtRub(displayedTotals.week) : '—'}</span>
               </div>
               <WeekList items={weekTx} onEdit={onEdit} />
             </section>
             <section className="rounded-2xl bg-card p-5 shadow-soft">
               <div className="text-[12px] font-semibold text-muted-foreground">Сегодня</div>
-              <div className="mt-1 text-[26px] font-semibold tracking-tight tabular-nums">{fmtRub(totals.day)}</div>
-              <div className="mt-0.5 h-4 text-[12px] text-muted-foreground">{fmtUsd(totals.day, rate) ? `≈ ${fmtUsd(totals.day, rate)}` : ''}</div>
+              <div className="mt-1 text-[26px] font-semibold tracking-tight tabular-nums">{displayedTotals ? fmtRub(displayedTotals.day) : '—'}</div>
+              <div className="mt-0.5 h-4 text-[12px] text-muted-foreground">{displayedTotals && fmtUsd(displayedTotals.day, rate) ? `≈ ${fmtUsd(displayedTotals.day, rate)}` : ''}</div>
             </section>
           </aside>
         </div>
@@ -145,6 +179,7 @@ export default function Dashboard({
       {/* White sheet, tucked under the header's bottom edge. */}
       <section className="sheet-flow relative -mt-7 flex-1 rounded-t-[28px] bg-card px-5 pt-6">
         <RecentHeader onAll={() => onNavigate?.(1)} />
+        {pagination.hasMore && <p className="mb-3 text-[12px] text-muted-foreground">Более ранние траты можно загрузить в истории.</p>}
         <RecentList groups={recentGroups} onEdit={onEdit} onAdd={() => onAdd?.()} />
         {/* Clearance for the floating nav, and the fade under it: at the end of
             the list this is plain white space below the last row; mid-scroll it
@@ -167,7 +202,7 @@ export default function Dashboard({
 
 function Hero({
   desktop, period, onSelect, weekOpen, weekTx, onEdit,
-  value, usd, actions, sparkline,
+  value, usd, actions, sparkline, summaryError, onRetrySummary,
 }) {
   return (
     <header
@@ -210,12 +245,18 @@ function Hero({
 
       {/* Big amount */}
       <div className="mt-6">
+        {summaryError && <div className="mb-3 text-[12px] text-white/80">
+          <p role="alert">Не удалось загрузить итог: {summaryError}</p>
+          <button type="button" onClick={onRetrySummary} className="mt-1 rounded px-1 py-1 font-semibold underline">Повторить</button>
+        </div>}
         <div
           className="whitespace-nowrap font-semibold leading-none tracking-[-0.03em] tabular-nums"
           style={{ fontSize: scaledFontSize(value, desktop ? 52 : 44, 28, 8) }}
           aria-live="polite"
         >
-          <NumberTicker value={value} format={fmtRub} />
+          {value === null
+            ? <span aria-label={summaryError ? 'Итог недоступен' : 'Итог загружается'}>— ₽</span>
+            : <NumberTicker value={value} format={fmtRub} />}
         </div>
         <div className="mt-2 h-4 text-[13px] font-medium tabular-nums text-white/55">{usd ? `≈ ${usd}` : ''}</div>
       </div>

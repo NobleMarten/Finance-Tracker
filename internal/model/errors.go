@@ -3,6 +3,9 @@ package model
 import "errors"
 
 var (
+	ErrInvalidAmountFilter = errors.New("min_amount must be a non-negative integer")
+	ErrInvalidDateRange    = errors.New("from and to must be valid RFC3339 timestamps, with from before to")
+	ErrInvalidTimezone     = errors.New("invalid timezone")
 	ErrEmptyTitle          = errors.New("title is empty")
 	ErrNegativeAmount      = errors.New("amount is negative")
 	ErrInvalidID           = errors.New("invalid id")
@@ -32,4 +35,6 @@ var (
 	ErrQuickAddNoAmount    = errors.New("no amount")
 	ErrTokenAuthNotAllowed = errors.New("token auth is not allowed for this operation")
 	ErrRateUnavailable     = errors.New("rate is unavailable")
+	ErrInvalidSpentAt      = errors.New("invalid date")
+	ErrInvalidCursor       = errors.New("invalid cursor elements")
 )

@@ -19,7 +19,14 @@ import { dayLabel, todayInput } from './utils/date'
 
 export default function App() {
   const [screen, setScreen] = useState(0)
-  const { transactions, loading, error, add, update, remove, refresh } = useTransactions()
+  const {
+    transactions, loading, error, add, update, remove, refresh,
+    nextCursor, hasMore, historyReady, refreshing, loadingMore, moreError, loadMore, summaryRevision,
+  } = useTransactions()
+  const pagination = {
+    count: transactions.length, hasMore, ready: historyReady,
+    refreshing, loadingMore, error: moreError, onLoadMore: loadMore,
+  }
   const [toast, setToast] = useState(null)
   const [editingExpense, setEditingExpense] = useState(null)
   // The add form is a sheet over whatever screen you are on, so a successful
@@ -112,6 +119,8 @@ export default function App() {
       {screen === 0 && (
         <Dashboard
           transactions={transactions}
+          pagination={pagination}
+          summaryRevision={summaryRevision}
           onEdit={setEditingExpense}
           onRefresh={refresh}
           onNavigate={navigate}
@@ -122,7 +131,10 @@ export default function App() {
       )}
       {screen === 1 && (
         <History
+          summaryRevision={summaryRevision}
           transactions={transactions}
+          pagination={pagination}
+          nextCursor={nextCursor}
           loading={loading}
           onDelete={handleDelete}
           onEdit={setEditingExpense}
@@ -136,7 +148,7 @@ export default function App() {
       {screen === 3 && (
         <Stats
           onAddExpense={openAdd}
-          transactions={transactions}
+          summaryRevision={summaryRevision}
           onEdit={setEditingExpense}
           desktop={isDesktop}
         />

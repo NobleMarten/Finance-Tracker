@@ -3,9 +3,12 @@ import { MONTHS_GEN } from '../utils/months'
 import CountUp from './CountUp'
 import ResponsiveSheet from './ResponsiveSheet'
 import { avatarColor } from '../utils/avatar'
+import { useExpensePage } from '../hooks/useExpensePage'
+import TransactionPagination from './TransactionPagination'
+import { Button } from './ui/button'
 
 /**
- * Drill-down over the Stats area listing an arbitrary set of the month's
+ * Drill-down over the Stats area listing a filtered page of the month's
  * expenses — one repeated purchase ("Coffee ×12") or the month's large ones.
  * Same shell as DayDetail: a bottom sheet on the phone, a dialog on desktop.
  *
@@ -15,16 +18,15 @@ import { avatarColor } from '../utils/avatar'
  * - `shareOf`: month total; when set, each row shows its share of it as a bar
  */
 export default function ExpenseListDetail({
-  title, subtitle, items, figures = [], note, strip, shareOf,
-  sortBy = 'date', onEdit, onClose,
+  title, subtitle, filter, summaryRevision, total, count, figures = [], note, strip, shareOf,
+  action, onEdit, onClose,
 }) {
-  const rows = [...items].sort(sortBy === 'amount'
-    ? (a, b) => b.amount - a.amount
-    : (a, b) => b.ts - a.ts)
-  const total = rows.reduce((s, t) => s + t.amount, 0)
-
+  const page = useExpensePage(filter, summaryRevision)
+  const rows = page.items
   const perDay = new Map()
-  if (strip) for (const t of rows) perDay.set(t.ts.getDate(), (perDay.get(t.ts.getDate()) ?? 0) + 1)
+  for (const day of strip?.daily ?? []) {
+    perDay.set(Number(day.date.split('-')[2]), day.count)
+  }
 
   return (
     <ResponsiveSheet
@@ -36,7 +38,10 @@ export default function ExpenseListDetail({
     >
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex-shrink-0 px-5 pb-3 pt-4 lg:pr-14 lg:pt-6">
-        <div className="truncate text-[18px] font-bold tracking-tight">{title}</div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="truncate text-[18px] font-bold tracking-tight">{title}</div>
+          {action}
+        </div>
         {subtitle && <div className="text-[12px] font-medium text-muted-foreground">{subtitle}</div>}
       </div>
 
@@ -48,8 +53,9 @@ export default function ExpenseListDetail({
             className="mt-1 whitespace-nowrap font-semibold tracking-[-0.03em]"
             style={{ fontSize: scaledFontSize(total, 34, 22, 7), lineHeight: 1.15 }}
           >
-            <CountUp value={total} format={fmtShort} /> ₽
+            {total === null ? <span aria-label="Итог загружается">—</span> : <CountUp value={total} format={fmtShort} />} ₽
           </div>
+          {count !== null && count !== undefined && <p className="mt-1 text-[12px] text-muted-foreground">Операций: {count}</p>}
           {note && (
             <div className="text-[12px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
               {note}
@@ -85,7 +91,12 @@ export default function ExpenseListDetail({
 
         {/* Expense list */}
         <div className="mx-4 rounded-2xl bg-card px-4 py-1 shadow-soft">
-          {rows.length === 0 ? (
+          {page.loading ? <p role="status" className="py-8 text-center text-[13px] text-muted-foreground">Загружаем траты…</p>
+          : page.error && !page.loaded ? <div className="py-6 text-center">
+              <p role="alert" className="mb-3 text-[13px] text-destructive">{page.error}</p>
+              <Button type="button" variant="outline" onClick={page.retry}>Повторить</Button>
+            </div>
+          : rows.length === 0 ? (
             <p className="text-[13px] pt-6 text-center" style={{ color: 'var(--text-tertiary)' }}>
               В этом месяце здесь пусто
             </p>
@@ -142,6 +153,12 @@ export default function ExpenseListDetail({
             )
           })}
         </div>
+        <TransactionPagination
+          count={rows.length} ready={page.loaded} hasMore={page.hasMore}
+          loadingMore={page.loadingMore} error={page.error} onLoadMore={page.loadMore}
+          note="Остальные операции можно загрузить следующей страницей."
+          completeNote="Все операции этого списка загружены."
+        />
       </div>
     </div>
     </ResponsiveSheet>
