@@ -7,7 +7,10 @@ import (
 )
 
 type MockRepo struct {
-	expenses []model.Expense
+	DailyRangeFunc       func(ctx context.Context, from, to time.Time, userID int, tz string) ([]model.DailyAggregate, error)
+	AnalyticsFunc        func(ctx context.Context, month, year, userID int, tz string) (model.Analytics, error)
+	FilteredExpensesFunc func(ctx context.Context, userID, limit int, cursor *model.Cursor, filter model.ExpenseFilter) (model.ResultPaginate, error)
+	expenses             []model.Expense
 }
 
 func (m *MockRepo) Add(ctx context.Context, amount int, title string, userID int, spentAt *time.Time) (model.Expense, error) {
@@ -81,25 +84,14 @@ func (m *MockRepo) Update(ctx context.Context, id int, amount *int, title *strin
 	return model.Expense{}, model.ErrNotFound
 }
 
-func (m *MockRepo) Summary(ctx context.Context, mo int, y int, userID int, tz string) (int, error) {
-	if mo == 0 {
-		var sum int
-		for _, exp := range m.expenses {
-			if exp.UserID != nil && *exp.UserID != userID {
-				continue
-			}
+func (m *MockRepo) Summary(ctx context.Context, from, to time.Time, userID int) (int, error) {
+	var sum int
+	for _, exp := range m.expenses {
+		if exp.UserID != nil && *exp.UserID == userID && !exp.SpentAt.Before(from) && exp.SpentAt.Before(to) {
 			sum += exp.Amount
 		}
-		return sum, nil
-	} else {
-		var sum int
-		for _, exp := range m.expenses {
-			if exp.CreatedAt.Month() == time.Month(mo) && (exp.UserID == nil || *exp.UserID == userID) {
-				sum += exp.Amount
-			}
-		}
-		return sum, nil
 	}
+	return sum, nil
 }
 
 func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int, tz string) ([]model.DailyExpense, error) {
@@ -117,4 +109,19 @@ func (m *MockRepo) DailyTotal(ctx context.Context, mo int, y int, userID int, tz
 
 func (m *MockRepo) TopExpenses(ctx context.Context, mo, y int, limit int, userID int, tz string) ([]model.Expense, error) {
 	return nil, nil
+}
+
+func (m *MockRepo) Paginate(ctx context.Context, userID int, limit int, cursor *model.Cursor) (res model.ResultPaginate, err error) {
+	return model.ResultPaginate{}, nil
+}
+
+func (m *MockRepo) Analytics(ctx context.Context, month, year, userID int, tz string) (model.Analytics, error) {
+	return m.AnalyticsFunc(ctx, month, year, userID, tz)
+}
+func (m *MockRepo) FilteredExpenses(ctx context.Context, userID, limit int, cursor *model.Cursor, filter model.ExpenseFilter) (model.ResultPaginate, error) {
+	return m.FilteredExpensesFunc(ctx, userID, limit, cursor, filter)
+}
+
+func (m *MockRepo) DailyRange(ctx context.Context, from, to time.Time, userID int, tz string) ([]model.DailyAggregate, error) {
+	return m.DailyRangeFunc(ctx, from, to, userID, tz)
 }

@@ -1,109 +1,183 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/api'
 import { cacheGet, cacheSet } from '../utils/cache'
 import { toSpentAt, toSpentAtKeepingTime, todayInput } from '../utils/date'
 
-const CACHE_KEY = 'transactions'
-
-// The API never returns an empty title: the service stores a blank one as the
-// literal "Untitled". Map it back to "no description" so the UI can show its
-// own placeholder and so it is never offered as a title to repeat.
-const SERVER_BLANK_TITLE = 'Untitled'
-
-/**
- * `spent_at` is when the money left the wallet, `created_at` is when the row was
- * written. Everything user-facing sorts and groups by the former; the fallback
- * keeps cached payloads from before the field existed readable.
- */
+// Store rows and their continuation together; the old unpaginated cache cannot
+// tell us where to resume. Never reuse it as a complete history.
+const CACHE_KEY = 'transactions-pages-v1'
+const PAGE_SIZE = 20
 const normalize = (t) => {
   const title = t.title ?? t.description ?? ''
   return {
     ...t,
-    description: title === SERVER_BLANK_TITLE ? '' : title,
+    description: title === 'Untitled' ? '' : title,
     ts: new Date(t.spent_at ?? t.created_at),
   }
 }
 
-/** Newest spend first. Backdated rows arrive out of order, so we can't trust insertion order. */
-const byNewest = (list) => [...list].sort((a, b) => b.ts - a.ts)
+function readPage(data) {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Сервер вернул некорректный список трат')
+  }
+  const rows = Object.hasOwn(data, 'expense') ? data.expense : data.items
+  if (rows !== null && !Array.isArray(rows)) {
+    throw new Error('Сервер вернул некорректный список трат')
+  }
+  const cursor = data.next_cursor ?? null
+  if (cursor && (!Number.isInteger(cursor.id) || cursor.id <= 0 || typeof cursor.spent_at !== 'string')) {
+    throw new Error('Сервер вернул некорректный курсор')
+  }
+  return { items: (rows ?? []).map(normalize), nextCursor: cursor }
+}
 
 export function useTransactions() {
-  // Hydrate instantly from the last cached list (re-normalize so `ts` is a Date
-  // again after the JSON round-trip). No spinner when we already have data.
-  const [transactions, setTransactions] = useState(() => {
+  const [page, setPage] = useState(() => {
     const cached = cacheGet(CACHE_KEY)
-    return cached ? byNewest(cached.map(normalize)) : []
-  })
-  const [loading, setLoading] = useState(() => !cacheGet(CACHE_KEY))
-  const [error, setError] = useState(null)
-
-  const persist = (items) => cacheSet(CACHE_KEY, items)
-
-  const load = useCallback(async () => {
-    try {
-      setError(null)
-      const data = await api.getTransactions()
-      // Backend returns { items: [...], total: N }. An empty list may come as
-      // `items: null` (Go nil slice) — `??` would then fall back to the whole
-      // object, so check for an array explicitly.
-      const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []
-      const next = byNewest(items.map(normalize))
-      setTransactions(next)
-      persist(next)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
+    return {
+      items: Array.isArray(cached?.items) ? cached.items.map(normalize) : [],
+      nextCursor: cached?.nextCursor ?? null,
+      ready: false,
     }
+  })
+  const [refreshing, setRefreshing] = useState(true)
+  const [summaryRevision, setSummaryRevision] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState(null)
+  const [moreError, setMoreError] = useState(null)
+  const pageRef = useRef(page)
+  const request = useRef(null)
+  const generation = useRef(0)
+  const mutating = useRef(0)
+  const mounted = useRef(false)
+
+  const commit = useCallback((next) => {
+    pageRef.current = next
+    setPage(next)
+    cacheSet(CACHE_KEY, { items: next.items, nextCursor: next.nextCursor })
   }, [])
 
-  useEffect(() => { load() }, [load])
+  const load = useCallback(async () => {
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
+    const version = ++generation.current
+    setRefreshing(true)
+    setSummaryRevision(value => value + 1)
+    setLoadingMore(false)
+    setError(null)
+    setMoreError(null)
+    try {
+      const data = await api.getTransactions({ limit: PAGE_SIZE, signal: controller.signal })
+      if (version !== generation.current || controller.signal.aborted) return
+      commit({ ...readPage(data), ready: true })
+    } catch (e) {
+      if (version === generation.current && !controller.signal.aborted) setError(e.message)
+    } finally {
+      if (version === generation.current) {
+        request.current = null
+        setRefreshing(false)
+      }
+    }
+  }, [commit])
+
+  const loadMore = useCallback(async () => {
+    const current = pageRef.current
+    if (request.current || mutating.current || !current.ready || !current.nextCursor) return
+    const controller = new AbortController()
+    request.current = controller
+    const version = generation.current
+    setLoadingMore(true)
+    setMoreError(null)
+    try {
+      const data = await api.getTransactions({
+        limit: PAGE_SIZE, cursor: current.nextCursor, signal: controller.signal,
+      })
+      if (version !== generation.current || controller.signal.aborted) return
+      const next = readPage(data)
+      if (next.nextCursor && next.nextCursor.id === current.nextCursor.id &&
+          next.nextCursor.spent_at === current.nextCursor.spent_at) {
+        throw new Error('Не удалось перейти к следующей странице. Обновите историю.')
+      }
+      // Rows may overlap when the history is changed between requests.
+      const seen = new Set(current.items.map(t => t.id))
+      const added = next.items.filter(t => {
+        if (seen.has(t.id)) return false
+        seen.add(t.id)
+        return true
+      })
+      commit({ items: [...current.items, ...added], nextCursor: next.nextCursor, ready: true })
+    } catch (e) {
+      if (version === generation.current && !controller.signal.aborted) setMoreError(e.message)
+    } finally {
+      if (version === generation.current) {
+        request.current = null
+        setLoadingMore(false)
+      }
+    }
+  }, [commit])
+
+  useEffect(() => {
+    mounted.current = true
+    load()
+    return () => {
+      mounted.current = false
+      ++generation.current
+      request.current?.abort()
+      request.current = null
+    }
+  }, [load])
+
+  // Changing spent_at can move a row across the cursor. After a mutation start
+  // a fresh traversal rather than continuing with an obsolete page boundary.
+  const mutate = async (action, apply) => {
+    ++mutating.current
+    ++generation.current
+    request.current?.abort()
+    request.current = null
+    setLoadingMore(false)
+    try {
+      const result = await action()
+      if (!mounted.current) return
+      const current = pageRef.current
+      commit({ ...current, items: apply(current.items, result), ready: false })
+    } finally {
+      --mutating.current
+      if (mounted.current) await load()
+    }
+  }
 
   const add = async (payload) => {
     const body = { title: payload.description || '', amount: payload.amount }
-    // Only backdated adds carry a timestamp — for "today" the server's own now()
-    // stays authoritative instead of inheriting a skewed client clock.
-    if (payload.date && payload.date !== todayInput()) {
-      body.spent_at = toSpentAt(payload.date)
-    }
-    const created = await api.addTransaction(body)
-    setTransactions(prev => {
-      const next = byNewest([normalize(created), ...prev])
-      persist(next)
-      return next
-    })
+    if (payload.date && payload.date !== todayInput()) body.spent_at = toSpentAt(payload.date)
+    await mutate(() => api.addTransaction(body), (items, created) => [normalize(created), ...items])
   }
 
   const update = async (id, payload) => {
     const body = {}
     if (payload.description !== undefined) body.title = payload.description
     if (payload.amount !== undefined) body.amount = payload.amount
-    // Absent means "leave the date alone" — the backend COALESCEs a null spent_at.
-    // `baseTs` carries the expense's current timestamp so only the day moves.
     if (payload.date !== undefined) {
       body.spent_at = payload.baseTs
         ? toSpentAtKeepingTime(payload.date, payload.baseTs)
         : toSpentAt(payload.date)
     }
-
-    // We only send patching to backend, but backend returns the updated full expense
-    const updated = await api.updateTransaction(id, body)
-
-    setTransactions(prev => {
-      const next = byNewest(prev.map(t => (t.id === id ? normalize(updated) : t)))
-      persist(next)
-      return next
-    })
+    await mutate(() => api.updateTransaction(id, body), (items, updated) =>
+      items.map(t => t.id === id ? normalize(updated) : t))
   }
 
   const remove = async (id) => {
-    await api.deleteTransaction(id)
-    setTransactions(prev => {
-      const next = prev.filter(t => t.id !== id)
-      persist(next)
-      return next
-    })
+    await mutate(() => api.deleteTransaction(id), items => items.filter(t => t.id !== id))
   }
 
-  return { transactions, loading, error, add, update, remove, refresh: load }
+  return {
+    transactions: page.items,
+    summaryRevision,
+    nextCursor: page.nextCursor,
+    hasMore: Boolean(page.nextCursor),
+    historyReady: page.ready,
+    loading: refreshing && page.items.length === 0,
+    refreshing, loadingMore, error, moreError,
+    add, update, remove, refresh: load, loadMore,
+  }
 }

@@ -96,19 +96,13 @@ func (p *PostgresRepo) Clear(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (p *PostgresRepo) Summary(ctx context.Context, m, y int, userID int, tz string) (int, error) {
+func (p *PostgresRepo) Summary(ctx context.Context, from, to time.Time, userID int) (int, error) {
+	const query = `SELECT COALESCE(SUM(amount), 0)
+        FROM expenses
+        WHERE user_id = $1 AND spent_at >= $2 AND spent_at < $3`
 	var summary int
-
-	if m == 0 {
-		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses where user_id = $1", userID)
-		if err := row.Scan(&summary); err != nil {
-			return 0, err
-		}
-	} else {
-		row := p.DB.QueryRow("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = $3 AND "+monthRange, m, y, userID, tz)
-		if err := row.Scan(&summary); err != nil {
-			return 0, err
-		}
+	if err := p.DB.QueryRowContext(ctx, query, userID, from, to).Scan(&summary); err != nil {
+		return 0, err
 	}
 	return summary, nil
 }
@@ -153,4 +147,8 @@ func (p *PostgresRepo) TopExpenses(ctx context.Context, m, y int, limit int, use
 		return nil, err
 	}
 	return expenses, nil
+}
+
+func (p *PostgresRepo) Paginate(ctx context.Context, userID int, limit int, cursor *model.Cursor) (model.ResultPaginate, error) {
+	return p.FilteredExpenses(ctx, userID, limit, cursor, model.ExpenseFilter{})
 }

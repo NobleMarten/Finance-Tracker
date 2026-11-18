@@ -187,7 +187,23 @@ export const authApi = {
 }
 
 export const api = {
-  getTransactions: () => req('/api/expenses'),
+  getTransactions: ({ limit = 20, cursor = null, signal, from, to, title, minAmount } = {}) => {
+    const query = new URLSearchParams({ limit: String(limit) })
+    if (from) query.set('from', from)
+    if (to) query.set('to', to)
+    if (title !== undefined) query.set('title', title)
+    if (minAmount !== undefined) query.set('min_amount', String(minAmount))
+    if (cursor) {
+      query.set('cursor_id', String(cursor.id))
+      // Keep the original timestamp, including PostgreSQL's microseconds.
+      query.set('cursor_spent_at', cursor.spent_at)
+    }
+    return req(`/api/expenses?${query}`, { signal })
+  },
+  getSummary: (from, to, { signal } = {}) => {
+    const query = new URLSearchParams({ from, to })
+    return req(`/api/expenses/summary?${query}`, { signal })
+  },
   addTransaction: (data) =>
     req('/api/expenses', { method: 'POST', body: JSON.stringify(data) }),
   deleteTransaction: (id) =>
@@ -196,9 +212,19 @@ export const api = {
     req(`/api/expenses/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   getRate: (from = 'RUB', to = 'USD') =>
     req(`/api/rate?from=${from}&to=${to}`),
-  getStats: (month, year) => {
+  getDailyTotals: (from, to, { signal } = {}) => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    return req(`/api/stats?month=${month}&year=${year}&limit=3&tz=${encodeURIComponent(tz)}`)
+    const query = new URLSearchParams({ from, to, tz })
+    return req(`/api/expenses/daily?${query}`, { signal })
+  },
+  getAnalytics: (month, year, { signal } = {}) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const query = new URLSearchParams({ month: String(month), year: String(year), tz })
+    return req(`/api/analytics?${query}`, { signal })
+  },
+  getStats: (month, year, { signal } = {}) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return req(`/api/stats?month=${month}&year=${year}&limit=3&tz=${encodeURIComponent(tz)}`, { signal })
   },
 }
 

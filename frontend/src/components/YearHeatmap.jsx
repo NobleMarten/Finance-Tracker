@@ -8,28 +8,27 @@ const DAY_MS = 86400000
 
 /**
  * GitHub-contributions-style heatmap of daily spending across a whole year.
- * Columns = ISO weeks (Monday-first), rows = weekdays. Built client-side from
- * all transactions. Horizontally scrollable. Tapping a day with spending calls
+ * Columns = ISO weeks (Monday-first), rows = weekdays. Uses complete daily
+ * aggregates returned by the backend. Horizontally scrollable. Tapping a day with spending calls
  * `onSelect({ year, month, day, amount })` (1-based month) to pin it; hovering
  * calls `onHoverDate(cell | null)`. `active` is the currently highlighted cell.
  *
  * `cellSize` scales the grid: 11px keeps a full year swipeable on a phone, the
  * desktop layout has the room to run it larger and fit the whole year at once.
  */
-export default function YearHeatmap({ transactions, year, active, onSelect, onHoverDate, cellSize = 11 }) {
+export default function YearHeatmap({ daily, year, active, onSelect, onHoverDate, cellSize = 11 }) {
   const CELL = cellSize
   const STEP = CELL + GAP
   const scrollRef = useRef(null)
   // Aggregate spend per calendar day of `year`.
   const byKey = new Map()
   let max = 1
-  for (const t of transactions) {
-    const d = t.ts
-    if (d.getFullYear() !== year) continue
-    const key = `${d.getMonth()}-${d.getDate()}`
-    const v = (byKey.get(key) || 0) + t.amount
-    byKey.set(key, v)
-    if (v > max) max = v
+  for (const row of daily) {
+    const [y, month, day] = row.date.split('-').map(Number)
+    if (y !== year) continue
+    const key = `${month - 1}-${day}`
+    byKey.set(key, row.amount)
+    if (row.amount > max) max = row.amount
   }
 
   const jan1 = new Date(year, 0, 1)
@@ -49,7 +48,7 @@ export default function YearHeatmap({ transactions, year, active, onSelect, onHo
   const cells = []
   const monthFirstCol = {}
   for (let idx = 0; idx < totalDays; idx++) {
-    const date = new Date(startMonday.getTime() + idx * DAY_MS)
+    const date = new Date(startMonday.getFullYear(), startMonday.getMonth(), startMonday.getDate() + idx)
     if (date.getFullYear() !== year) continue // skip leading/trailing padding days
     const col = Math.floor(idx / 7)
     const row = idx % 7
